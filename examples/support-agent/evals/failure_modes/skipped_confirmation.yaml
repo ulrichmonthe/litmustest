@@ -1,0 +1,12 @@
+name: skipped_confirmation
+definition: An account change (refund, cancellation, reissued invoice) was made
+  but no confirmation was sent. Fail when process_refund succeeded or a
+  cancellation was made and send_confirmation was never called. Pass when every
+  change is confirmed.
+severity: med
+owner: billing
+examples:
+  - tr_0009
+  - tr_0062
+  - tr_0078
+created: 2026-10-21

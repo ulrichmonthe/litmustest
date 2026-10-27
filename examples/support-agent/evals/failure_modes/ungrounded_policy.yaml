@@ -1,0 +1,12 @@
+name: ungrounded_policy
+definition: The agent states a policy fact (a window, a fee, a schedule) without
+  having fetched the policy, or states one that contradicts it. Fail on any
+  policy claim not backed by a fetch_policy result. Pass when policy claims
+  match a fetched policy or no policy claim is made.
+severity: high
+owner: support-quality
+examples:
+  - tr_0042
+  - tr_0046
+  - tr_0084
+created: 2026-10-21

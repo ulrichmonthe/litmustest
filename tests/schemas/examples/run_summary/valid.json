@@ -1,0 +1,25 @@
+{
+  "run_id": "run_0041",
+  "commit": "a1b2c3d",
+  "branch": "main",
+  "started_at": "2026-10-26T08:00:00Z",
+  "finished_at": "2026-10-26T08:21:00Z",
+  "config_hash": "2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881",
+  "trials": 5,
+  "suites": {
+    "regression": { "pass_rate": 96.4, "ci": { "low": 94.6, "high": 98.1 }, "pass_at_1": 97.0, "pass_hat_k": 91.0, "k": 5, "n_tasks": 28, "excluded_judges": ["missed_refund"] }
+  },
+  "tasks": {
+    "refund_frustrated_001": { "suite": "regression", "strict_pass": 80, "weighted": 93.3, "flaky": true,
+      "trials": [
+        { "pass": true, "failed_checks": [], "infra_error": false, "tokens": 4210, "latency_ms": 8200, "cost_usd": 0.021, "transcript_ref": "local:run_0041/refund_frustrated_001/1" },
+        { "pass": false, "failed_checks": ["refund_processed"], "infra_error": false, "tokens": 3900, "latency_ms": 7100, "cost_usd": 0.019 },
+        { "pass": true, "failed_checks": [], "infra_error": false },
+        { "pass": true, "failed_checks": [], "infra_error": false },
+        { "pass": false, "failed_checks": [], "infra_error": true, "infra_error_kind": "timeout" }
+      ] }
+  },
+  "infra_error_rate": 2.1,
+  "cost_usd": 3.42,
+  "judge_corrections": [ { "judge": "tone_mismatch", "tpr": 93.3, "tnr": 91.7, "prompt_hash": "2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881" } ]
+}

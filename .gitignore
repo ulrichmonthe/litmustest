@@ -3,3 +3,7 @@ dist/
 .DS_Store
 evals/runs/transcripts/
 .litmustest/
+packages/cli/schemas/
+*.tsbuildinfo
+examples/support-agent/environments/seed.sqlite
+examples/support-agent/.litmustest/

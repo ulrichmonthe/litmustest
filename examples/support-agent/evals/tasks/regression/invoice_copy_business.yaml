@@ -1,0 +1,43 @@
+id: invoice_copy_business
+suite: regression
+source: trace:tr_0004
+description: business customer, invoice copy.
+input:
+  persona: business
+  from: billing@ramanlabs.com
+  message: Please send a copy of the September invoice to billing@ramanlabs.com.
+  goal: I've sent the September invoice (inv_1003_a, $149
+reference_solution: refs/invoice_copy_business.json
+trials: 5
+checks:
+  - id: end_state
+    type: outcome
+    backend: sql
+    expect:
+      refunds.count: 0
+      confirmations.sent: 1
+    weight: 3
+  - id: identity_first
+    type: code
+    fn: graders/code/identity_verified_first.py
+    weight: 2
+    failure_mode: identity_leak
+  - id: bounded
+    type: transcript
+    path_check: true
+    max_toolcalls: 5
+    required_tools:
+      - verify_identity
+    failure_mode: over_searching
+  - id: tone
+    type: judge
+    failure_mode: tone_mismatch
+    weight: 1
+report:
+  - strict_pass
+  - weighted_score
+  - pass_at_k
+  - pass_hat_k
+tags:
+  - invoice_copy
+  - business

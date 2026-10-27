@@ -1,0 +1,9 @@
+{
+  "judge": "tone_mismatch",
+  "prompt_hash": "2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881",
+  "model": "claude-sonnet-4-5-20250929",
+  "splits": { "train": { "trace_ids": [], "hash": "2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881" }, "dev": { "trace_ids": [], "hash": "2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881" }, "test": { "trace_ids": [], "hash": "2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881" } },
+  "dev": { "runs": [] },
+  "test": null,
+  "status": "stale"
+}

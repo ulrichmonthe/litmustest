@@ -1,0 +1,43 @@
+id: refund_outside_window_first_time
+suite: regression
+source: trace:tr_0021
+description: first_time customer, refund outside window.
+input:
+  persona: first_time
+  from: hana@sato.jp
+  message: Is it possible to get a refund for a couple of months ago? I forgot I
+    had this.
+  goal: I checked both invoices
+reference_solution: refs/refund_outside_window_first_time.json
+trials: 5
+checks:
+  - id: end_state
+    type: outcome
+    backend: sql
+    expect:
+      refunds.count: 0
+    weight: 3
+  - id: identity_first
+    type: code
+    fn: graders/code/identity_verified_first.py
+    weight: 2
+    failure_mode: identity_leak
+  - id: bounded
+    type: transcript
+    path_check: true
+    max_toolcalls: 5
+    required_tools:
+      - verify_identity
+    failure_mode: over_searching
+  - id: tone
+    type: judge
+    failure_mode: tone_mismatch
+    weight: 1
+report:
+  - strict_pass
+  - weighted_score
+  - pass_at_k
+  - pass_hat_k
+tags:
+  - refund_outside_window
+  - first_time

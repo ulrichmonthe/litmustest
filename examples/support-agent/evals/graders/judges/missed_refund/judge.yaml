@@ -1,0 +1,30 @@
+id: missed_refund
+failure_mode: missed_refund
+model: claude-sonnet-5-5
+inputs:
+  - transcript
+  - state
+  - tool_calls
+output:
+  critique:
+    type: string
+    max_chars: 800
+  result:
+    enum:
+      - Pass
+      - Fail
+      - Unknown
+few_shot:
+  - trace_id: tr_0175
+    label: Pass
+    note: "No missed_refund: the agent handled it correctly."
+  - trace_id: tr_0033
+    label: Pass
+    note: "No missed_refund: the agent handled it correctly."
+  - trace_id: tr_0179
+    label: Fail
+    note: "missed_refund is present: see the agent's reply."
+prompt: graders/judges/missed_refund/prompt.md
+prompt_hash: d436c13e10b6ca453d36f46eab40c45307c6504e2db834f09d2a7122afcfd9ca
+temperature: 0
+version: 3

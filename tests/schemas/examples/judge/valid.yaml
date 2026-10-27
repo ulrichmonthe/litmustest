@@ -1,0 +1,14 @@
+id: tone_mismatch
+failure_mode: tone_mismatch
+model: claude-sonnet-4-5-20250929
+inputs: [transcript, input]
+output:
+  critique: { type: string, max_chars: 800 }
+  result: { enum: [Pass, Fail, Unknown] }
+few_shot:
+  - { trace_id: tr_0012, label: Fail, note: "Breezy 'no worries!' to a customer who said they were furious." }
+  - { trace_id: tr_0040, label: Pass, note: "Matched the customer's formal register." }
+prompt: graders/judges/tone_mismatch/prompt.md
+prompt_hash: 2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881
+temperature: 0
+version: 2

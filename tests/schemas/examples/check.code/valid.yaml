@@ -1,0 +1,5 @@
+id: identity_verified
+type: code
+fn: graders/code/identity_verified.py
+args: { require_before: process_refund }
+weight: 2

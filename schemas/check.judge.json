@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://litmustest.dev/schemas/v1/check.judge.json",
+  "title": "Judge check",
+  "description": "A model-based check for one failure mode. Counts in a gate only when its judge is trusted.",
+  "type": "object",
+  "required": ["id", "type", "failure_mode"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "$ref": "common.json#/$defs/name" },
+    "type": { "const": "judge" },
+    "failure_mode": { "$ref": "common.json#/$defs/name", "description": "The failure mode this check tags. Must exist." },
+    "judge": { "$ref": "common.json#/$defs/name", "description": "The judge under graders/judges/. Defaults to the failure mode name." },
+    "inputs": {
+      "type": "array",
+      "items": { "type": "string", "enum": ["transcript", "output", "input", "state", "tool_calls", "reference"] },
+      "uniqueItems": true,
+      "description": "What the judge is shown. Defaults to the judge's own inputs list."
+    },
+    "weight": { "type": "number", "exclusiveMinimum": 0, "default": 1 }
+  }
+}

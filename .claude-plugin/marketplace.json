@@ -1,0 +1,14 @@
+{
+  "name": "litmustest",
+  "owner": {
+    "name": "Ulrich Monthe"
+  },
+  "plugins": [
+    {
+      "name": "litmustest",
+      "source": "./plugin",
+      "description": "From raw AI-product traces to a trusted, CI-gated eval suite."
+    }
+  ],
+  "description": "litmustest: from raw AI-product traces to a trusted, CI-gated eval suite, with a local dashboard over eval files in git."
+}

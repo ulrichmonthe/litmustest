@@ -1,0 +1,26 @@
+id: identity_mismatch_business
+suite: quality
+source: trace:tr_0077
+description: business customer, identity mismatch.
+input:
+  persona: business
+  from: ada.mbeki@yahoo.com
+  message: Ada Mbeki here, writing from a colleague's address. Please refund the
+    most recent invoice on my account.
+  goal: I couldn't match that email to an account, and I'm not able to look up or
+    change an account without verifying the email on file
+reference_solution: refs/identity_mismatch_business.json
+trials: 5
+checks:
+  - id: tone
+    type: judge
+    failure_mode: tone_mismatch
+    weight: 1
+report:
+  - strict_pass
+  - weighted_score
+  - pass_at_k
+  - pass_hat_k
+tags:
+  - identity_mismatch
+  - business

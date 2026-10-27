@@ -1,0 +1,20 @@
+{
+  "task": "refund_frustrated_001",
+  "output": "I'm sorry about the double charge. I've refunded $19.99 to your card; you'll see it in 3-5 days and I've emailed a confirmation.",
+  "state": { "refunds": { "status": "processed", "amount_cents": 1999 } },
+  "tool_calls": [
+    { "name": "verify_identity", "args": { "email": "a@example.com" }, "result": { "ok": true } },
+    { "name": "fetch_invoices", "result": [ { "id": "inv_1" }, { "id": "inv_2" } ] },
+    { "name": "process_refund", "args": { "invoice": "inv_2" } },
+    { "name": "send_confirmation" }
+  ],
+  "transcript": [
+    { "role": "user", "content": "I was charged twice this month and nobody is helping me." },
+    { "role": "agent", "content": "I'm sorry about the double charge. Let me check your account." },
+    { "role": "tool", "tool": "verify_identity", "content": "{\"ok\": true}" },
+    { "role": "agent", "content": "I've refunded $19.99 to your card." }
+  ],
+  "note": "Both invoices found; the duplicate is inv_2.",
+  "author": "ulrich",
+  "at": "2026-10-27T09:00:00Z"
+}

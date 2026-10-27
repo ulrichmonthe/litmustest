@@ -1,0 +1,12 @@
+name: wrong_tool_args
+definition: "A tool is called with arguments that do not match the customer's
+  situation: the wrong invoice id, the wrong account, a malformed amount. Fail
+  when a tool call targets the wrong record or the tool returns a validation
+  error the agent caused. Pass when every call targets the right record."
+severity: high
+owner: platform
+examples:
+  - tr_0115
+  - tr_0138
+  - tr_0148
+created: 2026-10-21

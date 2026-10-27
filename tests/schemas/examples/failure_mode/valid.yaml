@@ -1,0 +1,6 @@
+name: tone_mismatch
+definition: The agent's tone does not match the customer's state. Fail when a frustrated customer gets a breezy or scripted reply, or a business customer gets slang. Pass when the register fits.
+severity: med
+owner: support-quality
+examples: [tr_0012, tr_0040]
+created: 2026-10-20

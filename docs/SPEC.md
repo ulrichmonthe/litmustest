@@ -119,14 +119,14 @@ Keep the nine course skills (evals-start, eval-audit, error-discovery, generate-
 
 | Command | Does |
 | --- | --- |
-| `evalkit init` | Scaffolds `evals/`, detects trace sources, writes config |
-| `evalkit ingest <source>` | Normalizes traces; samples a review batch |
-| `evalkit run --suite <s> --trials <k>` | Runs tasks in clean environments, grades, writes a run summary |
-| `evalkit compare <A> <B>` | Paired deltas with CIs; flip list |
-| `evalkit calibrate <judge>` | Dev run, or the one-time test pass; writes calibration.json |
-| `evalkit serve` | Local server + dashboard |
-| `evalkit ci` | Gated suites, PR comment, non-zero on a gate failure |
-| `evalkit doctor` | Health checks; the maturity-ladder symptoms |
+| `litmustest init` | Scaffolds `evals/`, detects trace sources, writes config |
+| `litmustest ingest <source>` | Normalizes traces; samples a review batch |
+| `litmustest run --suite <s> --trials <k>` | Runs tasks in clean environments, grades, writes a run summary |
+| `litmustest compare <A> <B>` | Paired deltas with CIs; flip list |
+| `litmustest calibrate <judge>` | Dev run, or the one-time test pass; writes calibration.json |
+| `litmustest serve` | Local server + dashboard |
+| `litmustest ci` | Gated suites, PR comment, non-zero on a gate failure |
+| `litmustest doctor` | Health checks; the maturity-ladder symptoms |
 
 ## Dashboard
 
@@ -139,7 +139,7 @@ Keep the nine course skills (evals-start, eval-audit, error-discovery, generate-
 | Run compare | Did this change help? | Per-suite delta as CI on an axis, flip list, failure-mode deltas, cost | Mark flip as expected; post to PR |
 | Transcript | Why did this trial fail? | Triage verdict, timeline with checks pinned to steps, state diff, trial strip | Confirm/override triage; dispute a verdict (becomes a label) |
 | Judges | Can I trust this judge? | Stepper (edit → dev ≥90/90 → test once → trusted), confusion matrix, TPR/TNR by version, disagreements, few-shot picker | Prompt, examples, model pin; run dev; lock and run test |
-| Settings | What does CI enforce? | Gates, runs, judges, sources/storage, form or `evalkit.yaml` | All config |
+| Settings | What does CI enforce? | Gates, runs, judges, sources/storage, form or `litmustest.yaml` | All config |
 
 Interactions that matter most: keyboard-first labeling (j/k/p/f/n/Enter), drill-down from any number, and "Ask Claude" actions that return a proposed diff, never an automatic change.
 
@@ -155,7 +155,7 @@ Agent-assisted edits use the same path. Hosted mode (later) applies the same mod
 
 ## When to adopt, and when to go further
 
-Start the first time a user says the product "feels worse" and nobody can check, or a prompt change cannot be judged. After that, `evalkit doctor` watches for symptoms after every run and shows a "next step" card.
+Start the first time a user says the product "feels worse" and nobody can check, or a prompt change cannot be judged. After that, `litmustest doctor` watches for symptoms after every run and shows a "next step" card.
 
 | You are at | Symptom | Move to |
 | --- | --- | --- |

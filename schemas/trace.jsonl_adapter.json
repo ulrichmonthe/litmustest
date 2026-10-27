@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://litmustest.dev/schemas/v1/trace.jsonl_adapter.json",
+  "title": "JSONL trace (adapter input)",
+  "description": "One line of a plain JSONL log that `litmustest ingest` converts to the internal trace shape. Input only; never stored under evals/. The adapter warns about every field it could not fill.",
+  "type": "object",
+  "required": ["id", "input", "output"],
+  "properties": {
+    "id": { "$ref": "common.json#/$defs/trace_id" },
+    "input": { "description": "The user's first message or the task input. A string or an object." },
+    "output": { "description": "The agent's final response. A string or an object." },
+    "messages": {
+      "type": "array",
+      "description": "Optional full conversation. Without it the trace has one user turn and one agent turn.",
+      "items": {
+        "type": "object",
+        "required": ["role", "content"],
+        "properties": {
+          "role": { "type": "string", "enum": ["system", "user", "assistant", "tool"] },
+          "content": {},
+          "name": { "type": "string" },
+          "tool_call_id": { "type": "string" }
+        }
+      }
+    },
+    "tool_calls": {
+      "type": "array",
+      "description": "Optional tool calls in order. Placed after the assistant turn that made them when messages carry no ids.",
+      "items": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string", "minLength": 1 },
+          "arguments": {},
+          "result": {},
+          "turn": { "type": "integer", "minimum": 0 }
+        }
+      }
+    },
+    "timestamp": { "$ref": "common.json#/$defs/timestamp" },
+    "model": { "type": "string" },
+    "metadata": { "type": "object" }
+  }
+}

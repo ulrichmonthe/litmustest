@@ -1,0 +1,4 @@
+{ "run_id": "run_0041", "commit": "a1b2c3d", "started_at": "2026-10-26T08:00:00Z", "config_hash": "e85a39b33312f9b62fc9634707bee3de5a301fd927fc8ad3a4ae63b64b2d038c",
+  "suites": { "regression": { "pass_rate": 96.4, "ci": { "low": 94.6, "high": 98.1 }, "pass_at_1": 97, "pass_hat_k": 91, "n_tasks": 1 } },
+  "tasks": { "refund_frustrated_001": { "suite": "regression", "strict_pass": 80, "weighted": 93, "trials": [ { "pass": true, "failed_checks": [], "infra_error": false } ] } },
+  "infra_error_rate": 0, "cost_usd": 0.5 }

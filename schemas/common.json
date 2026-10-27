@@ -1,0 +1,180 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://litmustest.dev/schemas/v1/common.json",
+  "title": "Common definitions",
+  "description": "Shared definitions used by every litmustest schema. Not a file type of its own.",
+  "$defs": {
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*$",
+      "maxLength": 64,
+      "description": "A snake_case identifier: lowercase letters, digits and underscores, starting with a letter. These are what the dashboard shows in mono."
+    },
+    "trace_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "description": "The id of a trace under datasets/traces/. Labels and few-shot examples reference traces by id, never by position."
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "RFC 3339 timestamp with offset, e.g. 2026-10-27T09:12:00Z."
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "Calendar date, YYYY-MM-DD."
+    },
+    "relative_path": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!/)(?!.*\\.\\./).*$",
+      "description": "A path relative to the evals/ directory. Never absolute, never climbing out with ../."
+    },
+    "model_id": {
+      "type": "string",
+      "pattern": "^(?!.*(latest|preview|beta)$)[a-z0-9][a-z0-9._/:@-]*[a-z0-9]$",
+      "description": "A model id pinned to one version, e.g. claude-opus-5-5 or claude-sonnet-4-5-20250929. Floating aliases (anything ending in latest, preview or beta) are rejected. Calibration records the exact id it measured; a change marks the judge stale."
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "Lowercase hex SHA-256."
+    },
+    "severity": {
+      "type": "string",
+      "enum": [
+        "high",
+        "med",
+        "low"
+      ],
+      "description": "How much a failure mode matters when it happens."
+    },
+    "verdict": {
+      "type": "string",
+      "enum": [
+        "Pass",
+        "Fail",
+        "Unknown"
+      ],
+      "description": "A judge's binary verdict, with Unknown for cases the judge cannot decide. Unknown is counted separately and routed to a person."
+    },
+    "label_value": {
+      "type": "string",
+      "enum": [
+        "Pass",
+        "Fail",
+        "Skip"
+      ],
+      "description": "A human label. Skip means the annotator could not judge this trace for this failure mode."
+    },
+    "suite_kind": {
+      "type": "string",
+      "enum": [
+        "regression",
+        "capability",
+        "quality"
+      ],
+      "description": "regression: must stay near 100%. capability: the hill to climb. quality: trusted judges only."
+    },
+    "gate": {
+      "type": "object",
+      "description": "What CI enforces for a suite.",
+      "additionalProperties": false,
+      "properties": {
+        "min_pass_rate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Fail the gate when the suite pass rate (percent) is below this."
+        },
+        "max_drop_pts": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Fail the gate when the paired delta against the base run drops more than this many points and the drop is significant."
+        },
+        "report_only": {
+          "type": "boolean",
+          "default": false,
+          "description": "Post the comparison but never fail the build. Default for capability suites."
+        },
+        "trusted_judges_only": {
+          "type": "boolean",
+          "default": true,
+          "description": "Exclude any judge check whose calibration status is not trusted."
+        }
+      }
+    },
+    "ci_bounds": {
+      "type": "object",
+      "description": "A 95% confidence interval on a percentage.",
+      "required": [
+        "low",
+        "high"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "low": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "high": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "method": {
+          "type": "string",
+          "enum": [
+            "bootstrap",
+            "wilson",
+            "normal"
+          ],
+          "default": "bootstrap"
+        }
+      }
+    },
+    "confusion_matrix": {
+      "type": "object",
+      "description": "Judge verdicts against human labels on one split. Unknown verdicts are counted apart.",
+      "required": [
+        "tp",
+        "tn",
+        "fp",
+        "fn"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "tp": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Judge Fail, human Fail (the failure mode was present and caught)."
+        },
+        "tn": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Judge Pass, human Pass."
+        },
+        "fp": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Judge Fail, human Pass."
+        },
+        "fn": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Judge Pass, human Fail (a miss)."
+        },
+        "unknown": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0,
+          "description": "Judge answered Unknown; excluded from TPR and TNR."
+        }
+      }
+    }
+  }
+}

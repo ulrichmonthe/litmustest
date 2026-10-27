@@ -1,0 +1,19 @@
+# Harbor task definition for the support agent. Untested until decision #2 (docs/DECISIONS.md) is made.
+# Layout follows https://harborframework.com: instruction.md, environment/, tests/, solution/.
+version = "1.0"
+name = "support-agent-duplicate-charge"
+description = "A frustrated customer was charged twice. Verify, refund the duplicate, confirm."
+tags = ["litmustest", "support-agent", "regression"]
+
+[environment]
+dockerfile = "environment/Dockerfile"
+cpus = 1
+memory_mb = 1024
+timeout_sec = 300
+
+[agent]
+# The container runs the agent itself; Harbor only supplies input and reads the end state.
+command = "node /app/src/run_trial.ts --task duplicate_charge_frustrated --out /output"
+
+[verifier]
+command = "bash /app/environments/harbor/tests/test.sh"

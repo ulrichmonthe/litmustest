@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://litmustest.dev/schemas/v1/trace.json",
+  "title": "Trace",
+  "description": "evals/datasets/traces/<id>.json. The internal trace shape: one trace as a list of spans following the OpenTelemetry GenAI semantic conventions. The ordered turns view that the review queue, the transcript page and judges use is derived from the spans at read time and never stored.",
+  "type": "object",
+  "required": ["id", "spans"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "$ref": "common.json#/$defs/trace_id" },
+    "source": { "type": "string", "description": "Which adapter produced it (otel, jsonl, langfuse, ...)." },
+    "ingested_at": { "$ref": "common.json#/$defs/timestamp" },
+    "metadata": { "type": "object", "description": "Anything the source attached that is not a span attribute (persona, environment, customer tier)." },
+    "spans": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["span_id", "name", "start_time", "end_time"],
+        "additionalProperties": false,
+        "properties": {
+          "span_id": { "type": "string", "minLength": 1 },
+          "parent_span_id": { "type": "string" },
+          "name": { "type": "string", "minLength": 1 },
+          "kind": { "type": "string", "enum": ["internal", "client", "server", "producer", "consumer"], "default": "internal" },
+          "start_time": { "$ref": "common.json#/$defs/timestamp" },
+          "end_time": { "$ref": "common.json#/$defs/timestamp" },
+          "status": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": { "code": { "type": "string", "enum": ["unset", "ok", "error"] }, "message": { "type": "string" } }
+          },
+          "attributes": {
+            "type": "object",
+            "description": "OTel GenAI attributes. Known keys are typed; other keys are allowed.",
+            "properties": {
+              "gen_ai.operation.name": { "type": "string", "enum": ["chat", "text_completion", "embeddings", "execute_tool", "create_agent", "invoke_agent", "generate_content"] },
+              "gen_ai.provider.name": { "type": "string" },
+              "gen_ai.request.model": { "type": "string" },
+              "gen_ai.response.model": { "type": "string" },
+              "gen_ai.usage.input_tokens": { "type": "integer", "minimum": 0 },
+              "gen_ai.usage.output_tokens": { "type": "integer", "minimum": 0 },
+              "gen_ai.tool.name": { "type": "string" },
+              "gen_ai.tool.call.id": { "type": "string" },
+              "gen_ai.conversation.id": { "type": "string" },
+              "gen_ai.agent.name": { "type": "string" },
+              "gen_ai.input.messages": { "type": "array", "items": { "$ref": "#/$defs/message" } },
+              "gen_ai.output.messages": { "type": "array", "items": { "$ref": "#/$defs/message" } },
+              "gen_ai.tool.call.arguments": {},
+              "gen_ai.tool.call.result": {}
+            }
+          },
+          "events": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["name", "time"],
+              "additionalProperties": false,
+              "properties": {
+                "name": { "type": "string" },
+                "time": { "$ref": "common.json#/$defs/timestamp" },
+                "attributes": { "type": "object" }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "message": {
+      "type": "object",
+      "required": ["role", "parts"],
+      "additionalProperties": false,
+      "properties": {
+        "role": { "type": "string", "enum": ["system", "user", "assistant", "tool"] },
+        "parts": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["type"],
+            "properties": {
+              "type": { "type": "string", "enum": ["text", "tool_call", "tool_call_response"] },
+              "content": {},
+              "id": { "type": "string" },
+              "name": { "type": "string" },
+              "arguments": {},
+              "response": {}
+            }
+          }
+        },
+        "finish_reason": { "type": "string" }
+      }
+    }
+  }
+}

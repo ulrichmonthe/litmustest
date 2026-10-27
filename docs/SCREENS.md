@@ -23,7 +23,7 @@ Each `.dc.html` is a Design Component: an `<x-dc>` template plus a small logic c
 | `Modes.dc.html` | Failure modes | Pareto with severity, grader status, sparkline; selected-mode editor with definition, severity, owner, linked labels/tasks/grader | Row select drives the editor |
 | `Tasks.dc.html` | Tasks & suites | Suite cards that switch the table; suite-health strip; per-task pass@1, pass^5, 5-run history; broken/flaky flags | Suite select; filter |
 | `Judges.dc.html` | Judge editor | 4-step stepper (edit → dev ≥90/90 → test once → trusted); form/files toggle; field save states incl. a disk conflict; few-shot picker; checks-on-save; confusion matrix; TPR/TNR by version; disagreements; Pending changes diff | Form/Files toggle; commit / PR / discard |
-| `Settings.dc.html` | Settings | Gates per suite, runs, judges, sources/storage; form or `evalkit.yaml` | Form/YAML toggle |
+| `Settings.dc.html` | Settings | Gates per suite, runs, judges, sources/storage; form or `litmustest.yaml` | Form/YAML toggle |
 
 ## Write-back states (Judge editor)
 

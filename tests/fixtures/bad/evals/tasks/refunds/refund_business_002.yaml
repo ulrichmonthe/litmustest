@@ -1,0 +1,9 @@
+id: refund_business_002
+suite: regression
+source: spec:refunds-v2
+input: { persona: business, message: "Please refund invoice 1182." }
+reference_solution: refs/refund_business_002.json
+checks:
+  - { id: polite, type: judge, failure_mode: rudeness }
+  - { id: legacy, type: judge, failure_mode: old_mode, judge: tone_mismatch }
+  - { id: refund_processed, type: outcome, expect: { refunds.status: processed } }

@@ -1,5 +1,7 @@
-# evalkit handoff package
+# Handoff package (historical)
 
+
+This is the README that shipped with the original handoff zip, kept for the record. The rename to `litmustest` and decisions 1 and 4 have since been made; see `docs/DECISIONS.md`.
 Everything decided and designed so far, packaged for Claude Code. Drop the contents of this folder into the root of a new repository. `CLAUDE.md` goes at the root as-is; keep `docs/`, `brand/` and `design/` where they are.
 
 Start with `CLAUDE.md`, then `docs/FIRST-BRIEF.md`. Nothing here is code yet.
@@ -23,7 +25,7 @@ design/mockups/
 
 Three things to do before the first PR:
 
-1. Decide the name (`docs/DECISIONS.md` #1). `evalkit` is taken on npm and PyPI. Everything in this package uses it as a placeholder.
+1. Decide the name (`docs/DECISIONS.md` #1). Decided: the working name `evalkit` was taken on npm and PyPI and the project is now `litmustest`. This handoff text is kept for history; the current name is used throughout the repo.
 2. Confirm the license position (#4). It can be decided in a minute.
 3. Read the sample-repo section of `FIRST-BRIEF.md` and agree the five tools; they shape every seed task.
 
@@ -31,4 +33,4 @@ Suggested first prompt for Claude Code, once the repo exists:
 
 > Read CLAUDE.md and docs/FIRST-BRIEF.md. Do Part A (schemas and validator) as one PR. Do not start Part B until Part A's tests pass. Review your own PR against docs/ACCEPTANCE.md before telling me it's ready.
 
-Live sources of record (private artifacts; share from each page's menu if others need them): Evals Plugin: Reconciled Spec (doc), Evals Plugin: Decision Memos (doc), evalkit Master Class (guide), Evals Feature Comparison (page), Evals Dashboard Mockup (design canvas), evalkit Logo (design canvas), evalkit Brand (design system).
+Live sources of record (private artifacts; share from each page's menu if others need them): Evals Plugin: Reconciled Spec (doc), Evals Plugin: Decision Memos (doc), litmustest Master Class (guide), Evals Feature Comparison (page), Evals Dashboard Mockup (design canvas), litmustest Logo (design canvas), litmustest Brand (design system).

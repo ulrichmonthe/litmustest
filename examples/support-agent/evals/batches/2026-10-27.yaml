@@ -1,0 +1,274 @@
+# Review batch written by litmustest ingest. Edit by re-running ingest, not by hand.
+name: 2026-10-27
+created: 2026-10-27T13:15:54Z
+source: examples/support-agent/traces/support.jsonl
+sampler:
+  size: 60
+  clusters: 8
+  seed: 1
+  method: tfidf_kmeans
+items:
+  - trace_id: tr_0032
+    cluster: 0
+    reason: representative
+  - trace_id: tr_0035
+    cluster: 0
+    reason: random
+  - trace_id: tr_0062
+    cluster: 0
+    reason: random
+  - trace_id: tr_0106
+    cluster: 0
+    reason: random
+  - trace_id: tr_0198
+    cluster: 0
+    reason: random
+  - trace_id: tr_0254
+    cluster: 0
+    reason: random
+  - trace_id: tr_0007
+    cluster: 1
+    reason: representative
+  - trace_id: tr_0040
+    cluster: 1
+    reason: random
+  - trace_id: tr_0077
+    cluster: 1
+    reason: random
+  - trace_id: tr_0093
+    cluster: 1
+    reason: random
+  - trace_id: tr_0096
+    cluster: 1
+    reason: random
+  - trace_id: tr_0100
+    cluster: 1
+    reason: random
+  - trace_id: tr_0162
+    cluster: 1
+    reason: random
+  - trace_id: tr_0211
+    cluster: 1
+    reason: random
+  - trace_id: tr_0220
+    cluster: 1
+    reason: random
+  - trace_id: tr_0260
+    cluster: 1
+    reason: random
+  - trace_id: tr_0268
+    cluster: 1
+    reason: random
+  - trace_id: tr_0025
+    cluster: 2
+    reason: representative
+  - trace_id: tr_0095
+    cluster: 2
+    reason: random
+  - trace_id: tr_0175
+    cluster: 2
+    reason: random
+  - trace_id: tr_0232
+    cluster: 2
+    reason: random
+  - trace_id: tr_0276
+    cluster: 2
+    reason: random
+  - trace_id: tr_0022
+    cluster: 3
+    reason: representative
+  - trace_id: tr_0074
+    cluster: 3
+    reason: random
+  - trace_id: tr_0216
+    cluster: 3
+    reason: random
+  - trace_id: tr_0244
+    cluster: 3
+    reason: random
+  - trace_id: tr_0245
+    cluster: 3
+    reason: random
+  - trace_id: tr_0248
+    cluster: 3
+    reason: random
+  - trace_id: tr_0250
+    cluster: 3
+    reason: random
+  - trace_id: tr_0261
+    cluster: 3
+    reason: random
+  - trace_id: tr_0157
+    cluster: 4
+    reason: representative
+  - trace_id: tr_0229
+    cluster: 4
+    reason: random
+  - trace_id: tr_0271
+    cluster: 4
+    reason: random
+  - trace_id: tr_0291
+    cluster: 4
+    reason: random
+  - trace_id: tr_0026
+    cluster: 5
+    reason: representative
+  - trace_id: tr_0102
+    cluster: 5
+    reason: random
+  - trace_id: tr_0125
+    cluster: 5
+    reason: random
+  - trace_id: tr_0133
+    cluster: 5
+    reason: random
+  - trace_id: tr_0206
+    cluster: 5
+    reason: random
+  - trace_id: tr_0237
+    cluster: 5
+    reason: random
+  - trace_id: tr_0238
+    cluster: 5
+    reason: random
+  - trace_id: tr_0258
+    cluster: 5
+    reason: random
+  - trace_id: tr_0279
+    cluster: 5
+    reason: random
+  - trace_id: tr_0060
+    cluster: 6
+    reason: representative
+  - trace_id: tr_0082
+    cluster: 6
+    reason: random
+  - trace_id: tr_0104
+    cluster: 6
+    reason: random
+  - trace_id: tr_0117
+    cluster: 6
+    reason: random
+  - trace_id: tr_0138
+    cluster: 6
+    reason: random
+  - trace_id: tr_0139
+    cluster: 6
+    reason: random
+  - trace_id: tr_0180
+    cluster: 6
+    reason: random
+  - trace_id: tr_0193
+    cluster: 6
+    reason: random
+  - trace_id: tr_0199
+    cluster: 6
+    reason: random
+  - trace_id: tr_0201
+    cluster: 6
+    reason: random
+  - trace_id: tr_0021
+    cluster: 7
+    reason: random
+  - trace_id: tr_0140
+    cluster: 7
+    reason: random
+  - trace_id: tr_0158
+    cluster: 7
+    reason: representative
+  - trace_id: tr_0165
+    cluster: 7
+    reason: random
+  - trace_id: tr_0174
+    cluster: 7
+    reason: random
+  - trace_id: tr_0191
+    cluster: 7
+    reason: random
+  - trace_id: tr_0203
+    cluster: 7
+    reason: random
+coverage:
+  total_traces: 300
+  sampled: 60
+  clusters:
+    - id: 0
+      size: 25
+      sampled: 6
+      terms:
+        - month
+        - monthly
+        - plans
+        - "9.00"
+        - keep
+      representative: tr_0032
+    - id: 1
+      size: 53
+      sampled: 11
+      terms:
+        - retry
+        - email
+        - failed
+        - straight
+        - away
+      representative: tr_0007
+    - id: 2
+      size: 27
+      sampled: 5
+      terms:
+        - duplicates
+        - records
+        - right
+        - "299.00"
+        - scenario_duplicate_charge_business
+      representative: tr_0025
+    - id: 3
+      size: 62
+      sampled: 8
+      terms:
+        - invoice
+        - september
+        - vat
+        - number
+        - sent
+      representative: tr_0022
+    - id: 4
+      size: 19
+      sampled: 4
+      terms:
+        - noted
+        - issue
+        - flagged
+        - team
+        - hear
+      representative: tr_0157
+    - id: 5
+      size: 35
+      sampled: 9
+      terms:
+        - plan
+        - then
+        - upgrade
+        - change
+        - changes
+      representative: tr_0026
+    - id: 6
+      size: 51
+      sampled: 10
+      terms:
+        - october
+        - business
+        - "19.99"
+        - refunded
+        - ending
+      representative: tr_0060
+    - id: 7
+      size: 28
+      sampled: 7
+      terms:
+        - july
+        - august
+        - payments
+        - checked
+        - refunds
+      representative: tr_0158

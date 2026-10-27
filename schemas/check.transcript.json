@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://litmustest.dev/schemas/v1/check.transcript.json",
+  "title": "Transcript check",
+  "description": "A check on how the agent got there rather than what it produced. Always flagged path_check: true, and off by default in capability suites.",
+  "type": "object",
+  "required": ["id", "type", "path_check"],
+  "additionalProperties": false,
+  "anyOf": [
+    { "required": ["max_turns"] },
+    { "required": ["max_toolcalls"] },
+    { "required": ["required_tools"] },
+    { "required": ["forbidden_tools"] }
+  ],
+  "properties": {
+    "id": { "$ref": "common.json#/$defs/name" },
+    "type": { "const": "transcript" },
+    "path_check": { "const": true, "description": "Marks this as a path check so suites can switch it off." },
+    "max_turns": { "type": "integer", "minimum": 1 },
+    "max_toolcalls": { "type": "integer", "minimum": 0 },
+    "required_tools": { "type": "array", "items": { "$ref": "common.json#/$defs/name" }, "uniqueItems": true, "minItems": 1, "description": "Each must be called at least once." },
+    "forbidden_tools": { "type": "array", "items": { "$ref": "common.json#/$defs/name" }, "uniqueItems": true, "minItems": 1, "description": "None may be called." },
+    "weight": { "type": "number", "exclusiveMinimum": 0, "default": 1 },
+    "failure_mode": { "$ref": "common.json#/$defs/name" }
+  }
+}

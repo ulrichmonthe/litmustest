@@ -1,0 +1,121 @@
+{
+  "judge": "tone_mismatch",
+  "prompt_hash": "3f1b24a479bd6e769c7aa271e0e94e5f26090b728b464f9d3d743bc18296021a",
+  "model": "claude-sonnet-5-5",
+  "splits": {
+    "train": {
+      "trace_ids": [
+        "tr_0300",
+        "tr_0287",
+        "tr_0292",
+        "tr_0180",
+        "tr_0105",
+        "tr_0282",
+        "tr_0297",
+        "tr_0289"
+      ],
+      "hash": "bdc63448d13c88919b0cf89b4c48d1b6188ff4c2162933ce088ed2e50677cf92"
+    },
+    "dev": {
+      "trace_ids": [
+        "tr_0001",
+        "tr_0187",
+        "tr_0054",
+        "tr_0055",
+        "tr_0272",
+        "tr_0118",
+        "tr_0104",
+        "tr_0125",
+        "tr_0244",
+        "tr_0021",
+        "tr_0246",
+        "tr_0221",
+        "tr_0145",
+        "tr_0288",
+        "tr_0144",
+        "tr_0281",
+        "tr_0115",
+        "tr_0122",
+        "tr_0151",
+        "tr_0063",
+        "tr_0141",
+        "tr_0064"
+      ],
+      "hash": "48085cb4be6f34bd0c4c1664cbe52577380658f5e67bfb743503a0618e3a430e"
+    },
+    "test": {
+      "trace_ids": [
+        "tr_0253",
+        "tr_0256",
+        "tr_0114",
+        "tr_0059",
+        "tr_0082",
+        "tr_0040",
+        "tr_0257",
+        "tr_0137",
+        "tr_0181",
+        "tr_0112",
+        "tr_0041",
+        "tr_0263",
+        "tr_0123",
+        "tr_0077",
+        "tr_0058",
+        "tr_0241",
+        "tr_0012",
+        "tr_0111",
+        "tr_0204",
+        "tr_0015"
+      ],
+      "hash": "39a6713eb0aab1e0b995209fdfa127048ad444ba422b245fd3d5a526055b3fcd"
+    }
+  },
+  "dev": {
+    "tpr": 90.9,
+    "tnr": 90.9,
+    "matrix": {
+      "tp": 10,
+      "tn": 10,
+      "fp": 1,
+      "fn": 1,
+      "unknown": 0
+    },
+    "runs": [
+      {
+        "ran_at": "2026-10-24T10:00:00Z",
+        "prompt_hash": "3f1b24a479bd6e769c7aa271e0e94e5f26090b728b464f9d3d743bc18296021a",
+        "version": 2,
+        "tpr": 90.9,
+        "tnr": 90.9,
+        "matrix": {
+          "tp": 10,
+          "tn": 10,
+          "fp": 1,
+          "fn": 1,
+          "unknown": 0
+        }
+      }
+    ]
+  },
+  "test": {
+    "tpr": 90,
+    "tnr": 100,
+    "matrix": {
+      "tp": 9,
+      "tn": 10,
+      "fp": 0,
+      "fn": 1,
+      "unknown": 0
+    },
+    "ran_at": "2026-10-25T10:00:00Z",
+    "prompt_hash": "3f1b24a479bd6e769c7aa271e0e94e5f26090b728b464f9d3d743bc18296021a"
+  },
+  "status": "trusted",
+  "disagreements": [
+    {
+      "trace_id": "tr_0055",
+      "human": "Pass",
+      "judge": "Fail",
+      "critique": "Read a terse reply as a tone problem."
+    }
+  ]
+}

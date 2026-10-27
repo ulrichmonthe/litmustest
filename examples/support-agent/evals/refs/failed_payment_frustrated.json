@@ -1,0 +1,84 @@
+{
+  "task": "failed_payment_frustrated",
+  "output": "The 12 October charge of $19.99 failed. We retry automatically after 3 days, and your account stays active for 7 days, so nothing is lost yet. If you update the card under Billing, the retry goes through straight away.",
+  "state": {
+    "refunds": {
+      "count": 0,
+      "status": "none",
+      "amount_cents": 0
+    },
+    "tickets": {
+      "status": "none"
+    },
+    "confirmations": {
+      "sent": 0
+    }
+  },
+  "tool_calls": [
+    {
+      "name": "verify_identity",
+      "args": {
+        "email": "jonah.feld@gmail.com"
+      },
+      "result": {
+        "verified": true,
+        "account_id": "acc_1004",
+        "name": "Jonah Feld",
+        "plan": "pro"
+      }
+    },
+    {
+      "name": "fetch_invoices",
+      "args": {
+        "account_id": "acc_1004"
+      },
+      "result": [
+        {
+          "id": "inv_1004_a",
+          "amount_cents": 1999,
+          "issued": "2026-10-12",
+          "status": "failed",
+          "note": null
+        }
+      ]
+    },
+    {
+      "name": "fetch_policy",
+      "args": {
+        "topic": "failed_payment"
+      },
+      "result": {
+        "topic": "failed_payment",
+        "policy": "(see policy)"
+      }
+    }
+  ],
+  "transcript": [
+    {
+      "role": "user",
+      "content": "From: jonah.feld@gmail.com\n\nYour email says my payment failed and I'll lose access. My card is fine. What is going on?"
+    },
+    {
+      "role": "tool",
+      "tool": "verify_identity",
+      "content": "{\"verified\":true,\"account_id\":\"acc_1004\",\"name\":\"Jonah Feld\",\"plan\":\"pro\"}"
+    },
+    {
+      "role": "tool",
+      "tool": "fetch_invoices",
+      "content": "[{\"id\":\"inv_1004_a\",\"amount_cents\":1999,\"issued\":\"2026-10-12\",\"status\":\"failed\",\"note\":null}]"
+    },
+    {
+      "role": "tool",
+      "tool": "fetch_policy",
+      "content": "{\"topic\":\"failed_payment\",\"policy\":\"(see policy)\"}"
+    },
+    {
+      "role": "agent",
+      "content": "The 12 October charge of $19.99 failed. We retry automatically after 3 days, and your account stays active for 7 days, so nothing is lost yet. If you update the card under Billing, the retry goes through straight away."
+    }
+  ],
+  "note": "Ideal path from the scenario catalog.",
+  "author": "ulrich",
+  "at": "2026-10-23T12:00:00Z"
+}

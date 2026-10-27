@@ -1,0 +1,24 @@
+id: tone_only_business
+suite: quality
+source: trace:tr_0090
+description: business customer, invoice copy.
+input:
+  persona: business
+  from: billing@ramanlabs.com
+  message: Please send a copy of the September invoice to billing@ramanlabs.com.
+  goal: I've sent the September invoice (inv_1003_a, $149
+reference_solution: refs/tone_only_business.json
+trials: 5
+checks:
+  - id: tone
+    type: judge
+    failure_mode: tone_mismatch
+    weight: 1
+report:
+  - strict_pass
+  - weighted_score
+  - pass_at_k
+  - pass_hat_k
+tags:
+  - invoice_copy
+  - business

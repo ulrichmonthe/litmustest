@@ -1,0 +1,11 @@
+id: refund_frustrated_001
+suite: regression
+source: trace:tr_8812
+input: { persona: frustrated, message: "I was charged twice this month." }
+reference_solution: refs/refund_frustrated_001.json
+checks:
+  - { id: refund_processed, type: outcome, expect: { refunds.status: processed }, weight: 3 }
+  - { id: tone_mismatch, type: judge, failure_mode: tone_mismatch, weight: 1 }
+  - { id: missed_refund, type: judge, failure_mode: missed_refund, weight: 2 }
+  - { id: identity_verified, type: code, fn: graders/code/identity_verified.py, args: { before: process_refund }, weight: 2 }
+  - { id: bounded, type: transcript, path_check: true, max_toolcalls: 8, required_tools: [verify_identity] }

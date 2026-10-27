@@ -1,0 +1,8 @@
+id: tone_mismatch
+failure_mode: tone_mismatch
+model: claude-sonnet-4-5-20250929
+inputs: []
+output:
+  result: { enum: [Pass, Fail] }
+prompt: graders/judges/tone_mismatch/prompt.md
+prompt_hash: 2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881

@@ -1,0 +1,27 @@
+name: regression
+kind: regression
+description: Promoted from production traces. Must stay near 100%.
+tasks:
+  - duplicate_charge_frustrated
+  - duplicate_charge_business
+  - duplicate_charge_first_time
+  - duplicate_charge_business_frustrated
+  - duplicate_charge_business_business
+  - duplicate_charge_business_first_time
+  - refund_outside_window_frustrated
+  - refund_outside_window_business
+  - refund_outside_window_first_time
+  - invoice_copy_frustrated
+  - invoice_copy_business
+  - invoice_copy_first_time
+  - failed_payment_frustrated
+  - failed_payment_business
+  - failed_payment_first_time
+  - pro_refund_in_window_frustrated
+  - pro_refund_in_window_business
+  - pro_refund_in_window_first_time
+  - refund_ghost_account_frustrated
+gate:
+  min_pass_rate: 95
+  max_drop_pts: 2
+path_checks: true

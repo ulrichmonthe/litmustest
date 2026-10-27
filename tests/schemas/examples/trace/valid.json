@@ -1,0 +1,19 @@
+{
+  "id": "tr_8812",
+  "source": "jsonl",
+  "ingested_at": "2026-10-20T09:00:00Z",
+  "metadata": { "persona": "frustrated" },
+  "spans": [
+    { "span_id": "s1", "name": "invoke_agent support", "kind": "server", "start_time": "2026-10-19T12:00:00Z", "end_time": "2026-10-19T12:00:09Z",
+      "status": { "code": "ok" },
+      "attributes": { "gen_ai.operation.name": "invoke_agent", "gen_ai.agent.name": "support", "gen_ai.conversation.id": "c_1" } },
+    { "span_id": "s2", "parent_span_id": "s1", "name": "chat claude-sonnet-4-5", "kind": "client", "start_time": "2026-10-19T12:00:00Z", "end_time": "2026-10-19T12:00:03Z",
+      "attributes": { "gen_ai.operation.name": "chat", "gen_ai.provider.name": "anthropic", "gen_ai.request.model": "claude-sonnet-4-5-20250929",
+        "gen_ai.usage.input_tokens": 812, "gen_ai.usage.output_tokens": 64,
+        "gen_ai.input.messages": [ { "role": "user", "parts": [ { "type": "text", "content": "I was charged twice." } ] } ],
+        "gen_ai.output.messages": [ { "role": "assistant", "parts": [ { "type": "tool_call", "id": "tc1", "name": "verify_identity", "arguments": { "email": "a@example.com" } } ], "finish_reason": "tool_call" } ] } },
+    { "span_id": "s3", "parent_span_id": "s1", "name": "execute_tool verify_identity", "start_time": "2026-10-19T12:00:03Z", "end_time": "2026-10-19T12:00:04Z",
+      "attributes": { "gen_ai.operation.name": "execute_tool", "gen_ai.tool.name": "verify_identity", "gen_ai.tool.call.id": "tc1", "gen_ai.tool.call.result": { "ok": true } },
+      "events": [ { "name": "db.query", "time": "2026-10-19T12:00:03Z", "attributes": { "rows": 1 } } ] }
+  ]
+}

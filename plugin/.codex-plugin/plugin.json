@@ -1,0 +1,10 @@
+{
+  "name": "litmustest",
+  "version": "0.1.0",
+  "description": "UNTESTED on Codex until Phase 2 (see docs/DECISIONS.md #5). From raw AI-product traces to a trusted, CI-gated eval suite.",
+  "author": { "name": "Ulrich Monthe" },
+  "homepage": "https://github.com/ulrichmonthe/litmustest",
+  "repository": "https://github.com/ulrichmonthe/litmustest",
+  "license": "Apache-2.0",
+  "keywords": ["evals", "llm", "agents", "evaluation"]
+}

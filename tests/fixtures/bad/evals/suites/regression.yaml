@@ -1,0 +1,3 @@
+name: regression
+kind: regression
+tasks: [refund_frustrated_001, refund_business_002, ghost_task]

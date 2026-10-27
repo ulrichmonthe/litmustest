@@ -1,0 +1,100 @@
+{"trace_id":"tr_0300","failure_mode":"tone_mismatch","label":"Fail","note":"tone_mismatch in a frustrated failed_payment conversation","annotator":"ulrich","at":"2026-10-22T09:00:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0287","failure_mode":"tone_mismatch","label":"Fail","note":"tone_mismatch in a frustrated refund_outside_window conversation","annotator":"ulrich","at":"2026-10-22T09:01:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0292","failure_mode":"tone_mismatch","label":"Fail","note":"tone_mismatch in a frustrated first_month_howto conversation","annotator":"ulrich","at":"2026-10-22T09:02:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0180","failure_mode":"tone_mismatch","label":"Fail","note":"tone_mismatch in a business duplicate_charge conversation","annotator":"ulrich","at":"2026-10-22T09:03:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0105","failure_mode":"tone_mismatch","label":"Fail","note":"tone_mismatch in a frustrated identity_mismatch conversation","annotator":"ulrich","at":"2026-10-22T09:04:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0282","failure_mode":"tone_mismatch","label":"Pass","note":"fine","annotator":"ulrich","at":"2026-10-22T09:05:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0297","failure_mode":"tone_mismatch","label":"Fail","note":"tone_mismatch in a business refund_outside_window conversation","annotator":"ulrich","at":"2026-10-22T09:06:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0289","failure_mode":"tone_mismatch","label":"Fail","note":"tone_mismatch in a business failed_payment conversation","annotator":"ulrich","at":"2026-10-22T09:07:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0001","failure_mode":"tone_mismatch","label":"Pass","note":"fine","annotator":"ulrich","at":"2026-10-22T09:08:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0187","failure_mode":"tone_mismatch","label":"Pass","note":"fine","annotator":"ulrich","at":"2026-10-22T09:09:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0054","failure_mode":"tone_mismatch","label":"Fail","note":"tone_mismatch in a frustrated duplicate_charge_business conversation","annotator":"ulrich","at":"2026-10-22T09:10:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0055","failure_mode":"tone_mismatch","label":"Fail","note":"tone_mismatch in a business vat_invoice conversation","annotator":"ulrich","at":"2026-10-22T09:11:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0272","failure_mode":"tone_mismatch","label":"Pass","note":"fine","annotator":"ulrich","at":"2026-10-22T09:12:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0118","failure_mode":"tone_mismatch","label":"Pass","note":"fine","annotator":"ulrich","at":"2026-10-22T09:13:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0104","failure_mode":"tone_mismatch","label":"Fail","note":"tone_mismatch in a business pro_refund_in_window conversation","annotator":"ulrich","at":"2026-10-22T09:14:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0125","failure_mode":"tone_mismatch","label":"Fail","note":"tone_mismatch in a frustrated first_month_howto conversation","annotator":"ulrich","at":"2026-10-22T09:15:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0244","failure_mode":"tone_mismatch","label":"Pass","note":"fine","annotator":"ulrich","at":"2026-10-22T09:16:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0021","failure_mode":"tone_mismatch","label":"Pass","note":"fine","annotator":"ulrich","at":"2026-10-22T09:17:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0246","failure_mode":"tone_mismatch","label":"Pass","note":"fine","annotator":"ulrich","at":"2026-10-22T09:18:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0221","failure_mode":"tone_mismatch","label":"Pass","note":"fine","annotator":"ulrich","at":"2026-10-22T09:19:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0145","failure_mode":"tone_mismatch","label":"Fail","note":"tone_mismatch in a business failed_payment conversation","annotator":"ulrich","at":"2026-10-22T09:20:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0288","failure_mode":"tone_mismatch","label":"Pass","note":"fine","annotator":"ulrich","at":"2026-10-22T09:21:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0144","failure_mode":"tone_mismatch","label":"Fail","note":"tone_mismatch in a frustrated duplicate_charge_business conversation","annotator":"ulrich","at":"2026-10-22T09:22:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0281","failure_mode":"tone_mismatch","label":"Pass","note":"fine","annotator":"ulrich","at":"2026-10-22T09:23:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0115","failure_mode":"tone_mismatch","label":"Pass","note":"fine","annotator":"ulrich","at":"2026-10-22T09:24:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0122","failure_mode":"tone_mismatch","label":"Fail","note":"tone_mismatch in a frustrated first_month_howto conversation","annotator":"ulrich","at":"2026-10-22T09:25:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0151","failure_mode":"tone_mismatch","label":"Fail","note":"tone_mismatch in a business identity_mismatch conversation","annotator":"ulrich","at":"2026-10-22T09:26:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0063","failure_mode":"tone_mismatch","label":"Fail","note":"tone_mismatch in a frustrated cancel_monthly conversation","annotator":"ulrich","at":"2026-10-22T09:27:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0141","failure_mode":"tone_mismatch","label":"Pass","note":"fine","annotator":"ulrich","at":"2026-10-22T09:28:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0064","failure_mode":"tone_mismatch","label":"Pass","note":"fine","annotator":"ulrich","at":"2026-10-22T09:29:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0253","failure_mode":"tone_mismatch","label":"Pass","note":"fine","annotator":"ulrich","at":"2026-10-22T09:30:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0256","failure_mode":"tone_mismatch","label":"Pass","note":"fine","annotator":"ulrich","at":"2026-10-22T09:31:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0114","failure_mode":"tone_mismatch","label":"Pass","note":"fine","annotator":"ulrich","at":"2026-10-22T09:32:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0059","failure_mode":"tone_mismatch","label":"Pass","note":"fine","annotator":"ulrich","at":"2026-10-22T09:33:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0082","failure_mode":"tone_mismatch","label":"Fail","note":"tone_mismatch in a frustrated duplicate_charge conversation","annotator":"ulrich","at":"2026-10-22T09:34:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0040","failure_mode":"tone_mismatch","label":"Pass","note":"fine","annotator":"ulrich","at":"2026-10-22T09:35:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0257","failure_mode":"tone_mismatch","label":"Pass","note":"fine","annotator":"ulrich","at":"2026-10-22T09:36:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0137","failure_mode":"tone_mismatch","label":"Fail","note":"tone_mismatch in a frustrated duplicate_charge_business conversation","annotator":"ulrich","at":"2026-10-22T09:37:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0181","failure_mode":"tone_mismatch","label":"Pass","note":"fine","annotator":"ulrich","at":"2026-10-22T09:38:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0112","failure_mode":"tone_mismatch","label":"Pass","note":"fine","annotator":"ulrich","at":"2026-10-22T09:39:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0041","failure_mode":"tone_mismatch","label":"Fail","note":"tone_mismatch in a frustrated invoice_copy conversation","annotator":"ulrich","at":"2026-10-22T09:40:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0263","failure_mode":"tone_mismatch","label":"Pass","note":"fine","annotator":"ulrich","at":"2026-10-22T09:41:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0123","failure_mode":"tone_mismatch","label":"Fail","note":"tone_mismatch in a business duplicate_charge_business conversation","annotator":"ulrich","at":"2026-10-22T09:42:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0077","failure_mode":"tone_mismatch","label":"Fail","note":"tone_mismatch in a business identity_mismatch conversation","annotator":"ulrich","at":"2026-10-22T09:43:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0058","failure_mode":"tone_mismatch","label":"Pass","note":"fine","annotator":"ulrich","at":"2026-10-22T09:44:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0241","failure_mode":"tone_mismatch","label":"Pass","note":"fine","annotator":"ulrich","at":"2026-10-22T09:45:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0012","failure_mode":"tone_mismatch","label":"Fail","note":"tone_mismatch in a frustrated identity_mismatch conversation","annotator":"ulrich","at":"2026-10-22T09:46:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0111","failure_mode":"tone_mismatch","label":"Fail","note":"tone_mismatch in a business first_month_howto conversation","annotator":"ulrich","at":"2026-10-22T09:47:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0204","failure_mode":"tone_mismatch","label":"Fail","note":"tone_mismatch in a frustrated duplicate_charge conversation","annotator":"ulrich","at":"2026-10-22T09:48:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0015","failure_mode":"tone_mismatch","label":"Fail","note":"tone_mismatch in a frustrated invoice_copy conversation","annotator":"ulrich","at":"2026-10-22T09:49:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0175","failure_mode":"missed_refund","label":"Pass","note":"fine","annotator":"ulrich","at":"2026-10-22T09:50:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0033","failure_mode":"missed_refund","label":"Pass","note":"fine","annotator":"ulrich","at":"2026-10-22T09:51:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0179","failure_mode":"missed_refund","label":"Fail","note":"missed_refund in a frustrated duplicate_charge_business conversation","annotator":"ulrich","at":"2026-10-22T09:52:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0201","failure_mode":"missed_refund","label":"Pass","note":"fine","annotator":"ulrich","at":"2026-10-22T09:53:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0087","failure_mode":"missed_refund","label":"Pass","note":"fine","annotator":"ulrich","at":"2026-10-22T09:54:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0204","failure_mode":"missed_refund","label":"Fail","note":"missed_refund in a frustrated duplicate_charge conversation","annotator":"ulrich","at":"2026-10-22T09:55:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0123","failure_mode":"missed_refund","label":"Fail","note":"missed_refund in a business duplicate_charge_business conversation","annotator":"ulrich","at":"2026-10-22T09:56:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0271","failure_mode":"missed_refund","label":"Fail","note":"missed_refund in a frustrated duplicate_charge conversation","annotator":"ulrich","at":"2026-10-22T09:57:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0185","failure_mode":"missed_refund","label":"Fail","note":"missed_refund in a business duplicate_charge conversation","annotator":"ulrich","at":"2026-10-22T09:58:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0267","failure_mode":"missed_refund","label":"Fail","note":"missed_refund in a first_time duplicate_charge_business conversation","annotator":"ulrich","at":"2026-10-22T09:59:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0278","failure_mode":"missed_refund","label":"Fail","note":"missed_refund in a first_time duplicate_charge conversation","annotator":"ulrich","at":"2026-10-22T10:00:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0157","failure_mode":"missed_refund","label":"Fail","note":"missed_refund in a business duplicate_charge conversation","annotator":"ulrich","at":"2026-10-22T10:01:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0291","failure_mode":"missed_refund","label":"Fail","note":"missed_refund in a first_time duplicate_charge conversation","annotator":"ulrich","at":"2026-10-22T10:02:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0078","failure_mode":"missed_refund","label":"Pass","note":"fine","annotator":"ulrich","at":"2026-10-22T10:03:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0193","failure_mode":"missed_refund","label":"Pass","note":"fine","annotator":"ulrich","at":"2026-10-22T10:04:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0045","failure_mode":"missed_refund","label":"Pass","note":"fine","annotator":"ulrich","at":"2026-10-22T10:05:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0229","failure_mode":"missed_refund","label":"Fail","note":"missed_refund in a business duplicate_charge_business conversation","annotator":"ulrich","at":"2026-10-22T10:06:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0225","failure_mode":"missed_refund","label":"Pass","note":"fine","annotator":"ulrich","at":"2026-10-22T10:07:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0277","failure_mode":"missed_refund","label":"Fail","note":"missed_refund in a business duplicate_charge_business conversation","annotator":"ulrich","at":"2026-10-22T10:08:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0285","failure_mode":"missed_refund","label":"Pass","note":"fine","annotator":"ulrich","at":"2026-10-22T10:09:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0251","failure_mode":"missed_refund","label":"Pass","note":"fine","annotator":"ulrich","at":"2026-10-22T10:10:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0177","failure_mode":"missed_refund","label":"Fail","note":"missed_refund in a business duplicate_charge conversation","annotator":"ulrich","at":"2026-10-22T10:11:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0249","failure_mode":"missed_refund","label":"Fail","note":"missed_refund in a frustrated duplicate_charge conversation","annotator":"ulrich","at":"2026-10-22T10:12:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0103","failure_mode":"missed_refund","label":"Fail","note":"missed_refund in a business duplicate_charge_business conversation","annotator":"ulrich","at":"2026-10-22T10:13:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0217","failure_mode":"missed_refund","label":"Pass","note":"fine","annotator":"ulrich","at":"2026-10-22T10:14:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0085","failure_mode":"missed_refund","label":"Pass","note":"fine","annotator":"ulrich","at":"2026-10-22T10:15:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0232","failure_mode":"missed_refund","label":"Pass","note":"fine","annotator":"ulrich","at":"2026-10-22T10:16:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0159","failure_mode":"missed_refund","label":"Fail","note":"missed_refund in a first_time duplicate_charge_business conversation","annotator":"ulrich","at":"2026-10-22T10:17:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0009","failure_mode":"missed_refund","label":"Pass","note":"fine","annotator":"ulrich","at":"2026-10-22T10:18:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0029","failure_mode":"missed_refund","label":"Fail","note":"missed_refund in a business duplicate_charge conversation","annotator":"ulrich","at":"2026-10-22T10:19:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0054","failure_mode":"missed_refund","label":"Fail","note":"missed_refund in a frustrated duplicate_charge_business conversation","annotator":"ulrich","at":"2026-10-22T10:20:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0010","failure_mode":"missed_refund","label":"Pass","note":"fine","annotator":"ulrich","at":"2026-10-22T10:21:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0072","failure_mode":"missed_refund","label":"Pass","note":"fine","annotator":"ulrich","at":"2026-10-22T10:22:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0205","failure_mode":"missed_refund","label":"Pass","note":"fine","annotator":"ulrich","at":"2026-10-22T10:23:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0188","failure_mode":"missed_refund","label":"Pass","note":"fine","annotator":"ulrich","at":"2026-10-22T10:24:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0129","failure_mode":"missed_refund","label":"Fail","note":"missed_refund in a frustrated duplicate_charge conversation","annotator":"ulrich","at":"2026-10-22T10:25:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0272","failure_mode":"missed_refund","label":"Pass","note":"fine","annotator":"ulrich","at":"2026-10-22T10:26:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0070","failure_mode":"missed_refund","label":"Fail","note":"missed_refund in a first_time duplicate_charge conversation","annotator":"ulrich","at":"2026-10-22T10:27:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0148","failure_mode":"missed_refund","label":"Pass","note":"fine","annotator":"ulrich","at":"2026-10-22T10:28:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0199","failure_mode":"missed_refund","label":"Pass","note":"fine","annotator":"ulrich","at":"2026-10-22T10:29:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0281","failure_mode":"missed_refund","label":"Pass","note":"fine","annotator":"ulrich","at":"2026-10-22T10:30:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0187","failure_mode":"missed_refund","label":"Pass","note":"fine","annotator":"ulrich","at":"2026-10-22T10:31:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0115","failure_mode":"missed_refund","label":"Fail","note":"missed_refund in a frustrated duplicate_charge_business conversation","annotator":"ulrich","at":"2026-10-22T10:32:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0222","failure_mode":"missed_refund","label":"Pass","note":"fine","annotator":"ulrich","at":"2026-10-22T10:33:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0161","failure_mode":"missed_refund","label":"Pass","note":"fine","annotator":"ulrich","at":"2026-10-22T10:34:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0034","failure_mode":"missed_refund","label":"Fail","note":"missed_refund in a business duplicate_charge_business conversation","annotator":"ulrich","at":"2026-10-22T10:35:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0013","failure_mode":"missed_refund","label":"Fail","note":"missed_refund in a frustrated duplicate_charge_business conversation","annotator":"ulrich","at":"2026-10-22T10:36:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0051","failure_mode":"missed_refund","label":"Pass","note":"fine","annotator":"ulrich","at":"2026-10-22T10:37:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0025","failure_mode":"missed_refund","label":"Pass","note":"fine","annotator":"ulrich","at":"2026-10-22T10:38:00Z","rubric_version":1,"batch":"2026-10-22"}
+{"trace_id":"tr_0168","failure_mode":"missed_refund","label":"Pass","note":"fine","annotator":"ulrich","at":"2026-10-22T10:39:00Z","rubric_version":1,"batch":"2026-10-22"}

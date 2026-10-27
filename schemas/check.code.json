@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://litmustest.dev/schemas/v1/check.code.json",
+  "title": "Code check",
+  "description": "A deterministic check implemented as a function in graders/code/. Preferred over a judge whenever the failure mode is objective.",
+  "type": "object",
+  "required": [
+    "id",
+    "type",
+    "fn"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "$ref": "common.json#/$defs/name"
+    },
+    "type": {
+      "const": "code"
+    },
+    "fn": {
+      "$ref": "common.json#/$defs/relative_path",
+      "pattern": "^graders/code/[a-z][a-z0-9_]*\\.py$",
+      "description": "Path to a Python file exposing check(trial: dict, args: dict) -> bool.",
+      "type": "string"
+    },
+    "args": {
+      "type": "object",
+      "description": "Passed to the function as its second argument."
+    },
+    "weight": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "default": 1
+    },
+    "failure_mode": {
+      "$ref": "common.json#/$defs/name",
+      "description": "Optional tag. Must name an existing failure mode."
+    }
+  }
+}

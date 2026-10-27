@@ -4,10 +4,10 @@ As of 2026-10-27. Six decisions block the build. Target: all decided by 2026-11-
 
 | # | Decision | Recommendation | Blocks | Status |
 | --- | --- | --- | --- | --- |
-| 1 | The name | **Rename.** `evalkit` is taken on npm and PyPI. | Package/repo names, wordmark, CLAUDE.md | Open |
+| 1 | The name | **Renamed to `litmustest`.** | Package/repo names, wordmark, CLAUDE.md | Decided 2026-10-27 |
 | 2 | The runner | **Wrap, don't build.** Harbor for containers; pluggable storage. | Phase 3 architecture | Open |
 | 3 | Trace format | **OpenTelemetry GenAI conventions** internally; JSONL adapter. | Phase 1 ingest | Open |
-| 4 | License and credit | **Keep Apache 2.0**; credit the course. | Phase 1 release | Can decide today |
+| 4 | License and credit | **Keep Apache 2.0**; credit the course. | Phase 1 release | Decided 2026-10-27 |
 | 5 | Target agents | **Claude Code first**; Codex untested until Phase 2. | Test matrix | Open |
 | 6 | Run storage | **Summaries in git, transcripts local**, optional object store. | Phase 3 runner, CI | Open |
 
@@ -15,14 +15,14 @@ As of 2026-10-27. Six decisions block the build. Target: all decided by 2026-11-
 
 **Recommendation: rename before publishing anything.**
 
-Checked 27 Oct 2026:
+The working name `evalkit` was checked 27 Oct 2026:
 - npm `evalkit`: existing package by Walid Khori, MIT, keywords "ai, agent, evals, evaluation, testing". Same category as ours, which makes the collision worse.
 - PyPI `evalkit`: "EVolutionary ALgorithms KITs", last released May 2021. Unrelated, dormant, blocks the Python name.
 - GitHub: several repos use the name. Trademarks not checked.
 
 | Option | For | Against |
 | --- | --- | --- |
-| Keep, scope the packages (`@org/evalkit`) | No rebrand | Bare npm name is a competitor; CLI command collides; confusing in search |
+| Keep `evalkit`, scope the packages (`@org/evalkit`) | No rebrand | Bare npm name is a competitor; CLI command collides; confusing in search |
 | Rename now | Clean namespace; logo wordmark is one word | A day of edits |
 | Rename later | Nothing now | Every artifact, manifest and user's muscle memory changes |
 
@@ -30,11 +30,11 @@ Shortlist (each needs npm / PyPI / GitHub / domain checks): `verdict` (first pic
 
 Blocks: CLAUDE.md, package and repo names, plugin manifest, wordmark.
 
-- [ ] Run the four checks on the shortlist
-- [ ] Pick one
-- [ ] Update spec, guide, comparison, brand, logo canvas
+- [x] Run the four checks on the shortlist
+- [x] Pick one
+- [x] Update spec, guide, comparison, brand, logo canvas
 
-**Outcome:** _pending_
+**Outcome:** Renamed to **litmustest** on 2026-10-27. Checked that day: `litmustest` is free on npm and PyPI; GitHub has only empty hobby repos of that name. Adjacent `litmus-test` exists on both registries (unrelated: a dead 2022 Node CLI and a hardware test platform), so the README spells the install name without a hyphen. Trademarks not checked. Wordmark: `litmus` in ink, `test` in blue, lowercase. The Claude artifacts (spec doc, guide, comparison page, logo and brand canvases) still carry the old name and are updated separately.
 
 ## 2. The runner
 
@@ -88,10 +88,10 @@ Positioning: "Built on the evals-skills course method and Anthropic's agent-eval
 
 If the organization prefers a different license for the dashboard, the bundled skills stay Apache 2.0 and the README states the mix.
 
-- [ ] Confirm Apache 2.0 with whoever owns licensing
+- [x] Confirm Apache 2.0 with whoever owns licensing
 - [ ] Add headers to modified skills in Phase 1
 
-**Outcome:** _pending_
+**Outcome:** Apache 2.0 confirmed 2026-10-27. LICENSE file at the repo root.
 
 ## 5. Which coding agents to target
 
@@ -115,7 +115,7 @@ The fork carries `.claude-plugin`, `.codex-plugin` and `.agents/plugins`. The sk
 | Object store by run id | Shareable; CI writes, anyone reads | Needs a bucket and credentials |
 | Logging platform | Free for teams already there | Vendor-tied viewing |
 
-Summaries are small and diffable: git. Transcripts are evidence, not code: a stable address. Backend is one line in `evalkit.yaml`; the transcript page reads whichever is set.
+Summaries are small and diffable: git. Transcripts are evidence, not code: a stable address. Backend is one line in `litmustest.yaml`; the transcript page reads whichever is set.
 
 - [ ] Confirm the storage interface (write run, read trial, list runs) supports three backends
 - [ ] Decide the CI default (local is useless there)

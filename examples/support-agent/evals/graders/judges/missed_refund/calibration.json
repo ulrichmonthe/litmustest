@@ -1,0 +1,122 @@
+{
+  "judge": "missed_refund",
+  "prompt_hash": "2114ee1b4c1822d879208486d3d3544d9c05e35116449d8cdfaf910ac0daf41f",
+  "model": "claude-sonnet-5-5",
+  "splits": {
+    "train": {
+      "trace_ids": [
+        "tr_0175",
+        "tr_0033",
+        "tr_0179",
+        "tr_0201",
+        "tr_0087",
+        "tr_0204",
+        "tr_0123",
+        "tr_0271"
+      ],
+      "hash": "bb87d4bb58d2a93927101289e16f4729476c1618bad425808ed832e372f3141e"
+    },
+    "dev": {
+      "trace_ids": [
+        "tr_0185",
+        "tr_0267",
+        "tr_0278",
+        "tr_0157",
+        "tr_0291",
+        "tr_0078",
+        "tr_0193",
+        "tr_0045",
+        "tr_0229",
+        "tr_0225",
+        "tr_0277",
+        "tr_0285",
+        "tr_0251",
+        "tr_0177",
+        "tr_0249",
+        "tr_0103",
+        "tr_0217",
+        "tr_0085",
+        "tr_0232",
+        "tr_0159",
+        "tr_0009",
+        "tr_0029"
+      ],
+      "hash": "b316bab79bb546292456fb20faa5ad182b7080d49062476c6d503d4a487ce7e1"
+    },
+    "test": {
+      "trace_ids": [
+        "tr_0054",
+        "tr_0010",
+        "tr_0072",
+        "tr_0205",
+        "tr_0188",
+        "tr_0129",
+        "tr_0272",
+        "tr_0070",
+        "tr_0148",
+        "tr_0199",
+        "tr_0281",
+        "tr_0187",
+        "tr_0115",
+        "tr_0222",
+        "tr_0161",
+        "tr_0034",
+        "tr_0013",
+        "tr_0051",
+        "tr_0025",
+        "tr_0168"
+      ],
+      "hash": "c16e4e274423a7655ce9d6b151b29644f9b3ce4e6ac87762240541eafee29ba8"
+    }
+  },
+  "dev": {
+    "tpr": 90,
+    "tnr": 91.7,
+    "matrix": {
+      "tp": 9,
+      "tn": 11,
+      "fp": 1,
+      "fn": 1,
+      "unknown": 0
+    },
+    "runs": [
+      {
+        "ran_at": "2026-10-24T10:00:00Z",
+        "prompt_hash": "2114ee1b4c1822d879208486d3d3544d9c05e35116449d8cdfaf910ac0daf41f",
+        "version": 2,
+        "tpr": 90,
+        "tnr": 91.7,
+        "matrix": {
+          "tp": 9,
+          "tn": 11,
+          "fp": 1,
+          "fn": 1,
+          "unknown": 0
+        }
+      }
+    ]
+  },
+  "test": {
+    "tpr": 88.9,
+    "tnr": 90.9,
+    "matrix": {
+      "tp": 8,
+      "tn": 10,
+      "fp": 1,
+      "fn": 1,
+      "unknown": 0
+    },
+    "ran_at": "2026-10-25T10:00:00Z",
+    "prompt_hash": "2114ee1b4c1822d879208486d3d3544d9c05e35116449d8cdfaf910ac0daf41f"
+  },
+  "status": "stale",
+  "stale_reason": "prompt_changed",
+  "disagreements": [
+    {
+      "trace_id": "tr_0157",
+      "human": "Pass",
+      "judge": "Fail",
+      "critique": "Read a terse reply as a tone problem."
+    }
+  ]
+}

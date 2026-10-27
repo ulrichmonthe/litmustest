@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://litmustest.dev/schemas/v1/check.outcome.json",
+  "title": "Outcome check",
+  "description": "Reads the real end state after a trial (a database row, a file, an HTTP resource, a page) and compares it to what should be there.",
+  "type": "object",
+  "required": ["id", "type", "expect"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "$ref": "common.json#/$defs/name" },
+    "type": { "const": "outcome" },
+    "backend": { "type": "string", "enum": ["sql", "fs", "http", "page"], "default": "sql", "description": "How the state is read." },
+    "expect": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": { "pattern": "^[A-Za-z_][A-Za-z0-9_]*(\\.[A-Za-z0-9_\\[\\]]+)*$" },
+      "description": "Dotted path to a value in the state snapshot, e.g. refunds.status: processed. Every entry must match."
+    },
+    "weight": { "type": "number", "exclusiveMinimum": 0, "default": 1 },
+    "failure_mode": { "$ref": "common.json#/$defs/name" }
+  }
+}

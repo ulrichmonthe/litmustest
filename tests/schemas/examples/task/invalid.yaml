@@ -1,0 +1,6 @@
+id: refund_frustrated_001
+suite: regression
+source: ticket:1234
+input: { message: "hi" }
+reference_solution: refs/refund_frustrated_001.json
+checks: []
