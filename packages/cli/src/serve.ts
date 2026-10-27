@@ -51,6 +51,8 @@ async function handle(app: App, req: IncomingMessage, res: ServerResponse, ask?:
     if (path === "/api/failure_modes" && req.method === "GET") return send(app.failureModes());
     if (path === "/api/modes" && req.method === "GET") return send(app.modes());
     if (path === "/api/overview" && req.method === "GET") return send(app.overview());
+    if (path === "/api/runs" && req.method === "GET") return send(app.runs());
+    if (path === "/api/compare" && req.method === "GET") return send(app.compare(need(q("a"), "a"), need(q("b"), "b")));
     if (path === "/api/discover" && req.method === "POST") return send(await discoverRoute(app, body, ask));
     if (path === "/api/judges" && req.method === "GET") return send(judgesList(app));
     let jm: RegExpExecArray | null;

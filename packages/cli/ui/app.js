@@ -27,7 +27,7 @@ const stale = (seq) => seq !== state.seq;
 
 const NAV = [
   ["Overview", "#/overview"], ["Review queue", "#/review"], ["Failure modes", "#/modes"], ["Tasks & suites", "#/tasks", "soon"],
-  ["Run compare", "#/compare", "soon"], ["Transcripts", "#/transcripts", "soon"], ["Judges", "#/judges"], ["Settings", "#/settings", "soon"],
+  ["Run compare", "#/compare"], ["Transcripts", "#/transcripts", "soon"], ["Judges", "#/judges"], ["Settings", "#/settings", "soon"],
 ];
 function renderNav() {
   const cur = "#/" + (state.route[0] ?? "review");
@@ -362,6 +362,32 @@ async function renderJudge(name) {
     disagreements));
 }
 
+// ---------------- run compare
+const cmp = { filter: "all" };
+async function renderCompare(aId, bId) {
+  const seq = state.seq; const page = $("#page");
+  const { runs } = await api("/api/runs"); if (stale(seq)) return;
+  if (runs.length < 2) { page.replaceChildren(h("div", { class: "column" }, header("Run compare", "Needs two run summaries."), h("div", { class: "empty" }, runs.length ? "Only one run under evals/runs/. Run the suites again after a change, then compare." : "No runs yet. Run `litmustest run` to produce one."))); return; }
+  const b = bId ?? runs[0].run_id, a = aId ?? (runs.find((r) => r.run_id !== b)?.run_id ?? runs[1].run_id);
+  const c = await api(`/api/compare?a=${encodeURIComponent(a)}&b=${encodeURIComponent(b)}`); if (stale(seq)) return;
+  const sel = (label, val, onchange) => h("label", { class: "field", style: "flex:1 1 200px" }, h("span", {}, label), h("select", { class: "select", onchange }, ...runs.map((r) => h("option", { value: r.run_id, selected: r.run_id === val }, `${r.run_id} · ${r.branch ?? "?"} @ ${r.commit}`))));
+  const sign = (n) => (n > 0 ? `+${n}` : `${n}`);
+  const suiteCard = (s) => { const x = (v) => 120 + Math.max(-10, Math.min(10, v)) * 11; return h("div", { class: "card delta-card" }, h("div", { class: "card-head" }, h("span", { class: "t-section-title" }, s.name), h("span", { class: "caption" }, `${s.n_tasks} tasks`)), h("div", { class: "big" }, h("span", { class: `n ${s.significant ? (s.delta >= 0 ? "" : "") : "muted"}`, style: s.significant ? `color:${s.delta >= 0 ? "var(--good)" : "var(--bad)"}` : "" }, `${sign(s.delta)} pts`), h("span", { class: "ci" }, `${sign(s.ci.low)}…${sign(s.ci.high)}`)), h("span", { class: `pill ${s.significant ? (s.delta >= 0 ? "good" : "bad") : ""}` }, s.note), h("svg", { class: "axis", viewBox: "0 0 240 44", role: "img", "aria-label": `${s.name}: ${sign(s.delta)} points, interval ${sign(s.ci.low)} to ${sign(s.ci.high)}`, html: `<line x1="120" y1="4" x2="120" y2="40" stroke="var(--line)"/><line x1="${x(s.ci.low)}" y1="22" x2="${x(s.ci.high)}" y2="22" stroke="var(--blue)" stroke-width="3" stroke-linecap="round"/><circle cx="${x(s.delta)}" cy="22" r="5" fill="var(--blue)"/><text x="4" y="40" font-size="10" fill="var(--ink-faint)">−10</text><text x="120" y="40" font-size="10" fill="var(--ink-faint)" text-anchor="middle">0</text><text x="236" y="40" font-size="10" fill="var(--ink-faint)" text-anchor="end">+10 pts</text>` }), h("div", { class: "stats" }, h("div", {}, h("span", {}, "A"), h("span", {}, `${s.a}%`)), h("div", {}, h("span", {}, "B"), h("span", {}, `${s.b}%`)), h("div", {}, h("span", {}, "Flips"), h("span", {}, String(s.flips)))), s.gate_result ? h("span", { class: `caption ${s.gate_result.passed ? "muted" : ""}`, style: s.gate_result.passed ? "" : "color:var(--bad)" }, s.gate_result.passed ? (s.gate?.report_only ? "Report only" : "Gate: ok") : `Gate: ${s.gate_result.reasons.join("; ")}`) : null); };
+  const flips = c.flips.filter((f) => cmp.filter === "all" || f.change.toLowerCase() === cmp.filter);
+  const filterBtn = (key, label, n) => h("button", { type: "button", "aria-pressed": cmp.filter === key ? "true" : "false", onclick: () => { cmp.filter = key; renderCompare(a, b); } }, `${label} ${n}`);
+  const flipTable = h("section", { class: "card main", "aria-label": "Flip list" }, h("div", { class: "card-head" }, h("div", {}, h("h2", { class: "t-section-title" }, "Tasks that changed"), h("div", { class: "caption muted" }, "Majority verdict across trials · click a task for its transcripts")), h("div", { class: "filter", role: "group", "aria-label": "Filter" }, filterBtn("all", "All", c.flips.length), filterBtn("broke", "Broke", c.flips.filter((f) => f.change === "Broke").length), filterBtn("fixed", "Fixed", c.flips.filter((f) => f.change === "Fixed").length), filterBtn("flaky", "Flaky", c.flips.filter((f) => f.change === "Flaky").length))),
+    flips.length ? h("table", { class: "plain" }, h("thead", {}, h("tr", {}, h("th", { scope: "col" }, "Task"), h("th", { scope: "col" }, "Suite"), h("th", { scope: "col" }, "A → B"), h("th", { scope: "col" }, "Change"), h("th", { scope: "col" }, "Failing check in B"))), h("tbody", {}, ...flips.map((f) => h("tr", {}, h("td", {}, h("a", { class: "mono", href: f.transcript_ref ? `#/transcripts/${encodeURIComponent(f.transcript_ref.replace(/^local:/, ""))}` : "#/transcripts" }, f.task)), h("td", {}, f.suite), h("td", { class: "num" }, `${f.a} → ${f.b}`), h("td", {}, h("span", { class: `pill ${f.change === "Broke" ? "bad" : f.change === "Fixed" ? "good" : "warn"}` }, f.change)), h("td", { class: "mono", style: "font-weight:400" }, f.check ?? "—"))))) : h("p", { class: "muted", style: "margin:0" }, "No tasks changed."));
+  const modes = h("section", { class: "card side", "aria-label": "Failure-mode deltas" }, h("div", { class: "card-head" }, h("h2", { class: "t-section-title" }, "Failed checks by failure mode"), h("span", { class: "caption" }, "A → B")), ...(c.modes.length ? c.modes.map((m) => h("div", { class: "cluster-row", style: "grid-template-columns:minmax(0,1fr) 70px 48px" }, h("a", { class: "mono", href: `#/modes/${encodeURIComponent(m.name)}` }, m.name), h("span", { class: "frac" }, `${m.a} → ${m.b}`), h("span", { class: "frac", style: m.delta > 0 ? "color:var(--bad)" : m.delta < 0 ? "color:var(--good)" : "" }, sign(m.delta)))) : [h("p", { class: "muted", style: "margin:0" }, "No failed checks in either run.")]),
+    h("div", { class: "card-head", style: "margin-top:8px" }, h("h2", { class: "t-section-title" }, "Cost")), h("div", { class: "cost-grid" }, h("div", {}, h("span", {}, "Dollars"), h("span", {}, `$${c.cost.a} → $${c.cost.b}`)), h("div", {}, h("span", {}, "Tokens"), h("span", {}, `${c.cost.tokens_a} → ${c.cost.tokens_b}`)), h("div", {}, h("span", {}, "Mean latency"), h("span", {}, `${c.cost.latency_a} → ${c.cost.latency_b} ms`)), h("div", {}, h("span", {}, "Infra errors"), h("span", {}, `${c.cost.infra_a}% → ${c.cost.infra_b}%`))));
+  const status = h("span", { class: "status", "aria-live": "polite" });
+  page.replaceChildren(h("div", { class: "column" },
+    h("header", { class: "page-header" }, h("div", { class: "titles" }, h("h1", { class: "t-page-title" }, "Run compare"), h("p", { class: "subtitle" }, `Paired comparison: the same ${c.common_tasks} tasks, ${c.b.trials} trials each, on two versions of the agent`)), h("div", { class: "two-col", style: "flex:1 1 420px" }, sel("A (baseline)", a, (e) => { location.hash = `#/compare/${encodeURIComponent(e.target.value)}/${encodeURIComponent(b)}`; }), sel("B (candidate)", b, (e) => { location.hash = `#/compare/${encodeURIComponent(a)}/${encodeURIComponent(e.target.value)}`; }))),
+    h("section", { class: "verdict-strip", "aria-label": "Verdict" }, h("span", { class: "dot", "aria-hidden": "true", style: `background:${c.verdict.tone === "good" ? "#6fcf97" : c.verdict.tone === "bad" ? "#f08c84" : "#b3aea6"}` }), h("p", {}, c.verdict.text), h("span", { class: "aside" }, c.gates_passed ? "Gates: pass" : "Gates: crossed")),
+    h("div", { class: "suite-grid" }, ...c.suites.map(suiteCard)),
+    h("div", { class: "two-col" }, flipTable, modes),
+    h("div", { class: "save-row" }, h("button", { type: "button", class: "btn", onclick: async () => { try { await navigator.clipboard.writeText(c.markdown); status.textContent = "Copied the markdown for a PR comment."; } catch { status.textContent = "Copy failed; use litmustest compare --markdown."; } } }, "Copy as PR comment"), status)));
+}
+
 function renderSoon(title) { $("#page").replaceChildren(h("div", { class: "column" }, header(title), h("div", { class: "empty" }, `${title} arrives with a later step of Phase 1; see docs/SPEC.md. The data it will show is already in the evals/ directory.`))); }
 
 // ---------------- router
@@ -379,6 +405,7 @@ async function render() {
       case "modes": await renderModes(state.route[1]); break;
       case "overview": await renderOverview(); break;
       case "judges": if (state.route[1]) await renderJudge(state.route[1]); else await renderJudges(); break;
+      case "compare": await renderCompare(state.route[1], state.route[2]); break;
       default: renderSoon(NAV.find(([, href]) => href === "#/" + state.route[0])?.[0] ?? "Not found");
     }
   } catch (e) { $("#page").replaceChildren(h("div", { class: "column" }, header("Something went wrong"), h("div", { class: "empty" }, e.message))); }

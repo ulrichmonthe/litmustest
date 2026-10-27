@@ -11,6 +11,8 @@ import { App } from "./server/app.ts";
 import { calibrate } from "./calibrate.ts";
 import { draftCheck, draftJudge } from "./draft.ts";
 import { run } from "./run.ts";
+import { compareRuns, comparisonMarkdown, evaluateGates } from "./compare.ts";
+import { ci, writeWorkflow } from "./ci.ts";
 
 const VERSION: string = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), "..", "package.json"), "utf8")).version;
 
@@ -41,6 +43,19 @@ Usage:
       judge error, pass@1 and pass^k. Raw transcripts and grades go to the
       configured store. --dry-run grades the reference solutions instead
       of running the agent.
+
+  litmustest compare <A> <B> [--dir evals] [--json] [--markdown]
+      Paired comparison of two run summaries over their common tasks: per-suite
+      delta with a bootstrap interval, significant or within noise; the flip
+      list (Broke, Fixed, Flaky); failed checks by failure mode; cost, tokens,
+      latency and infra deltas; and the gate verdict for B.
+
+  litmustest ci [--dir evals] [--suite s]... [--base run_id] [--base-branch main] [--comment] [--pr N] [--write-workflow]
+      Run the gated suites, compare with the base run (the latest on the base
+      branch, else the latest), print the markdown, post it as a PR comment
+      with --comment (needs gh), and exit 1 when a gate is crossed. Suites
+      marked report_only never fail the build. --write-workflow scaffolds
+      .github/workflows/litmustest.yml.
 
   litmustest draft-judge <failure_mode> [--dir evals]
       Draft a judge from the labels: prompt.md with Fail/Pass criteria from
@@ -89,6 +104,8 @@ function main(argv: string[]): number {
   if (cmd === "calibrate") { runCalibrate(rest); return 0; }
   if (cmd === "draft-judge" || cmd === "draft-check") { runDraft(cmd, rest); return 0; }
   if (cmd === "run") { runRun(rest); return 0; }
+  if (cmd === "compare") return runCompare(rest);
+  if (cmd === "ci") { runCi(rest); return 0; }
   if (cmd !== "validate") { process.stderr.write(`unknown command '${cmd}'\n\n${HELP}`); return 2; }
 
   const flags = new Set(rest.filter((a) => a.startsWith("--")));
@@ -155,6 +172,34 @@ function runIngest(rest: string[]): number {
     process.stdout.write(`wrote ${r.batchFile}\n`);
     return r.invalid.length ? 1 : 0;
   } catch (e) { process.stderr.write(`ingest: ${(e as Error).message}\n`); return 1; }
+}
+
+function runCompare(rest: string[]): number {
+  try {
+    const { values, flags, positional } = opts(rest, ["--dir", "--json", "--markdown"]);
+    const [a, b] = positional; if (!a || !b) { process.stderr.write("compare: two run ids are required\n"); return 2; }
+    const c = compareRuns(resolve(values.get("--dir") ?? "evals"), a, b); const g = evaluateGates(c);
+    if (flags.has("--json")) { process.stdout.write(JSON.stringify({ ...c, gates_passed: g.passed }, null, 2) + "\n"); return 0; }
+    process.stdout.write(comparisonMarkdown(c) + "\n");
+    return g.passed ? 0 : 1;
+  } catch (e) { process.stderr.write(`compare: ${(e as Error).message}\n`); return 1; }
+}
+
+function runCi(rest: string[]): void {
+  const suites: string[] = []; const values = new Map<string, string>(); const flags = new Set<string>();
+  for (let i = 0; i < rest.length; i++) { const a = rest[i]!; if (a === "--suite") suites.push(rest[++i]!); else if (["--comment", "--write-workflow", "--json"].includes(a)) flags.add(a); else if (a.startsWith("--")) { if (!["--dir", "--base", "--base-branch", "--pr", "--repo", "--trials"].includes(a)) { process.stderr.write(`unknown flag ${a}\n`); process.exitCode = 2; return; } values.set(a, rest[++i]!); } }
+  const evalsDir = resolve(values.get("--dir") ?? "evals");
+  if (flags.has("--write-workflow")) { try { const p = writeWorkflow(dirname(evalsDir)); process.stdout.write(`wrote ${p}\nAdd ANTHROPIC_API_KEY to the repository secrets; the workflow posts the comparison on every pull request.\n`); } catch (e) { process.stderr.write(`ci: ${(e as Error).message}\n`); process.exitCode = 1; } return; }
+  ci({ evalsDir, suites, base: values.get("--base"), baseBranch: values.get("--base-branch"), comment: flags.has("--comment"), prNumber: values.get("--pr"), repo: values.get("--repo"), trials: values.has("--trials") ? Number(values.get("--trials")) : undefined, onProgress: (e) => process.stderr.write(`\r  ${e.done}/${e.total} trials   `) })
+    .then((r) => {
+      process.stderr.write("\n");
+      if (flags.has("--json")) process.stdout.write(JSON.stringify(r, null, 2) + "\n"); else process.stdout.write(r.markdown + "\n");
+      if (r.reason) process.stderr.write(`note: ${r.reason}\n`);
+      if (r.posted) process.stderr.write("posted as a PR comment\n");
+      process.exitCode = r.passed ? 0 : 1;
+      if (!r.passed) process.stderr.write("a gate was crossed\n");
+    })
+    .catch((e: Error) => { process.stderr.write(`ci: ${e.message}\n`); process.exitCode = 1; });
 }
 
 function runRun(rest: string[]): void {

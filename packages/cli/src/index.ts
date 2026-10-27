@@ -24,3 +24,7 @@ export { draftJudge, draftCheck, trialFromView, DRAFT_MODEL } from "./draft.ts";
 export type { DraftResult } from "./draft.ts";
 export { run, splitCommand, getPath, viewFromTrial, suggestTriage } from "./run.ts";
 export type { RunOptions, RunResult, TrialResult, Grade } from "./run.ts";
+export { compareRuns, evaluateGates, comparisonMarkdown, loadRun } from "./compare.ts";
+export type { Comparison, SuiteDelta, Flip } from "./compare.ts";
+export { ci, pickBase, writeWorkflow, WORKFLOW } from "./ci.ts";
+export type { CiOptions, CiResult } from "./ci.ts";

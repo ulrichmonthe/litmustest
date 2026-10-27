@@ -8,7 +8,8 @@ import { SchemaSet } from "../schemas.ts";
 import { validateEvals, sha256, type Problem, type ValidateResult } from "../validate.ts";
 import { traceView } from "../trace_view.ts";
 import { Git } from "./git.ts";
-import { modesView, overview } from "./overview.ts";
+import { modesView, overview, loadFiles } from "./overview.ts";
+import { compareRuns, evaluateGates, comparisonMarkdown } from "../compare.ts";
 import { Pending } from "./pending.ts";
 
 type Obj = Record<string, unknown>;
@@ -73,6 +74,8 @@ export class App {
     return { status: 200, body: { evals: this.evalsDir, repo: this.git.root, project, branch: this.git.branch(), head: this.git.head(), annotator, errors: v.errors, warnings: v.warnings, pending: this.pending.paths().length } };
   }
   modes(): Reply { return { status: 200, body: { failure_modes: modesView(this.evalsDir) } }; }
+  runs(): Reply { const f = loadFiles(this.evalsDir); return { status: 200, body: { runs: f.runs.map((r) => ({ run_id: r.run_id, commit: r.commit, branch: r.branch, started_at: r.started_at, trials: r.trials, suites: Object.keys(r.suites as Obj), n_tasks: Object.keys(r.tasks as Obj).length, cost_usd: r.cost_usd, infra_error_rate: r.infra_error_rate })).reverse() } }; }
+  compare(a: string, b: string): Reply { try { const c = compareRuns(this.evalsDir, a, b); const g = evaluateGates(c); return { status: 200, body: { ...c, gates_passed: g.passed, markdown: comparisonMarkdown(c) } }; } catch (e) { throw new HttpError(404, (e as Error).message); } }
   overview(): Reply { return { status: 200, body: overview(this.evalsDir) }; }
   /** Failure modes with their grader status and label counts, for chips and the "so far" panel. */
   failureModes(): Reply {

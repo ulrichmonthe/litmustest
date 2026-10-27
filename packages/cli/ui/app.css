@@ -224,3 +224,14 @@ textarea.prompt { font-family: var(--font-mono); font-size: 12.5px; line-height:
 .kpis span:nth-child(2).good { color: var(--good); } .kpis span:nth-child(2).bad { color: var(--bad); }
 .kpis .ci { font-family: var(--font-mono); font-size: 12px; color: var(--ink-muted); }
 .progress-inline { font-size: 12px; color: var(--ink-muted); }
+
+/* run compare */
+.delta-card { display: flex; flex-direction: column; gap: 8px; }
+.delta-card .axis { width: 100%; height: 44px; }
+.filter { display: inline-flex; gap: 4px; flex-wrap: wrap; }
+.filter button { min-height: 44px; padding: 0 14px; border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface); cursor: pointer; font-weight: 500; }
+.filter button[aria-pressed="true"] { background: var(--blue-tint); color: var(--blue-ink); border-color: var(--blue); font-weight: 600; }
+.cost-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; }
+.cost-grid > div { display: flex; flex-direction: column; gap: 2px; }
+.cost-grid span:first-child { font-size: 11px; color: var(--ink-muted); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; }
+.cost-grid span:nth-child(2) { font-family: var(--font-mono); font-size: 14px; font-variant-numeric: tabular-nums; }
