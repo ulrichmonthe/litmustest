@@ -66,7 +66,35 @@ export class App {
   // ---- reads
   health(): Reply {
     const v = this.validate();
-    return { status: 200, body: { evals: this.evalsDir, repo: this.git.root, branch: this.git.branch(), head: this.git.head(), errors: v.errors, warnings: v.warnings, pending: this.pending.paths().length } };
+    let annotator = "";
+    try { annotator = this.git.run(["config", "user.name"]).trim(); } catch { /* unset */ }
+    const project = (() => { try { return String((parseYaml(readFileSync(join(this.evalsDir, "litmustest.yaml"), "utf8")) as Obj).project ?? ""); } catch { return ""; } })();
+    return { status: 200, body: { evals: this.evalsDir, repo: this.git.root, project, branch: this.git.branch(), head: this.git.head(), annotator, errors: v.errors, warnings: v.warnings, pending: this.pending.paths().length } };
+  }
+  /** Failure modes with their grader status and label counts, for chips and the "so far" panel. */
+  failureModes(): Reply {
+    const dir = join(this.evalsDir, "failure_modes");
+    const labels = this.labelsByTrace();
+    const counts = new Map<string, number>();
+    for (const ls of labels.values()) for (const l of ls) if (l.label === "Fail") counts.set(String(l.failure_mode), (counts.get(String(l.failure_mode)) ?? 0) + 1);
+    const judgesDir = join(this.evalsDir, "graders", "judges");
+    const codeDir = join(this.evalsDir, "graders", "code");
+    const codeFiles = existsSync(codeDir) ? readdirSync(codeDir).filter((f) => f.endsWith(".py")) : [];
+    const codeUses = new Set<string>();
+    const tasksDir = join(this.evalsDir, "tasks");
+    const walkTasks = (d: string) => { if (!existsSync(d)) return; for (const e of readdirSync(d, { withFileTypes: true })) { const p = join(d, e.name); if (e.isDirectory()) walkTasks(p); else if (e.name.endsWith(".yaml")) { try { for (const c of ((parseYaml(readFileSync(p, "utf8")) as Obj).checks as Obj[]) ?? []) if (c.type === "code" && c.failure_mode) codeUses.add(String(c.failure_mode)); } catch { /* reported by validate */ } } } };
+    walkTasks(tasksDir);
+    const modes = existsSync(dir) ? readdirSync(dir).filter((f) => f.endsWith(".yaml")).map((f) => {
+      const m = parseYaml(readFileSync(join(dir, f), "utf8")) as Obj;
+      const name = String(m.name);
+      let grader = "No grader"; let status: string = "none";
+      const calFile = join(judgesDir, name, "calibration.json");
+      if (existsSync(join(judgesDir, name, "judge.yaml"))) { grader = "Judge"; status = existsSync(calFile) ? String((JSON.parse(readFileSync(calFile, "utf8")) as Obj).status) : "untested"; }
+      else if (codeUses.has(name)) { grader = "Code check"; status = "trusted"; }
+      return { name, definition: m.definition, severity: m.severity, owner: m.owner, retired: Boolean(m.retired), grader, status, fail_labels: counts.get(name) ?? 0 };
+    }).filter((m) => !m.retired) : [];
+    void codeFiles;
+    return { status: 200, body: { failure_modes: modes } };
   }
   listFiles(): Reply {
     const out: Obj[] = [];
@@ -229,7 +257,14 @@ export class App {
     const p = join(this.evalsDir, "datasets", "traces", `${id.replace(/[^a-z0-9_-]/gi, "")}.json`);
     if (!existsSync(p)) throw new HttpError(404, `no trace ${id}`);
     const t = JSON.parse(readFileSync(p, "utf8")) as Obj;
-    return { status: 200, body: { trace: t, view: traceView(t), labels: this.labelsByTrace().get(id) ?? [] } };
+    return { status: 200, body: { trace: t, view: traceView(t), labels: this.labelsByTrace().get(id) ?? [], expected_tools: this.expectedTools(id) } };
+  }
+  /** Tools a task promoted from this trace requires, so the renderer can flag a call that never happened. */
+  private expectedTools(traceId: string): string[] {
+    const out = new Set<string>();
+    const walk = (d: string) => { if (!existsSync(d)) return; for (const e of readdirSync(d, { withFileTypes: true })) { const p = join(d, e.name); if (e.isDirectory()) walk(p); else if (e.name.endsWith(".yaml")) { try { const t = parseYaml(readFileSync(p, "utf8")) as Obj; if (t.source !== `trace:${traceId}`) continue; for (const c of (t.checks as Obj[]) ?? []) for (const r of (c.required_tools as string[]) ?? []) out.add(r); } catch { /* reported by validate */ } } } };
+    walk(join(this.evalsDir, "tasks"));
+    return [...out];
   }
   private labelsByTrace(): Map<string, Obj[]> {
     const out = new Map<string, Obj[]>(); const dir = join(this.evalsDir, "labels");

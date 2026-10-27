@@ -1,7 +1,9 @@
 // litmustest serve: the local HTTP server over evals/, with a file watcher and server-sent events.
 import { createServer, type IncomingMessage, type ServerResponse, type Server } from "node:http";
 import { watch, type FSWatcher } from "node:fs";
-import { relative, sep } from "node:path";
+import { existsSync, readFileSync } from "node:fs";
+import { dirname, extname, join, resolve, sep } from "node:path";
+import { fileURLToPath } from "node:url";
 import { App, HttpError, type Reply } from "./server/app.ts";
 
 export interface ServeOptions { evalsDir: string; port?: number; host?: string; watch?: boolean }
@@ -41,7 +43,8 @@ async function handle(app: App, req: IncomingMessage, res: ServerResponse): Prom
       req.on("close", off); return;
     }
     const body = ["PUT", "POST"].includes(req.method ?? "") ? await readJson(req) : {};
-    if (path === "/" && req.method === "GET") { res.writeHead(200, { "content-type": "text/html; charset=utf-8" }); res.end(INDEX(app)); return; }
+    if (!path.startsWith("/api/") && req.method === "GET") return serveStatic(path, res);
+    if (path === "/api/failure_modes" && req.method === "GET") return send(app.failureModes());
     if (path === "/api/health") return send(app.health());
     if (path === "/api/validate") return send({ status: 200, body: app.validate(Boolean(q("refresh"))) });
     if (path === "/api/files" && req.method === "GET") return send(app.listFiles());
@@ -67,4 +70,11 @@ function need<T>(v: T | undefined, name: string): T { if (v === undefined || v =
 function readJson(req: IncomingMessage): Promise<Record<string, unknown>> {
   return new Promise((resolve, reject) => { let s = ""; req.on("data", (c) => (s += c)); req.on("end", () => { try { resolve(s ? JSON.parse(s) : {}); } catch (e) { reject(new HttpError(400, `bad JSON body: ${(e as Error).message}`)); } }); req.on("error", reject); });
 }
-const INDEX = (app: App) => { const h = app.health().body as Record<string, unknown>; return `<!doctype html><meta charset="utf-8"><title>litmustest</title><body style="font:14px/1.5 system-ui;max-width:720px;margin:40px auto;color:#1c1917"><h1 style="font-size:20px">litmustest server</h1><p>Serving <code>${relative(String(h.repo), String(h.evals))}</code> on branch <code>${h.branch}</code>. ${h.errors} errors, ${h.warnings} warnings, ${h.pending} pending changes.</p><p>The dashboard arrives with the next phase. API: <code>/api/health</code>, <code>/api/files</code>, <code>/api/file?path=</code> (GET, PUT), <code>/api/labels</code> (POST), <code>/api/pending</code> (+ <code>/commit</code>, <code>/pr</code>, <code>/discard</code>), <code>/api/batches</code>, <code>/api/traces/:id</code>, <code>/api/validate</code>, <code>/api/events</code> (SSE).</p></body>`; };
+const UI_DIR = (() => { const here = dirname(fileURLToPath(import.meta.url)); for (const c of [join(here, "..", "ui"), join(here, "..", "..", "ui")]) if (existsSync(join(c, "index.html"))) return c; return join(here, "..", "ui"); })();
+const MIME: Record<string, string> = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8", ".svg": "image/svg+xml", ".json": "application/json" };
+function serveStatic(path: string, res: ServerResponse): void {
+  const rel = path === "/" ? "index.html" : path.replace(/^\/+/, "");
+  const file = resolve(UI_DIR, rel);
+  if (!file.startsWith(UI_DIR) || !existsSync(file) || extname(file) === "") { res.writeHead(200, { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" }); res.end(readFileSync(join(UI_DIR, "index.html"))); return; }
+  res.writeHead(200, { "content-type": MIME[extname(file)] ?? "application/octet-stream", "cache-control": "no-store" }); res.end(readFileSync(file));
+}

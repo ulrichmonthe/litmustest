@@ -12,10 +12,10 @@ npm run build
 node packages/cli/dist/main.js ingest examples/support-agent/traces/support.jsonl --dir examples/support-agent/evals
                                                        # clusters the traces and writes a review batch with a coverage report
 node packages/cli/dist/main.js validate examples/support-agent/evals --deep   # every file checks out
-node packages/cli/dist/main.js serve --dir examples/support-agent/evals    # the local server on http://127.0.0.1:4242
+node packages/cli/dist/main.js serve --dir examples/support-agent/evals    # the dashboard on http://127.0.0.1:4242
 ```
 
-The server is API-only until the review queue lands: `/api/batches`, `/api/traces/<id>` (with the derived turns view), validated writes on `/api/file`, append-only `/api/labels`, and the Pending changes tray on `/api/pending`. The dashboard screens come next and read these same routes.
+The Review queue opens on the batch: `j`/`k` move, `p`/`f` label, `n` focuses the note, Enter saves and advances. Labels append to `evals/labels/<batch>.jsonl` and show up in the Pending changes tray, from where you commit to an `evals/<slug>` branch. The other screens are placeholders until their steps land.
 
 ## What is in here
 

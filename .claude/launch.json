@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "litmustest-serve",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["packages/cli/dist/main.js", "serve", "--dir", "examples/support-agent/evals", "--port", "4242"],
+      "port": 4242
+    }
+  ]
+}

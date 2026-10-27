@@ -6,9 +6,9 @@ As of 2026-10-27. Derived from the 25-chapter "litmustest Master Class" guide, w
 
 - [x] `litmustest init` creates `evals/` with `litmustest.yaml`, empty folders and a README, and detects a JSONL trace source.
 - [x] `litmustest ingest traces.jsonl` normalizes to the internal trace shape, clusters, and writes a review batch (cluster reps + random) with a coverage report. (Clustering is TF-IDF + k-means, offline; no model call.)
-- [ ] `litmustest serve` opens the dashboard; Review queue shows the batch.
-- [ ] In the Review queue: j/k move, p/f label, n focuses the note, Enter saves and advances. A label is appended to `labels/*.jsonl` with annotator and timestamp within one second.
-- [ ] Tool calls render between messages; an expected-but-missing tool call can be flagged by the renderer when a task specifies it.
+- [x] `litmustest serve` opens the dashboard; Review queue shows the batch.
+- [x] In the Review queue: j/k move, p/f label, n focuses the note, Enter saves and advances. A label is appended to `labels/*.jsonl` with annotator and timestamp within one second. (Also `s` for Skip; Cmd/Ctrl+Enter saves from inside the note.)
+- [x] Tool calls render between messages; an expected-but-missing tool call can be flagged by the renderer when a task specifies it. (A task whose `source` is `trace:<id>` lends its `required_tools`; the renderer shows a hollow red step marked Never called.)
 - [ ] "Ask Claude to regroup notes" runs `error-discovery` and returns proposed failure-mode files as a diff in the Pending changes tray; nothing is written until accepted.
 - [ ] Failure modes view lists modes with count, severity, grader status; definition and severity edit and save to files.
 - [ ] Overview (read-only) shows a failure-mode Pareto and the review coverage.

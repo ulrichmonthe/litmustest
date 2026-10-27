@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>litmustest</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&family=Sora:wght@600&display=swap">
+<link rel="stylesheet" href="/tokens.css">
+<link rel="stylesheet" href="/app.css">
+</head>
+<body>
+<div id="app" class="shell">
+  <nav class="nav" aria-label="Main">
+    <a class="brand" href="#/review" aria-label="litmustest home">
+      <svg width="26" height="26" viewBox="0 0 64 64" aria-hidden="true"><path d="M13 31 L26 44 L50 16" fill="none" stroke="var(--blue)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 56 H54 M10 50 V62 M54 50 V62" fill="none" stroke="var(--ink)" stroke-width="5" stroke-linecap="round"/></svg>
+      <span class="brand-text"><span class="wordmark">litmus<span class="wordmark-accent">test</span></span><span class="brand-sub" id="brand-sub">evals</span></span>
+    </a>
+    <div class="nav-items" id="nav-items"></div>
+    <div class="nav-spacer"></div>
+    <a class="tray" id="tray" href="#/pending" hidden>
+      <span class="tray-row"><span>Pending changes</span><span class="count" id="tray-count">0</span></span>
+      <span class="mono tray-branch" id="tray-branch"></span>
+      <span class="tray-link">Review and commit</span>
+    </a>
+  </nav>
+  <main class="page" id="page"><div class="column"><p class="t-body muted">Loading…</p></div></main>
+</div>
+<script type="module" src="/app.js"></script>
+</body>
+</html>

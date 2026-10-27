@@ -140,3 +140,28 @@ describe("judge side effects", () => {
     expect((await api("/api/health")).body.errors).toBe(0);
   });
 });
+
+describe("review queue support", () => {
+  it("serves the dashboard and its assets", async () => {
+    const html = await fetch(run.url + "/"); expect(html.status).toBe(200); expect(await html.text()).toContain('id="app"');
+    const deep = await fetch(run.url + "/review/2026-10-27/tr_0001"); expect((await deep.text())).toContain('id="app"');
+    const css = await fetch(run.url + "/tokens.css"); expect(css.headers.get("content-type")).toContain("text/css"); expect(await css.text()).toContain("--blue:");
+    expect((await fetch(run.url + "/app.js")).headers.get("content-type")).toContain("javascript");
+  });
+  it("lists failure modes with grader status and Fail-label counts", async () => {
+    const r = await api("/api/failure_modes");
+    const tm = r.body.failure_modes.find((m: { name: string }) => m.name === "tone_mismatch");
+    expect(tm).toBeTruthy(); expect(tm.grader).toBe("Judge"); expect(tm.status).toBe("stale"); expect(tm.fail_labels).toBeGreaterThanOrEqual(1);
+    expect(r.body.failure_modes.every((m: { definition: string }) => m.definition.length > 0)).toBe(true);
+  });
+  it("flags tools a promoted task requires that the trace never called", async () => {
+    const b = await api("/api/batches/b1"); const id = b.body.items[1].trace_id;
+    writeFileSync(join(cwd, "evals", "refs", "promoted.json"), JSON.stringify({ task: "promoted", output: "x", tool_calls: [{ name: "verify_identity" }, { name: "process_refund" }] }));
+    writeFileSync(join(cwd, "evals", "tasks", "promoted.yaml"), `id: promoted\nsuite: regression\nsource: trace:${id}\ninput: { message: hi }\nreference_solution: refs/promoted.json\nchecks:\n  - { id: tools, type: transcript, path_check: true, required_tools: [verify_identity, process_refund] }\n`);
+    run.app.invalidate();
+    const t = await api(`/api/traces/${id}`);
+    expect(t.body.expected_tools).toEqual(["verify_identity", "process_refund"]);
+    const called = new Set(t.body.view.calls.map((c: { name: string }) => c.name));
+    expect(t.body.expected_tools.filter((n: string) => !called.has(n)).length).toBeGreaterThanOrEqual(0);
+  });
+});
