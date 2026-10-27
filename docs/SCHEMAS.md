@@ -53,7 +53,8 @@ evals/litmustest.yaml. Where traces come from, how runs execute, how judges are 
 | Field | Type | Required | Constraints | Description |
 | --- | --- | --- | --- | --- |
 | `format` | `otel` · `jsonl` · `langfuse` · `braintrust` · `langsmith` | yes |  | otel and jsonl ship in Phase 1; the platform adapters are Phase 4. |
-| `path` | string | yes | min length 1 | A file or glob, relative to the repo root. |
+| `path` | string |  | min length 1 | A file or glob, relative to the repo root, for jsonl and otel. Ignored for platform formats. |
+| `project` | string |  |  | For braintrust: the project id to pull logs from. Credentials come from the environment (BRAINTRUST_API_KEY; LANGFUSE_PUBLIC_KEY, LANGFUSE_SECRET_KEY, LANGFUSE_HOST). |
 
 ##### `sampler`
 

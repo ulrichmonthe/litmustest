@@ -117,6 +117,10 @@ export function overview(evalsDir: string): Obj {
     else if (t.flaky) alerts.push({ kind: "Flaky task", level: "warn", title: `${tid} passes some trials and fails others with nothing changed.`, body: "Read its trials before trusting its pass rate.", action: "Open task", href: `#/tasks/${tid}` });
   }
   for (const s of suites) if (s.kind === "capability" && s.current && Number((s.current as Obj).pass_rate) > 90) alerts.push({ kind: "Saturating", level: "neutral", title: `${s.name} is at ${(s.current as Obj).pass_rate}%.`, body: "Capability tasks that pass every trial are ready to graduate to regression.", action: "Open suite", href: `#/tasks` });
+  // graduation: capability tasks that passed every trial in the last three runs
+  const capIds = f.tasks.filter((t) => f.suites.find((s) => s.name === t.suite)?.kind === "capability").map((t) => String(t.id));
+  const ready = capIds.filter((id) => { const runs = f.runs.filter((r) => (r.tasks as Record<string, Obj>)?.[id]).slice(-3); return runs.length === 3 && runs.every((r) => { const tr = (((r.tasks as Record<string, Obj>)[id]!.trials as Obj[]) ?? []).filter((x) => !x.infra_error); return tr.length > 0 && tr.every((x) => x.pass); }); });
+  if (ready.length) alerts.push({ kind: "Graduation", level: "neutral", title: `${ready.length} capability task${ready.length > 1 ? "s" : ""} passed every trial for 3 runs.`, body: "Graduate them to regression so they stay guarded while capability keeps climbing.", action: `Graduate ${ready.length}`, href: "#/tasks" });
   const unlabelled = f.batches.reduce((a, b) => a + ((b.items as { trace_id: string }[]) ?? []).filter((i) => !f.labels.some((l) => l.trace_id === i.trace_id)).length, 0);
   if (unlabelled > 0) alerts.push({ kind: "Review queue", level: "neutral", title: `${unlabelled} traces in the review queue have no label yet.`, body: "Labels feed failure modes and judge calibration.", action: "Open queue", href: "#/review" });
   // pareto

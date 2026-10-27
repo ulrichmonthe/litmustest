@@ -34,8 +34,7 @@
         "traces": {
           "type": "object",
           "required": [
-            "format",
-            "path"
+            "format"
           ],
           "additionalProperties": false,
           "properties": {
@@ -53,7 +52,11 @@
             "path": {
               "type": "string",
               "minLength": 1,
-              "description": "A file or glob, relative to the repo root."
+              "description": "A file or glob, relative to the repo root, for jsonl and otel. Ignored for platform formats."
+            },
+            "project": {
+              "type": "string",
+              "description": "For braintrust: the project id to pull logs from. Credentials come from the environment (BRAINTRUST_API_KEY; LANGFUSE_PUBLIC_KEY, LANGFUSE_SECRET_KEY, LANGFUSE_HOST)."
             }
           }
         },

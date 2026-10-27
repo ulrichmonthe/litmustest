@@ -28,3 +28,6 @@ export { compareRuns, evaluateGates, comparisonMarkdown, loadRun } from "./compa
 export type { Comparison, SuiteDelta, Flip } from "./compare.ts";
 export { ci, pickBase, writeWorkflow, WORKFLOW } from "./ci.ts";
 export type { CiOptions, CiResult } from "./ci.ts";
+export { sample, lastBatch, isDue, SAMPLER_WORKFLOW } from "./sample.ts";
+export { pullLangfuse, pullBraintrust, pullSource, langfuseLine, braintrustLine } from "./adapters/platforms.ts";
+export { graduationProposals, applyGraduations, doctor } from "./graduate.ts";

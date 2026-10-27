@@ -10,6 +10,7 @@ import { traceView } from "../trace_view.ts";
 import { Git } from "./git.ts";
 import { modesView, overview, loadFiles } from "./overview.ts";
 import { compareRuns, evaluateGates, comparisonMarkdown } from "../compare.ts";
+import { applyGraduations, doctor, graduationProposals } from "../graduate.ts";
 import { Pending } from "./pending.ts";
 
 type Obj = Record<string, unknown>;
@@ -74,6 +75,19 @@ export class App {
     return { status: 200, body: { evals: this.evalsDir, repo: this.git.root, project, branch: this.git.branch(), head: this.git.head(), annotator, errors: v.errors, warnings: v.warnings, pending: this.pending.paths().length } };
   }
   modes(): Reply { return { status: 200, body: { failure_modes: modesView(this.evalsDir) } }; }
+  graduate(): Reply { return { status: 200, body: graduationProposals(this.evalsDir) }; }
+  applyGraduate(tasks: string[]): Reply { const r = applyGraduations(this, tasks); this.invalidate(); return { status: 200, body: r }; }
+  doctor(): Reply { return { status: 200, body: doctor(this.evalsDir) }; }
+  /** Tasks & suites: every task with its checks, source, and the last five runs' results. */
+  tasks(): Reply {
+    const f = loadFiles(this.evalsDir); const last5 = f.runs.slice(-5);
+    const prop = graduationProposals(this.evalsDir);
+    const tasks = f.tasks.map((t) => { const id = String(t.id); const hist = last5.map((r) => { const x = (r.tasks as Record<string, Obj>)?.[id]; if (!x) return null; const tr = ((x.trials as Obj[]) ?? []).filter((y) => !y.infra_error); return { run: r.run_id, strict_pass: x.strict_pass, passed: tr.filter((y) => y.pass).length, trials: tr.length, flaky: Boolean(x.flaky), likely_broken: Boolean(x.likely_broken) }; }); const latest = hist[hist.length - 1];
+      return { id, suite: t.suite, source: t.source, description: t.description, checks: ((t.checks as Obj[]) ?? []).map((c) => ({ id: c.id, type: c.type, failure_mode: c.failure_mode, weight: c.weight ?? 1 })), trials: t.trials, graduated_from: t.graduated_from, history: hist, pass_at_1: latest?.strict_pass ?? null, pass_hat_k: latest ? (latest.trials && latest.passed === latest.trials ? 100 : 0) : null, status: latest?.likely_broken ? "broken" : latest?.flaky ? "flaky" : prop.proposals.some((p) => p.task === id) ? "graduate" : latest ? (latest.passed === latest.trials ? "passing" : latest.passed === 0 ? "failing" : "mixed") : "no runs", path: findPath(this.evalsDir, id) }; });
+    const suites = f.suites.map((s) => { const ids = tasks.filter((t) => t.suite === s.name); const latest = f.runs[f.runs.length - 1]; const cur = (latest?.suites as Record<string, Obj> | undefined)?.[String(s.name)]; return { name: s.name, kind: s.kind, description: s.description, n: ids.length, pass_rate: cur ? cur.pass_rate : null, broken: ids.filter((t) => t.status === "broken").length, flaky: ids.filter((t) => t.status === "flaky").length, graduate: ids.filter((t) => t.status === "graduate").length, gate: s.gate ?? (f.config.gates as Record<string, Obj> | undefined)?.[String(s.name)] ?? null }; });
+    const balance = (() => { const should = f.tasks.filter((t) => ((t.checks as Obj[]) ?? []).some((c) => c.type === "outcome" && Object.values((c.expect as Obj) ?? {}).some((v) => v !== 0 && v !== "none" && v !== false))).length; return f.tasks.length ? Math.round((100 * should) / f.tasks.length) : 0; })();
+    return { status: 200, body: { tasks, suites, balance_should_pct: balance, saturation: prop.saturation, proposals: prop.proposals, runs: last5.map((r) => r.run_id) } };
+  }
   runs(): Reply { const f = loadFiles(this.evalsDir); return { status: 200, body: { runs: f.runs.map((r) => ({ run_id: r.run_id, commit: r.commit, branch: r.branch, started_at: r.started_at, trials: r.trials, suites: Object.keys(r.suites as Obj), n_tasks: Object.keys(r.tasks as Obj).length, cost_usd: r.cost_usd, infra_error_rate: r.infra_error_rate })).reverse() } }; }
   compare(a: string, b: string): Reply { try { const c = compareRuns(this.evalsDir, a, b); const g = evaluateGates(c); return { status: 200, body: { ...c, gates_passed: g.passed, markdown: comparisonMarkdown(c) } }; } catch (e) { throw new HttpError(404, (e as Error).message); } }
   overview(): Reply { return { status: 200, body: overview(this.evalsDir) }; }
@@ -161,6 +175,29 @@ export class App {
     this.emit({ type: "saved", path: rel, hash: sha256(content), side_effects: side.map((s) => s.rel) });
     const problems = after.problems.filter((p) => p.file === rel || side.some((s) => s.rel === p.file));
     return { status: 200, body: { path: rel, hash: sha256(content), status: "saved to branch", branch: this.git.branch(), problems, side_effects: side.map((s) => s.rel) } };
+  }
+
+  /** Save several files as one change: every file passes its shape check, all are written, the cross-file rules run once, and all revert together if anything new breaks. */
+  putFiles(items: { path: string; content?: string; data?: unknown }[]): Reply {
+    const prepared: { abs: string; rel: string; content: string; before?: string }[] = [];
+    for (const it of items) {
+      const { abs, rel } = this.abs(it.path); const kind = kindOf(rel);
+      if (!kind) throw new HttpError(400, `${rel} is not a file type litmustest knows`);
+      if (kind === "calibration" || kind === "trace") throw new HttpError(403, `${rel} cannot be written through the API`);
+      const content = it.content ?? (rel.endsWith(".json") ? JSON.stringify(it.data, null, 2) + "\n" : yaml(it.data));
+      const shape = this.checkShape(kind, rel, content);
+      if (shape.length) return { status: 422, body: { error: "invalid", message: `${rel} does not validate`, problems: shape.map((m) => ({ level: "error", file: rel, message: m, rule: "schema" })) } };
+      prepared.push({ abs, rel, content, before: existsSync(abs) ? readFileSync(abs, "utf8") : undefined });
+    }
+    const baseline = new Set(this.validate().problems.filter((p) => p.level === "error").map((p) => `${p.file}|${p.message}`));
+    for (const p of prepared) { mkdirSync(dirname(p.abs), { recursive: true }); writeFileSync(p.abs, p.content); }
+    const after = validateEvals(this.evalsDir);
+    const fresh = after.problems.filter((p) => p.level === "error" && !baseline.has(`${p.file}|${p.message}`));
+    if (fresh.length) { for (const p of prepared) { if (p.before === undefined) rmSync(p.abs); else writeFileSync(p.abs, p.before); } this.invalidate(); return { status: 422, body: { error: "invalid", message: "the change would break the evals directory", problems: fresh } }; }
+    this.validation = after;
+    for (const p of prepared) this.pending.track(p.abs);
+    this.emit({ type: "saved", path: prepared[0]?.rel, side_effects: prepared.slice(1).map((p) => p.rel) });
+    return { status: 200, body: { files: prepared.map((p) => ({ path: p.rel, hash: sha256(p.content) })), status: "saved to branch", branch: this.git.branch() } };
   }
 
   private checkShape(kind: string, rel: string, content: string): string[] {
@@ -284,6 +321,11 @@ export class App {
     return out;
   }
   private labelledCount(items: { trace_id: string }[]): number { const m = this.labelsByTrace(); return items.filter((i) => m.has(i.trace_id)).length; }
+}
+
+function findPath(evalsDir: string, id: string): string | undefined {
+  const walk = (d: string, rel: string): string | undefined => { if (!existsSync(d)) return undefined; for (const e of readdirSync(d, { withFileTypes: true })) { if (e.isDirectory()) { const r = walk(join(d, e.name), `${rel}${e.name}/`); if (r) return r; } else if (e.name === `${id}.yaml`) return `${rel}${e.name}`; } return undefined; };
+  return walk(join(evalsDir, "tasks"), "tasks/");
 }
 
 export class HttpError extends Error { status: number; constructor(status: number, message: string) { super(message); this.status = status; } }

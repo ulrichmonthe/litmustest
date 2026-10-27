@@ -53,6 +53,10 @@ async function handle(app: App, req: IncomingMessage, res: ServerResponse, ask?:
     if (path === "/api/modes" && req.method === "GET") return send(app.modes());
     if (path === "/api/overview" && req.method === "GET") return send(app.overview());
     if (path === "/api/runs" && req.method === "GET") return send(app.runs());
+    if (path === "/api/tasks" && req.method === "GET") return send(app.tasks());
+    if (path === "/api/graduate" && req.method === "GET") return send(app.graduate());
+    if (path === "/api/graduate" && req.method === "POST") return send(app.applyGraduate((body.tasks as string[]) ?? []));
+    if (path === "/api/doctor" && req.method === "GET") return send(app.doctor());
     if (path === "/api/transcripts" && req.method === "GET") return send(transcriptsIndex(app, q("run")));
     let tm: RegExpExecArray | null;
     if ((tm = /^\/api\/transcripts\/([^/]+)\/([^/]+)\/(\d+)$/.exec(path)) && req.method === "GET") return send(trial(app, decodeURIComponent(tm[1]!), decodeURIComponent(tm[2]!), Number(tm[3])));

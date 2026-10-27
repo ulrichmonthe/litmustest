@@ -254,3 +254,25 @@ textarea.prompt { font-family: var(--font-mono); font-size: 12.5px; line-height:
 .task-row .dots span { width: 10px; height: 10px; border-radius: 999px; background: var(--good); display: inline-block; }
 .task-row .dots span.fail { background: var(--bad); } .task-row .dots span.infra { background: var(--ink-faint); }
 .task-row .dots a { display: inline-flex; align-items: center; min-height: 44px; gap: 4px; }
+
+/* tasks & suites */
+.suite-pick { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--space-3); }
+.suite-pick button { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; text-align: left; padding: var(--space-4); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); cursor: pointer; min-height: 44px; color: var(--ink); }
+.suite-pick button[aria-pressed="true"] { border: 1.5px solid var(--blue); background: var(--blue-tint); }
+.suite-pick .nm { font-weight: 600; font-size: 16px; }
+.suite-pick .job { font-size: 12px; color: var(--ink-muted); }
+.suite-pick .n { font-size: 26px; font-weight: 600; letter-spacing: -0.02em; line-height: 1; font-variant-numeric: tabular-nums; }
+.health { display: flex; flex-wrap: wrap; gap: 8px 20px; align-items: center; font-size: 13px; }
+.health .eyebrow { margin-right: 4px; }
+.hist { display: inline-flex; gap: 3px; }
+.hist span { width: 10px; height: 10px; border-radius: 2px; background: var(--good); display: inline-block; }
+.hist span.mixed { background: var(--warn); } .hist span.fail { background: var(--bad); } .hist span.none { background: var(--line); }
+table.plain td .desc { display: block; font-size: 12px; color: var(--ink-muted); }
+
+/* settings */
+.settings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+.gate-row { display: grid; grid-template-columns: 120px 100px 1fr 1fr; gap: 10px; align-items: center; padding: 8px 0; border-top: 1px solid var(--line-soft); }
+.gate-row:first-of-type { border-top: 0; }
+@media (max-width: 640px) { .gate-row { grid-template-columns: 1fr 1fr; } }
+.checkline { display: flex; align-items: center; gap: 10px; min-height: 44px; font-size: 13px; }
+.checkline input { width: 20px; height: 20px; }

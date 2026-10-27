@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 import { readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
+import { createRequire } from "node:module";
+const require = createRequire(import.meta.url);
 import { fileURLToPath } from "node:url";
 import { validateEvals, type Problem } from "./validate.ts";
 import { initEvals } from "./init.ts";
@@ -13,6 +15,8 @@ import { draftCheck, draftJudge } from "./draft.ts";
 import { run } from "./run.ts";
 import { compareRuns, comparisonMarkdown, evaluateGates } from "./compare.ts";
 import { ci, writeWorkflow } from "./ci.ts";
+import { sample, SAMPLER_WORKFLOW } from "./sample.ts";
+import { applyGraduations, doctor, graduationProposals } from "./graduate.ts";
 
 const VERSION: string = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), "..", "package.json"), "utf8")).version;
 
@@ -56,6 +60,23 @@ Usage:
       with --comment (needs gh), and exit 1 when a gate is crossed. Suites
       marked report_only never fail the build. --write-workflow scaffolds
       .github/workflows/litmustest.yml.
+
+  litmustest sample [--dir evals] [--if-due] [--size N] [--clusters K] [--since ISO] [--batch name] [--write-workflow]
+      The production sampler: pull traces that arrived since the last batch
+      from sources.traces (new lines in a JSONL source, or new traces from
+      Langfuse or Braintrust) and ingest them as a dated review batch.
+      --if-due only samples when sources.sampler.every says it is time.
+      --write-workflow scaffolds a weekly GitHub Action that opens a PR.
+
+  litmustest graduate [--dir evals] [--runs 3] [--apply] [--json]
+      Capability tasks that passed every trial in the last 3 runs are
+      proposed for the regression suite; --apply moves them (task file and
+      suite lists) as pending changes. Reports capability saturation.
+
+  litmustest doctor [--dir evals] [--json]
+      Eval health from the files: stale or untested judges, broken and
+      flaky tasks, saturation, graduation candidates, unlabelled queue,
+      and the next step.
 
   litmustest draft-judge <failure_mode> [--dir evals]
       Draft a judge from the labels: prompt.md with Fail/Pass criteria from
@@ -104,6 +125,9 @@ function main(argv: string[]): number {
   if (cmd === "calibrate") { runCalibrate(rest); return 0; }
   if (cmd === "draft-judge" || cmd === "draft-check") { runDraft(cmd, rest); return 0; }
   if (cmd === "run") { runRun(rest); return 0; }
+  if (cmd === "sample") { runSample(rest); return 0; }
+  if (cmd === "graduate") return runGraduate(rest);
+  if (cmd === "doctor") return runDoctor(rest);
   if (cmd === "compare") return runCompare(rest);
   if (cmd === "ci") { runCi(rest); return 0; }
   if (cmd !== "validate") { process.stderr.write(`unknown command '${cmd}'\n\n${HELP}`); return 2; }
@@ -140,7 +164,7 @@ function opts(rest: string[], known: string[]): { values: Map<string, string>; f
     if (!a.startsWith("--")) { positional.push(a); continue; }
     if (!known.includes(a)) throw new Error(`unknown flag ${a}`);
     const next = rest[i + 1];
-    if (["--force", "--json", "--apply"].includes(a) || next === undefined || next.startsWith("--")) flags.add(a); else { values.set(a, next); i++; }
+    if (["--force", "--json", "--apply", "--if-due", "--write-workflow"].includes(a) || next === undefined || next.startsWith("--")) flags.add(a); else { values.set(a, next); i++; }
   }
   return { values, flags, positional };
 }
@@ -200,6 +224,43 @@ function runCi(rest: string[]): void {
       if (!r.passed) process.stderr.write("a gate was crossed\n");
     })
     .catch((e: Error) => { process.stderr.write(`ci: ${e.message}\n`); process.exitCode = 1; });
+}
+
+function runSample(rest: string[]): void {
+  try {
+    const { values, flags } = opts(rest, ["--dir", "--if-due", "--size", "--clusters", "--since", "--batch", "--write-workflow", "--json"]);
+    const evalsDir = resolve(values.get("--dir") ?? "evals");
+    if (flags.has("--write-workflow")) { const p = join(dirname(evalsDir), ".github", "workflows", "litmustest-sampler.yml"); const { mkdirSync, writeFileSync, existsSync } = require("node:fs") as typeof import("node:fs"); if (existsSync(p)) throw new Error(`${p} already exists`); mkdirSync(dirname(p), { recursive: true }); writeFileSync(p, SAMPLER_WORKFLOW); process.stdout.write(`wrote ${p}\n`); return; }
+    sample({ evalsDir, ifDue: flags.has("--if-due"), size: values.has("--size") ? Number(values.get("--size")) : undefined, clusters: values.has("--clusters") ? Number(values.get("--clusters")) : undefined, since: values.get("--since"), batch: values.get("--batch") })
+      .then((r) => { if (flags.has("--json")) { process.stdout.write(JSON.stringify({ ...r, ingest: r.ingest ? { traces: r.ingest.traces, written: r.ingest.written, batchFile: r.ingest.batchFile } : undefined }, null, 2) + "\n"); return; } if (r.skipped) { process.stdout.write(`skipped: ${r.skipped}\n`); return; } process.stdout.write(`${r.fresh} new traces of ${r.pulled} from ${r.source} -> batch ${r.batch} (${r.ingest!.batch && (r.ingest!.coverage as { sampled: number }).sampled} sampled)\n`); for (const w of r.warnings) process.stdout.write(`  warning ${w}\n`); process.stdout.write(`wrote ${r.ingest!.batchFile}\n`); })
+      .catch((e: Error) => { process.stderr.write(`sample: ${e.message}\n`); process.exitCode = 1; });
+  } catch (e) { process.stderr.write(`sample: ${(e as Error).message}\n`); process.exitCode = 1; }
+}
+
+function runGraduate(rest: string[]): number {
+  try {
+    const { values, flags } = opts(rest, ["--dir", "--runs", "--apply", "--json"]);
+    const dir = values.get("--dir") ?? "evals";
+    const g = graduationProposals(resolve(dir), { runs: values.has("--runs") ? Number(values.get("--runs")) : undefined });
+    if (flags.has("--json")) { process.stdout.write(JSON.stringify(g, null, 2) + "\n"); return 0; }
+    process.stdout.write(`${g.proposals.length} task${g.proposals.length === 1 ? "" : "s"} ready to graduate (passed every trial in ${g.runs_considered.join(", ") || "no runs"})\n`);
+    for (const p of g.proposals) process.stdout.write(`  ${p.task}  ${p.from} -> ${p.to}  ${p.trials} trials\n`);
+    for (const s of g.saturation) process.stdout.write(`  saturation: ${s.suite} is at ${s.pass_rate}%; write harder tasks\n`);
+    if (flags.has("--apply") && g.proposals.length) { const r = applyGraduations(new App(dir), g.proposals.map((p) => p.task)); process.stdout.write(`moved ${r.moved.length}: ${r.moved.join(", ")}\n`); for (const x of r.refused) process.stdout.write(`  refused ${x.task}: ${x.message}\n`); process.stdout.write("Pending on the branch; review with git diff or the tray.\n"); }
+    return 0;
+  } catch (e) { process.stderr.write(`graduate: ${(e as Error).message}\n`); return 1; }
+}
+
+function runDoctor(rest: string[]): number {
+  try {
+    const { values, flags } = opts(rest, ["--dir", "--json"]);
+    const d = doctor(resolve(values.get("--dir") ?? "evals"));
+    if (flags.has("--json")) { process.stdout.write(JSON.stringify(d, null, 2) + "\n"); return 0; }
+    if (!d.alerts.length) { process.stdout.write(`${d.next}\n`); return 0; }
+    for (const a of d.alerts) process.stdout.write(`${String(a.kind).padEnd(16)} ${a.title} ${a.body}\n${"".padEnd(17)}-> ${a.action} (${a.href})\n`);
+    process.stdout.write(`\nnext: ${d.next}\n`);
+    return 0;
+  } catch (e) { process.stderr.write(`doctor: ${(e as Error).message}\n`); return 1; }
 }
 
 function runRun(rest: string[]): void {
