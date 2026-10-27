@@ -4,102 +4,274 @@
   "title": "Calibration",
   "description": "evals/graders/judges/<name>/calibration.json. Written only by `litmustest calibrate`; never hand-edited. Tracks the judge's measured agreement with human labels and whether it can be trusted.",
   "type": "object",
-  "required": ["judge", "prompt_hash", "model", "splits", "dev", "test", "status"],
+  "required": [
+    "judge",
+    "prompt_hash",
+    "model",
+    "splits",
+    "dev",
+    "test",
+    "status"
+  ],
   "additionalProperties": false,
   "properties": {
-    "judge": { "$ref": "common.json#/$defs/name" },
-    "prompt_hash": { "$ref": "common.json#/$defs/sha256", "description": "The prompt this calibration measured. Differs from judge.yaml when stale." },
-    "model": { "$ref": "common.json#/$defs/model_id" },
+    "judge": {
+      "$ref": "common.json#/$defs/name"
+    },
+    "prompt_hash": {
+      "$ref": "common.json#/$defs/sha256",
+      "description": "The prompt this calibration measured. Differs from judge.yaml when stale."
+    },
+    "model": {
+      "$ref": "common.json#/$defs/model_id"
+    },
     "splits": {
       "type": "object",
       "description": "Labelled trace ids split 15/45/40 into train, dev and test. Hashes lock the test set.",
-      "required": ["train", "dev", "test"],
+      "required": [
+        "train",
+        "dev",
+        "test"
+      ],
       "additionalProperties": false,
       "properties": {
-        "train": { "$ref": "#/$defs/split" },
-        "dev": { "$ref": "#/$defs/split" },
-        "test": { "$ref": "#/$defs/split" }
+        "train": {
+          "$ref": "#/$defs/split"
+        },
+        "dev": {
+          "$ref": "#/$defs/split"
+        },
+        "test": {
+          "$ref": "#/$defs/split"
+        }
       }
     },
     "dev": {
       "type": "object",
       "description": "Results on the dev split, re-run freely while editing the prompt.",
-      "required": ["runs"],
+      "required": [
+        "runs"
+      ],
       "additionalProperties": false,
       "properties": {
-        "tpr": { "type": "number", "minimum": 0, "maximum": 100 },
-        "tnr": { "type": "number", "minimum": 0, "maximum": 100 },
-        "matrix": { "$ref": "common.json#/$defs/confusion_matrix" },
+        "tpr": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "tnr": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "matrix": {
+          "$ref": "common.json#/$defs/confusion_matrix"
+        },
         "runs": {
           "type": "array",
           "items": {
             "type": "object",
-            "required": ["ran_at", "prompt_hash", "tpr", "tnr", "matrix"],
+            "required": [
+              "ran_at",
+              "prompt_hash",
+              "tpr",
+              "tnr",
+              "matrix"
+            ],
             "additionalProperties": false,
             "properties": {
-              "ran_at": { "$ref": "common.json#/$defs/timestamp" },
-              "prompt_hash": { "$ref": "common.json#/$defs/sha256" },
-              "version": { "type": "integer", "minimum": 1 },
-              "tpr": { "type": "number", "minimum": 0, "maximum": 100 },
-              "tnr": { "type": "number", "minimum": 0, "maximum": 100 },
-              "matrix": { "$ref": "common.json#/$defs/confusion_matrix" }
+              "ran_at": {
+                "$ref": "common.json#/$defs/timestamp"
+              },
+              "prompt_hash": {
+                "$ref": "common.json#/$defs/sha256"
+              },
+              "version": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "tpr": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 100
+              },
+              "tnr": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 100
+              },
+              "matrix": {
+                "$ref": "common.json#/$defs/confusion_matrix"
+              },
+              "tpr_ci": {
+                "$ref": "common.json#/$defs/ci_bounds",
+                "description": "95% bootstrap interval over the labelled traces."
+              },
+              "tnr_ci": {
+                "$ref": "common.json#/$defs/ci_bounds",
+                "description": "95% bootstrap interval over the labelled traces."
+              }
             }
-          }
+          },
+          "maxItems": 20
+        },
+        "tpr_ci": {
+          "$ref": "common.json#/$defs/ci_bounds",
+          "description": "95% bootstrap interval over the labelled traces."
+        },
+        "tnr_ci": {
+          "$ref": "common.json#/$defs/ci_bounds",
+          "description": "95% bootstrap interval over the labelled traces."
         }
       }
     },
     "test": {
       "description": "Results on the held-out test split. Run once per prompt version; null until then.",
       "oneOf": [
-        { "type": "null" },
+        {
+          "type": "null"
+        },
         {
           "type": "object",
-          "required": ["tpr", "tnr", "matrix", "ran_at", "prompt_hash"],
+          "required": [
+            "tpr",
+            "tnr",
+            "matrix",
+            "ran_at",
+            "prompt_hash"
+          ],
           "additionalProperties": false,
           "properties": {
-            "tpr": { "type": "number", "minimum": 0, "maximum": 100 },
-            "tnr": { "type": "number", "minimum": 0, "maximum": 100 },
-            "matrix": { "$ref": "common.json#/$defs/confusion_matrix" },
-            "ran_at": { "$ref": "common.json#/$defs/timestamp" },
-            "prompt_hash": { "$ref": "common.json#/$defs/sha256" }
+            "tpr": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "tnr": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "matrix": {
+              "$ref": "common.json#/$defs/confusion_matrix"
+            },
+            "ran_at": {
+              "$ref": "common.json#/$defs/timestamp"
+            },
+            "prompt_hash": {
+              "$ref": "common.json#/$defs/sha256"
+            },
+            "tpr_ci": {
+              "$ref": "common.json#/$defs/ci_bounds",
+              "description": "95% bootstrap interval over the labelled traces."
+            },
+            "tnr_ci": {
+              "$ref": "common.json#/$defs/ci_bounds",
+              "description": "95% bootstrap interval over the labelled traces."
+            }
           }
         }
       ]
     },
     "status": {
       "type": "string",
-      "enum": ["untested", "dev", "trusted", "stale"],
+      "enum": [
+        "untested",
+        "dev",
+        "trusted",
+        "stale"
+      ],
       "description": "untested: no runs yet. dev: dev runs exist, test not run. trusted: test passed the threshold. stale: prompt or model changed since the test run."
     },
-    "stale_reason": { "type": "string", "enum": ["prompt_changed", "model_changed", "labels_changed"], "description": "Required when status is stale." },
+    "stale_reason": {
+      "type": "string",
+      "enum": [
+        "prompt_changed",
+        "model_changed",
+        "labels_changed"
+      ],
+      "description": "Required when status is stale."
+    },
     "disagreements": {
       "type": "array",
       "description": "Dev-split traces where judge and human disagree, for the editor.",
       "items": {
         "type": "object",
-        "required": ["trace_id", "human", "judge"],
+        "required": [
+          "trace_id",
+          "human",
+          "judge"
+        ],
         "additionalProperties": false,
         "properties": {
-          "trace_id": { "$ref": "common.json#/$defs/trace_id" },
-          "human": { "$ref": "common.json#/$defs/label_value" },
-          "judge": { "$ref": "common.json#/$defs/verdict" },
-          "critique": { "type": "string" }
+          "trace_id": {
+            "$ref": "common.json#/$defs/trace_id"
+          },
+          "human": {
+            "$ref": "common.json#/$defs/label_value"
+          },
+          "judge": {
+            "$ref": "common.json#/$defs/verdict"
+          },
+          "critique": {
+            "type": "string"
+          }
         }
       }
     }
   },
   "allOf": [
-    { "if": { "properties": { "status": { "const": "stale" } } }, "then": { "required": ["stale_reason"] } },
-    { "if": { "properties": { "status": { "const": "trusted" } } }, "then": { "properties": { "test": { "type": "object" } } } }
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "stale"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "stale_reason"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "trusted"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "test": {
+            "type": "object"
+          }
+        }
+      }
+    }
   ],
   "$defs": {
     "split": {
       "type": "object",
-      "required": ["trace_ids", "hash"],
+      "required": [
+        "trace_ids",
+        "hash"
+      ],
       "additionalProperties": false,
       "properties": {
-        "trace_ids": { "type": "array", "items": { "$ref": "common.json#/$defs/trace_id" }, "uniqueItems": true },
-        "hash": { "$ref": "common.json#/$defs/sha256", "description": "SHA-256 of the sorted, newline-joined trace ids. Locks the split." }
+        "trace_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "common.json#/$defs/trace_id"
+          },
+          "uniqueItems": true
+        },
+        "hash": {
+          "$ref": "common.json#/$defs/sha256",
+          "description": "SHA-256 of the sorted, newline-joined trace ids. Locks the split."
+        }
       }
     }
   }

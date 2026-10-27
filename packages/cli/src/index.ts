@@ -15,3 +15,8 @@ export type { ServeOptions, Running } from "./serve.ts";
 export { App, HttpError, kindOf } from "./server/app.ts";
 export { discover, gatherNotes, diffText, parseJson, DISCOVER_MODEL } from "./discover.ts";
 export type { Proposal, DiscoverResult, Ask } from "./discover.ts";
+export { calibrate, labelsFor, makeSplits } from "./calibrate.ts";
+export type { CalibrateOptions, CalibrateResult, Splits } from "./calibrate.ts";
+export { judgeTraces, loadJudge, buildMessages, renderInputs, parseVerdict } from "./judge_run.ts";
+export type { JudgeAsk, Verdict } from "./judge_run.ts";
+export * as stats from "./stats.ts";

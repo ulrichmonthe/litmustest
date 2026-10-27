@@ -8,6 +8,7 @@ import { ingest } from "./ingest.ts";
 import { serve } from "./serve.ts";
 import { discover } from "./discover.ts";
 import { App } from "./server/app.ts";
+import { calibrate } from "./calibrate.ts";
 
 const VERSION: string = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), "..", "package.json"), "utf8")).version;
 
@@ -30,6 +31,13 @@ Usage:
       unless --apply, which saves the files (validated) as pending changes
       on the branch for a person to commit. Needs ANTHROPIC_API_KEY.
 
+  litmustest calibrate <judge> [--dir evals] [--split dev|test|none] [--force] [--json]
+      Split the judge's labels 15/45/40 (train/dev/test, test locked once
+      drawn), run the judge on the dev split (freely) or the test split
+      (once, after dev reaches the trust threshold), and write TPR, TNR,
+      bootstrap intervals, the confusion matrix and the disagreements to
+      calibration.json. --split none only refreshes splits and status.
+
   litmustest serve [--dir evals] [--port 4242] [--host 127.0.0.1]
       Local server over evals/: reads with content hashes, validated writes
       that land on an evals/<slug> branch, the Pending changes API (commit,
@@ -44,7 +52,7 @@ Usage:
   litmustest --version
   litmustest --help
 
-Commands run, compare, calibrate, ci and doctor arrive in later
+Commands run, compare, ci and doctor arrive in later
 phases; see docs/SPEC.md.
 `;
 
@@ -56,6 +64,7 @@ function main(argv: string[]): number {
   if (cmd === "ingest") return runIngest(rest);
   if (cmd === "serve") { runServe(rest); return 0; }
   if (cmd === "discover") { runDiscover(rest); return 0; }
+  if (cmd === "calibrate") { runCalibrate(rest); return 0; }
   if (cmd !== "validate") { process.stderr.write(`unknown command '${cmd}'\n\n${HELP}`); return 2; }
 
   const flags = new Set(rest.filter((a) => a.startsWith("--")));
@@ -122,6 +131,29 @@ function runIngest(rest: string[]): number {
     process.stdout.write(`wrote ${r.batchFile}\n`);
     return r.invalid.length ? 1 : 0;
   } catch (e) { process.stderr.write(`ingest: ${(e as Error).message}\n`); return 1; }
+}
+
+function runCalibrate(rest: string[]): void {
+  const { values, flags, positional } = opts(rest, ["--dir", "--split", "--force", "--json"]);
+  const judge = positional[0];
+  if (!judge) { process.stderr.write("calibrate: a judge name is required\n"); process.exitCode = 2; return; }
+  const split = (values.get("--split") ?? "dev") as "dev" | "test" | "none";
+  if (!["dev", "test", "none"].includes(split)) { process.stderr.write("calibrate: --split must be dev, test or none\n"); process.exitCode = 2; return; }
+  calibrate({ evalsDir: resolve(values.get("--dir") ?? "evals"), judge, split, force: flags.has("--force"), onProgress: flags.has("--json") ? undefined : (d, t, v) => process.stderr.write(`\r  ${d}/${t} judged${v.result === "Unknown" ? " (unknown)" : ""}   `) })
+    .then((r) => {
+      if (!flags.has("--json")) process.stderr.write("\n");
+      if (flags.has("--json")) { process.stdout.write(JSON.stringify(r, null, 2) + "\n"); return; }
+      process.stdout.write(`${r.judge}: ${r.labels} labels -> train ${r.splits.train.length} / dev ${r.splits.dev.length} / test ${r.splits.test.length}\n`);
+      for (const w of r.warnings) process.stdout.write(`  warning ${w}\n`);
+      if (r.ran) {
+        const m = r.ran.matrix;
+        process.stdout.write(`${split}: TPR ${r.ran.tpr}% (${r.ran.tpr_ci.low}–${r.ran.tpr_ci.high}) · TNR ${r.ran.tnr}% (${r.ran.tnr_ci.low}–${r.ran.tnr_ci.high}) · unknown ${r.ran.unknown}\n`);
+        process.stdout.write(`  matrix: tp ${m.tp}  fn ${m.fn}  fp ${m.fp}  tn ${m.tn}\n`);
+        if (r.ran.disagreements.length) { process.stdout.write(`  ${r.ran.disagreements.length} disagreements:\n`); for (const d of r.ran.disagreements.slice(0, 15)) process.stdout.write(`    ${d.trace_id}  human ${d.human} / judge ${d.judge}  ${String(d.critique).slice(0, 100)}\n`); }
+      }
+      process.stdout.write(`status: ${r.status}  (wrote ${r.path})\n`);
+    })
+    .catch((e: Error) => { process.stderr.write(`calibrate: ${e.message}\n`); process.exitCode = 1; });
 }
 
 function runDiscover(rest: string[]): void {

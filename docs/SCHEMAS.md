@@ -305,7 +305,9 @@ evals/graders/judges/<name>/calibration.json. Written only by `litmustest calibr
 | `tpr` | number |  | ≥ 0, ≤ 100 |  |
 | `tnr` | number |  | ≥ 0, ≤ 100 |  |
 | `matrix` | [confusion_matrix](#confusion_matrix) |  |  |  |
-| `runs` | array of object | yes |  |  |
+| `runs` | array of object | yes | max 20 items |  |
+| `tpr_ci` | [ci_bounds](#ci_bounds) |  |  | 95% bootstrap interval over the labelled traces. |
+| `tnr_ci` | [ci_bounds](#ci_bounds) |  |  | 95% bootstrap interval over the labelled traces. |
 
 ##### `runs` (each item)
 
@@ -317,6 +319,8 @@ evals/graders/judges/<name>/calibration.json. Written only by `litmustest calibr
 | `tpr` | number | yes | ≥ 0, ≤ 100 |  |
 | `tnr` | number | yes | ≥ 0, ≤ 100 |  |
 | `matrix` | [confusion_matrix](#confusion_matrix) | yes |  |  |
+| `tpr_ci` | [ci_bounds](#ci_bounds) |  |  | 95% bootstrap interval over the labelled traces. |
+| `tnr_ci` | [ci_bounds](#ci_bounds) |  |  | 95% bootstrap interval over the labelled traces. |
 
 #### `disagreements` (each item)
 
