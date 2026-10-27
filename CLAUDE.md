@@ -1,4 +1,4 @@
-# evalkit (working name; see docs/DECISIONS.md #1 before publishing anything)
+# litmustest
 
 A plugin for coding agents that takes a team from raw AI-product traces to a trusted, CI-gated eval suite, with a local dashboard that edits the eval files in git.
 
@@ -24,7 +24,7 @@ It reconciles two sources: the evals-skills course method (error analysis → bi
 
 ```
 evals/
-  evalkit.yaml            # sources, runs, judges, gates, storage, ci
+  litmustest.yaml            # sources, runs, judges, gates, storage, ci
   failure_modes/*.yaml
   tasks/**/*.yaml
   graders/code/*.py
@@ -59,6 +59,6 @@ evals/
 ## Working agreement for this repo
 
 - One PR per phase milestone. Each PR is reviewed against `docs/ACCEPTANCE.md` before merge.
-- Never hand-edit `calibration.json`; it is written by `evalkit calibrate` only.
+- Never hand-edit `calibration.json`; it is written by `litmustest calibrate` only.
 - The dashboard is a client of the CLI and the files. If something works in the dashboard but not the CLI, that is a bug.
 - Mockups in `design/mockups/` are the UI reference. Replicate their values from inline styles and `brand/tokens.json`; do not copy the markup wholesale.

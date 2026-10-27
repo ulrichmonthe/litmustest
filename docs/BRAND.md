@@ -1,13 +1,12 @@
 # Brand
 
-As of 2026-10-27. Source of record: the "evalkit Brand" Design System artifact. `../brand/tokens.json` is the machine-readable token file (light and dark themes); `../brand/logos/` holds the five logo files. This file is the brand book.
+As of 2026-10-27. Source of record: the "litmustest Brand" Design System artifact. `../brand/tokens.json` is the machine-readable token file (light and dark themes); `../brand/logos/` holds the five logo files. This file is the brand book.
 
 
-> **Name under review.** `evalkit` is taken on npm and PyPI (see the Decision Memos). Everything in this system except the wordmark survives a rename. When the name changes, update the wordmark style, the lockup asset and this file, and leave the rest alone.
 
 ## What the brand stands for
 
-evalkit exists because two good sources of eval practice disagree about scoring and skip the tooling. The brand takes one position and holds it everywhere: **a number is only worth showing with its margin of error, and only worth trusting if a person has read the evidence behind it.**
+litmustest exists because two good sources of eval practice disagree about scoring and skip the tooling. The brand takes one position and holds it everywhere: **a number is only worth showing with its margin of error, and only worth trusting if a person has read the evidence behind it.**
 
 That position shows up as three habits:
 
@@ -57,7 +56,7 @@ Rules:
 - Minimum size with the bar: 24px. Below that, use the favicon.
 - The check is always `blue` and the bar always `ink` on light grounds. In dark mode both use their dark theme values. On a coloured ground, both are white.
 - Never rotate, outline, add a shadow, or put the mark inside a circle.
-- The wordmark is `evalkit` in Sora 600, tracked at −0.04em, lowercase, with `kit` in `blue`. In the mono lockup the whole word is one colour.
+- The wordmark is `litmustest` in Sora 600, tracked at −0.04em, lowercase, with `test` in `blue`. In the mono lockup the whole word is one colour.
 - Mark and wordmark sit on a shared baseline with a gap equal to the mark's cap height.
 
 ## Colour

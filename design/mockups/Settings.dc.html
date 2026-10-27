@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>evalkit settings</title>
+<title>litmustest settings</title>
 <script src="./support.js"></script>
 </head>
 <body>
@@ -18,9 +18,9 @@ a{color:#1D4ED8}a:hover{color:#1E3A8A}
 
 <nav aria-label="Main" style="flex: 1 1 220px; max-width: 100%; box-sizing: border-box; background: #FFFFFF; border-right: 1px solid #E7E5E4; padding: 24px 16px; display: flex; flex-direction: column; gap: 4px">
 <div style="display: flex; align-items: center; gap: 10px; padding: 0 8px 20px 8px">
-<svg width="30" height="30" viewBox="0 0 64 64" role="img" aria-label="evalkit"><path d="M13 31 L26 44 L50 16" fill="none" stroke="#1D4ED8" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"></path><path d="M10 56 H54 M10 50 V62 M54 50 V62" fill="none" stroke="#1C1917" stroke-width="5" stroke-linecap="round"></path></svg>
+<svg width="30" height="30" viewBox="0 0 64 64" role="img" aria-label="litmustest"><path d="M13 31 L26 44 L50 16" fill="none" stroke="#1D4ED8" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"></path><path d="M10 56 H54 M10 50 V62 M54 50 V62" fill="none" stroke="#1C1917" stroke-width="5" stroke-linecap="round"></path></svg>
 <div style="display: flex; flex-direction: column">
-<span style="font-family: Sora, system-ui, sans-serif; font-weight: 600; font-size: 17px; letter-spacing: -0.04em; line-height: 1">eval<span style="color: #1D4ED8">kit</span></span>
+<span style="font-family: Sora, system-ui, sans-serif; font-weight: 600; font-size: 17px; letter-spacing: -0.04em; line-height: 1">litmus<span style="color: #1D4ED8">test</span></span>
 <span style="font-size: 12px; color: #57534E">support-agent repo</span>
 </div>
 </div>
@@ -48,11 +48,11 @@ a{color:#1D4ED8}a:hover{color:#1E3A8A}
 <h1 style="margin: 0; font-family: Sora, system-ui, sans-serif; font-size: 24px; font-weight: 700; letter-spacing: -0.02em">Settings</h1>
 <span style="font-size: 12px; border: 1px dashed #A8A29E; color: #57534E; border-radius: 999px; padding: 3px 10px">Sample data</span>
 </div>
-<p style="margin: 0; color: #57534E">Everything here is <span style="font-family: 'JetBrains Mono', monospace">evals/evalkit.yaml</span>. Edit the form or the file; they stay in step.</p>
+<p style="margin: 0; color: #57534E">Everything here is <span style="font-family: 'JetBrains Mono', monospace">evals/litmustest.yaml</span>. Edit the form or the file; they stay in step.</p>
 </div>
 <div role="group" aria-label="Editor mode" style="display: flex; background: #F5F5F4; border-radius: 8px; padding: 3px">
 <button type="button" onClick="{{showForm}}" aria-pressed="{{formOn}}" style="{{formTab}}">Form</button>
-<button type="button" onClick="{{showYaml}}" aria-pressed="{{yamlOn}}" style="{{yamlTab}}">evalkit.yaml</button>
+<button type="button" onClick="{{showYaml}}" aria-pressed="{{yamlOn}}" style="{{yamlTab}}">litmustest.yaml</button>
 </div>
 </header>
 
@@ -110,7 +110,7 @@ a{color:#1D4ED8}a:hover{color:#1E3A8A}
 <span>Trace source</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 12.5px; color: #44403C">otel · logs/traces/*.jsonl</span>
 <span>Production sampler</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 12.5px; color: #44403C">weekly · 60 traces · 8 clusters</span>
 <span>Run summaries</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 12.5px; color: #44403C">git · evals/runs/</span>
-<span>Raw transcripts</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 12.5px; color: #44403C">local · .evalkit/transcripts/</span>
+<span>Raw transcripts</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 12.5px; color: #44403C">local · .litmustest/transcripts/</span>
 </div>
 <a href="#" style="display: inline-flex; align-items: center; min-height: 44px; font-weight: 600; text-decoration: none">Add a storage backend for CI</a>
 </section>
@@ -124,7 +124,7 @@ a{color:#1D4ED8}a:hover{color:#1E3A8A}
 </sc-if>
 
 <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 14px 16px; background: #FFFFFF; border: 1px solid #E7E5E4; border-radius: 12px">
-<span style="font-size: 13px; color: #57534E">Changes save to <span style="font-family: 'JetBrains Mono', monospace">evalkit.yaml</span> on your branch after validation.</span>
+<span style="font-size: 13px; color: #57534E">Changes save to <span style="font-family: 'JetBrains Mono', monospace">litmustest.yaml</span> on your branch after validation.</span>
 <span style="flex: 1 1 auto"></span>
 <button type="button" style="min-height: 44px; padding: 0 18px; border: 0; border-radius: 8px; background: #1D4ED8; color: #FFFFFF; font: inherit; font-weight: 600; cursor: pointer">Save</button>
 </div>
@@ -150,7 +150,7 @@ class Component extends DCLogic {
         { name: 'Capability', mode: 'Report only', pill: pill('#F5F5F4', '#44403C'), min: '—', drop: '—', note: 'Meant to be failing. Shown in the PR comment so the team sees the hill.' },
         { name: 'Quality', mode: 'Blocks merge', pill: pill('#FEE2E2', '#991B1B'), min: '70%', drop: '3 pts', note: 'Stale judges are excluded, so a judge edit can never pass or block a build on its own.' }
       ],
-      yaml: '# evals/evalkit.yaml\nproject: support-agent\n\nsources:\n  traces: { format: otel, path: logs/traces/*.jsonl }\n  sampler: { every: weekly, size: 60, clusters: 8 }\n\nruns:\n  trials: 5\n  concurrency: 8\n  budget_usd: 40\n  environment: harbor\n  resources: { cpu: 2, memory_gb: 4, ceiling: 3x }\n\njudges:\n  default_model: [PINNED MODEL SNAPSHOT ID]\n  trust_threshold: { tpr: 0.90, tnr: 0.90 }\n  stale_on_change: true\n  correct_for_judge_error: true\n\ngates:\n  regression: { min_pass_rate: 0.95, max_drop_pts: 2 }\n  capability: { report_only: true }\n  quality:    { min_pass_rate: 0.70, max_drop_pts: 3, trusted_judges_only: true }\n\nstorage:\n  summaries: git\n  transcripts: local\n\nci:\n  pr_comment: true'
+      yaml: '# evals/litmustest.yaml\nproject: support-agent\n\nsources:\n  traces: { format: otel, path: logs/traces/*.jsonl }\n  sampler: { every: weekly, size: 60, clusters: 8 }\n\nruns:\n  trials: 5\n  concurrency: 8\n  budget_usd: 40\n  environment: harbor\n  resources: { cpu: 2, memory_gb: 4, ceiling: 3x }\n\njudges:\n  default_model: [PINNED MODEL SNAPSHOT ID]\n  trust_threshold: { tpr: 0.90, tnr: 0.90 }\n  stale_on_change: true\n  correct_for_judge_error: true\n\ngates:\n  regression: { min_pass_rate: 0.95, max_drop_pts: 2 }\n  capability: { report_only: true }\n  quality:    { min_pass_rate: 0.70, max_drop_pts: 3, trusted_judges_only: true }\n\nstorage:\n  summaries: git\n  transcripts: local\n\nci:\n  pr_comment: true'
     };
   }
 }
