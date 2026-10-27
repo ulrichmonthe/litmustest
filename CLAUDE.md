@@ -33,6 +33,7 @@ tests/                    # vitest: schemas/examples/<schema>/{valid,invalid}.*,
 scripts/gen-schema-docs.ts  # writes docs/SCHEMAS.md from the schema descriptions
 scripts/gen-tokens-css.ts   # writes packages/cli/ui/tokens.css from brand/tokens.json
 packages/cli/ui/          # the dashboard: static HTML, CSS and one ES module, no build step; served by `litmustest serve`
+packages/cli/src/server/  # app (routes and validated writes), pending (the tray), overview (read models), discover_route
 docs/, brand/, design/    # spec, decisions, brand book, tokens, logos, mockups
 ```
 

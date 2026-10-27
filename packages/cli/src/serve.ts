@@ -47,12 +47,14 @@ async function handle(app: App, req: IncomingMessage, res: ServerResponse, ask?:
     const body = ["PUT", "POST"].includes(req.method ?? "") ? await readJson(req) : {};
     if (!path.startsWith("/api/") && req.method === "GET") return serveStatic(path, res);
     if (path === "/api/failure_modes" && req.method === "GET") return send(app.failureModes());
+    if (path === "/api/modes" && req.method === "GET") return send(app.modes());
+    if (path === "/api/overview" && req.method === "GET") return send(app.overview());
     if (path === "/api/discover" && req.method === "POST") return send(await discoverRoute(app, body, ask));
     if (path === "/api/health") return send(app.health());
     if (path === "/api/validate") return send({ status: 200, body: app.validate(Boolean(q("refresh"))) });
     if (path === "/api/files" && req.method === "GET") return send(app.listFiles());
     if (path === "/api/file" && req.method === "GET") return send(app.getFile(need(q("path"), "path")));
-    if (path === "/api/file" && req.method === "PUT") return send(app.putFile(need(body.path as string, "path"), need(body.content as string, "content"), body.base_hash as string | undefined));
+    if (path === "/api/file" && req.method === "PUT") return send(app.putFile(need(body.path as string, "path"), body.content as string | undefined, body.base_hash as string | undefined, body.data));
     if (path === "/api/labels" && req.method === "POST") { const { batch, ...label } = body; return send(app.appendLabel(need(batch as string, "batch"), label)); }
     if (path === "/api/pending" && req.method === "GET") return send(app.pendingState());
     if (path === "/api/pending/commit" && req.method === "POST") return send(app.commit(body.message as string | undefined, body.slug as string | undefined));

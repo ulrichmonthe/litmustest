@@ -8,6 +8,7 @@ import { SchemaSet } from "../schemas.ts";
 import { validateEvals, sha256, type Problem, type ValidateResult } from "../validate.ts";
 import { traceView } from "../trace_view.ts";
 import { Git } from "./git.ts";
+import { modesView, overview } from "./overview.ts";
 import { Pending } from "./pending.ts";
 
 type Obj = Record<string, unknown>;
@@ -71,6 +72,8 @@ export class App {
     const project = (() => { try { return String((parseYaml(readFileSync(join(this.evalsDir, "litmustest.yaml"), "utf8")) as Obj).project ?? ""); } catch { return ""; } })();
     return { status: 200, body: { evals: this.evalsDir, repo: this.git.root, project, branch: this.git.branch(), head: this.git.head(), annotator, errors: v.errors, warnings: v.warnings, pending: this.pending.paths().length } };
   }
+  modes(): Reply { return { status: 200, body: { failure_modes: modesView(this.evalsDir) } }; }
+  overview(): Reply { return { status: 200, body: overview(this.evalsDir) }; }
   /** Failure modes with their grader status and label counts, for chips and the "so far" panel. */
   failureModes(): Reply {
     const dir = join(this.evalsDir, "failure_modes");
@@ -114,10 +117,15 @@ export class App {
   }
 
   // ---- writes
-  /** Save a file. Refuses a conflict (409), a schema failure or a new cross-file error (422). Side effects for judges. */
-  putFile(path: string, content: string, baseHash?: string): Reply {
+  /** Save a file. Refuses a conflict (409), a schema failure or a new cross-file error (422). Side effects for judges.
+   *  `content` is the raw text; a client may send `data` instead and the server serializes it (YAML or JSON by extension), which keeps diffs minimal. */
+  putFile(path: string, content: string | undefined, baseHash?: string, data?: unknown): Reply {
     const { abs, rel } = this.abs(path);
     const kind = kindOf(rel);
+    if (content === undefined) {
+      if (data === undefined) throw new HttpError(400, "content or data is required");
+      content = rel.endsWith(".json") ? JSON.stringify(data, null, 2) + "\n" : yaml(data);
+    }
     if (!kind) throw new HttpError(400, `${rel} is not a file type litmustest knows; see docs/SCHEMAS.md`);
     if (kind === "calibration") throw new HttpError(403, "calibration.json is written by litmustest calibrate only; edit the judge and re-run calibration");
     if (kind === "trace") throw new HttpError(403, "traces are written by litmustest ingest; they are evidence, not something to edit");

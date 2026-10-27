@@ -10,8 +10,8 @@ As of 2026-10-27. Derived from the 25-chapter "litmustest Master Class" guide, w
 - [x] In the Review queue: j/k move, p/f label, n focuses the note, Enter saves and advances. A label is appended to `labels/*.jsonl` with annotator and timestamp within one second. (Also `s` for Skip; Cmd/Ctrl+Enter saves from inside the note.)
 - [x] Tool calls render between messages; an expected-but-missing tool call can be flagged by the renderer when a task specifies it. (A task whose `source` is `trace:<id>` lends its `required_tools`; the renderer shows a hollow red step marked Never called.)
 - [x] "Ask Claude to regroup notes" runs `error-discovery` and returns proposed failure-mode files as a diff in the Pending changes tray; nothing is written until accepted. (`POST /api/discover` proposes; Accept writes through the validated save path; `litmustest discover [--apply]` is the same from the CLI and the skill.)
-- [ ] Failure modes view lists modes with count, severity, grader status; definition and severity edit and save to files.
-- [ ] Overview (read-only) shows a failure-mode Pareto and the review coverage.
+- [x] Failure modes view lists modes with count, severity, grader status; definition and severity edit and save to files. (Plus owner, merge into, retire and new mode; saves carry the loaded hash and show the per-field save state with Reload / Keep mine on a conflict.)
+- [x] Overview (read-only) shows a failure-mode Pareto and the review coverage. (Also the verdict strip, suite scorecards with CI and paired deltas, needs-attention alerts, judge trust and the flip list, all from the files.)
 - [x] Every file written validates against its JSON Schema; an invalid write is refused with the field named. (Server: 422 with the failing field; a write that breaks a cross-file rule is reverted and refused the same way; a stale base hash is a 409 with reload / keep mine.)
 - [ ] A domain expert who has read guide chapters 3, 6 and 7 can label 50 traces in under an hour without asking an engineer anything.
 

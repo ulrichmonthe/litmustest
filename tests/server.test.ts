@@ -74,8 +74,9 @@ describe("validated writes", () => {
     expect(keep.status).toBe(200);
   });
   it("creates a new file and refuses calibration and trace writes", async () => {
-    const r = await put("failure_modes/missed_refund.yaml", "name: missed_refund\ndefinition: The customer was owed a refund and none was processed before the conversation ended.\nseverity: high\ncreated: 2026-10-27\n");
+    const r = await api("/api/file", { method: "PUT", body: JSON.stringify({ path: "failure_modes/missed_refund.yaml", data: { name: "missed_refund", definition: "The customer was owed a refund and none was processed before the conversation ended.", severity: "high", created: "2026-10-27" } }) });
     expect(r.status).toBe(200);
+    expect(readFileSync(join(cwd, "evals", "failure_modes", "missed_refund.yaml"), "utf8")).toContain("created: 2026-10-27\n");
     expect((await api("/api/pending")).body.files.find((f: { path: string }) => f.path.endsWith("missed_refund.yaml")).status).toBe("added");
     expect((await put("graders/judges/x/calibration.json", "{}")).status).toBe(403);
     expect((await put("datasets/traces/tr_0001.json", "{}")).status).toBe(403);
@@ -163,5 +164,23 @@ describe("review queue support", () => {
     expect(t.body.expected_tools).toEqual(["verify_identity", "process_refund"]);
     const called = new Set(t.body.view.calls.map((c: { name: string }) => c.name));
     expect(t.body.expected_tools.filter((n: string) => !called.has(n)).length).toBeGreaterThanOrEqual(0);
+  });
+});
+
+describe("structured saves", () => {
+  it("serializes data on the server so a one-field edit is a one-line diff", async () => {
+    const cur = await api("/api/file?path=failure_modes/missed_refund.yaml");
+    const data = { ...cur.body.data, severity: "low" };
+    const r = await api("/api/file", { method: "PUT", body: JSON.stringify({ path: "failure_modes/missed_refund.yaml", data, base_hash: cur.body.hash }) });
+    expect(r.status).toBe(200);
+    const p = await api("/api/pending");
+    const f = p.body.files.find((x: { path: string }) => x.path.endsWith("missed_refund.yaml"));
+    const changed = f.diff.split("\n").filter((l: string) => /^[+-]/.test(l) && !/^(\+\+\+|---)/.test(l));
+    expect(changed).toEqual(["-severity: high", "+severity: low"]);
+    await api("/api/pending/discard", { method: "POST", body: JSON.stringify({ paths: ["failure_modes/missed_refund.yaml"] }) });
+  });
+  it("serves /api/modes and /api/overview", async () => {
+    const m = await api("/api/modes"); expect(m.status).toBe(200); expect(m.body.failure_modes.some((x: { name: string }) => x.name === "tone_mismatch")).toBe(true);
+    const o = await api("/api/overview"); expect(o.status).toBe(200); expect(o.body.verdict.lead).toBe("No runs yet."); expect(o.body.modes.source).toBe("labels");
   });
 });
