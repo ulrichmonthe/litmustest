@@ -1,0 +1,3 @@
+{ "run_id": "run 41", "commit": "main", "started_at": "2026-10-26T08:00:00Z", "config_hash": "2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881",
+  "suites": { "regression": { "pass_rate": 104, "pass_at_1": 97, "pass_hat_k": 91, "n_tasks": 28 } },
+  "tasks": {}, "infra_error_rate": 0, "cost_usd": 1 }

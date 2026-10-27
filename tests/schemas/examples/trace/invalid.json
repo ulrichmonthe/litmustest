@@ -1,0 +1,2 @@
+{ "id": "tr_8812", "spans": [ { "span_id": "s1", "name": "chat", "start_time": "2026-10-19T12:00:00Z",
+  "attributes": { "gen_ai.operation.name": "completion", "gen_ai.usage.input_tokens": -1 } } ] }

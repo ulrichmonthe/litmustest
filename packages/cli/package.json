@@ -1,0 +1,42 @@
+{
+  "name": "litmustest",
+  "version": "0.1.0",
+  "description": "From raw AI-product traces to a trusted, CI-gated eval suite. Schemas, validator, runner, calibration and a local dashboard over eval files in git.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "bin": {
+    "litmustest": "./dist/main.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "schemas",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "prepack": "rm -rf schemas && cp -R ../../schemas schemas"
+  },
+  "dependencies": {
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1",
+    "yaml": "^2.6.1"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "keywords": [
+    "evals",
+    "llm",
+    "agents",
+    "evaluation",
+    "calibration",
+    "claude-code"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ulrichmonthe/litmustest",
+    "directory": "packages/cli"
+  }
+}

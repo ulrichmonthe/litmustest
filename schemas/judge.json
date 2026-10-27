@@ -1,0 +1,141 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://litmustest.dev/schemas/v1/judge.json",
+  "title": "Judge",
+  "description": "evals/graders/judges/<name>/judge.yaml. A model-based grader for exactly one failure mode. Critique before verdict; Pass, Fail or Unknown; few-shot examples from the train split only.",
+  "type": "object",
+  "required": [
+    "id",
+    "failure_mode",
+    "model",
+    "inputs",
+    "output",
+    "prompt",
+    "prompt_hash"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "$ref": "common.json#/$defs/name",
+      "description": "Must equal the directory name."
+    },
+    "failure_mode": {
+      "$ref": "common.json#/$defs/name",
+      "description": "The one failure mode this judge detects."
+    },
+    "model": {
+      "$ref": "common.json#/$defs/model_id",
+      "description": "Pinned to a dated snapshot. Changing it marks the judge stale."
+    },
+    "inputs": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "enum": [
+          "transcript",
+          "output",
+          "input",
+          "state",
+          "tool_calls",
+          "reference"
+        ]
+      },
+      "description": "What the judge is shown."
+    },
+    "output": {
+      "type": "object",
+      "description": "The structured output the judge must produce. Critique comes first so the verdict is reasoned.",
+      "required": [
+        "critique",
+        "result"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "critique": {
+          "type": "object",
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "string"
+            },
+            "max_chars": {
+              "type": "integer",
+              "minimum": 50
+            }
+          },
+          "additionalProperties": false
+        },
+        "result": {
+          "type": "object",
+          "required": [
+            "enum"
+          ],
+          "properties": {
+            "enum": {
+              "type": "array",
+              "const": [
+                "Pass",
+                "Fail",
+                "Unknown"
+              ]
+            }
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    "few_shot": {
+      "type": "array",
+      "maxItems": 10,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "required": [
+          "trace_id",
+          "label"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "trace_id": {
+            "$ref": "common.json#/$defs/trace_id",
+            "description": "Must come from calibration.splits.train. Never dev or test."
+          },
+          "label": {
+            "$ref": "common.json#/$defs/label_value"
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 1000,
+            "description": "Why it is a Pass or a Fail; shown to the model."
+          }
+        }
+      }
+    },
+    "prompt": {
+      "$ref": "common.json#/$defs/relative_path",
+      "pattern": "\\.md$",
+      "description": "Path to prompt.md, relative to evals/.",
+      "type": "string"
+    },
+    "prompt_hash": {
+      "$ref": "common.json#/$defs/sha256",
+      "description": "SHA-256 of prompt.md. The validator recomputes it; a mismatch means the judge is stale."
+    },
+    "temperature": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "default": 0
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "default": 1,
+      "description": "Bumped by hand on every prompt or model change; TPR/TNR are tracked by version."
+    }
+  }
+}

@@ -1,0 +1,5 @@
+id: tone_mismatch
+type: judge
+failure_mode: tone_mismatch
+inputs: [transcript]
+weight: 1

@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://litmustest.dev/schemas/v1/failure_mode.json",
+  "title": "Failure mode",
+  "description": "evals/failure_modes/<name>.yaml. One named way the product goes wrong, found by reading traces. Failure modes are tags on the checks inside tasks.",
+  "type": "object",
+  "required": ["name", "definition", "severity", "created"],
+  "additionalProperties": false,
+  "properties": {
+    "name": { "$ref": "common.json#/$defs/name", "description": "Must equal the file name without extension." },
+    "definition": { "type": "string", "minLength": 20, "maxLength": 2000, "description": "What counts as this failure, in plain words a judge and a new annotator can both apply. Say what Pass and Fail look like." },
+    "severity": { "$ref": "common.json#/$defs/severity" },
+    "owner": { "type": "string", "minLength": 1, "description": "The person or team who decides what counts." },
+    "examples": {
+      "type": "array",
+      "items": { "$ref": "common.json#/$defs/trace_id" },
+      "uniqueItems": true,
+      "description": "Trace ids that show the failure clearly. Used in the editor, not as few-shot examples; those live in the judge."
+    },
+    "created": { "$ref": "common.json#/$defs/date" },
+    "retired": { "$ref": "common.json#/$defs/date", "description": "Set when the mode is merged or no longer tracked. A retired mode cannot be referenced by a new check." },
+    "merged_into": { "$ref": "common.json#/$defs/name", "description": "When retired by a merge, the surviving mode." }
+  }
+}

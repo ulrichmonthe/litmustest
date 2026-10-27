@@ -1,0 +1,5 @@
+name: refund_missed
+definition: The customer was owed a refund and the agent ended the conversation without processing one. Fail when a refund was due and no process_refund call succeeded.
+severity: high
+owner: billing
+created: 2026-10-20

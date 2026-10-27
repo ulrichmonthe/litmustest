@@ -1,0 +1,5 @@
+{ "judge": "tone_mismatch", "prompt_hash": "9af78fc94e8890baa87b8bc439774eb05dcef5f9014909d4336bd061b3191b67", "model": "claude-sonnet-4-5-20250929",
+  "splits": { "train": { "trace_ids": ["tr_0001", "tr_0002"], "hash": "e85a39b33312f9b62fc9634707bee3de5a301fd927fc8ad3a4ae63b64b2d038c" }, "dev": { "trace_ids": ["tr_0003"], "hash": "e85a39b33312f9b62fc9634707bee3de5a301fd927fc8ad3a4ae63b64b2d038c" }, "test": { "trace_ids": ["tr_0004"], "hash": "e85a39b33312f9b62fc9634707bee3de5a301fd927fc8ad3a4ae63b64b2d038c" } },
+  "dev": { "tpr": 95, "tnr": 93, "matrix": { "tp": 19, "tn": 28, "fp": 2, "fn": 1 }, "runs": [ { "ran_at": "2026-10-25T10:00:00Z", "prompt_hash": "9af78fc94e8890baa87b8bc439774eb05dcef5f9014909d4336bd061b3191b67", "tpr": 95, "tnr": 93, "matrix": { "tp": 19, "tn": 28, "fp": 2, "fn": 1 } } ] },
+  "test": { "tpr": 94, "tnr": 92, "matrix": { "tp": 15, "tn": 23, "fp": 2, "fn": 1 }, "ran_at": "2026-10-26T10:00:00Z", "prompt_hash": "9af78fc94e8890baa87b8bc439774eb05dcef5f9014909d4336bd061b3191b67" },
+  "status": "trusted" }

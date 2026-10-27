@@ -1,0 +1,1 @@
+{"task": "refund_frustrated_001", "output": "Refunded.", "state": {"refunds": {"status": "pending"}}, "tool_calls": [{"name": "process_refund"}, {"name": "verify_identity"}], "transcript": [{"role": "user", "content": "I was charged twice this month."}, {"role": "agent", "content": "Refunded."}]}

@@ -1,0 +1,9 @@
+id: missed_refund
+failure_mode: missed_refund
+model: claude-sonnet-4-5-20250929
+inputs: [transcript, state]
+output:
+  critique: { type: string }
+  result: { enum: [Pass, Fail, Unknown] }
+prompt: graders/judges/missed_refund/prompt.md
+prompt_hash: d9ee6e05139e6ab21790ad5e79c999c3bbadd9597235cf7e77475b3486b5c2cd

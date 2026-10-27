@@ -1,0 +1,15 @@
+{
+  "judge": "tone_mismatch",
+  "prompt_hash": "2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881",
+  "model": "claude-sonnet-4-5-20250929",
+  "splits": {
+    "train": { "trace_ids": ["tr_0012", "tr_0040"], "hash": "2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881" },
+    "dev": { "trace_ids": ["tr_0101", "tr_0102", "tr_0103"], "hash": "2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881" },
+    "test": { "trace_ids": ["tr_0201", "tr_0202"], "hash": "2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881" }
+  },
+  "dev": { "tpr": 94.1, "tnr": 92.0, "matrix": { "tp": 16, "tn": 23, "fp": 2, "fn": 1, "unknown": 1 },
+           "runs": [ { "ran_at": "2026-10-25T10:00:00Z", "prompt_hash": "2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881", "version": 2, "tpr": 94.1, "tnr": 92.0, "matrix": { "tp": 16, "tn": 23, "fp": 2, "fn": 1 } } ] },
+  "test": { "tpr": 93.3, "tnr": 91.7, "matrix": { "tp": 14, "tn": 22, "fp": 2, "fn": 1 }, "ran_at": "2026-10-26T10:00:00Z", "prompt_hash": "2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881" },
+  "status": "trusted",
+  "disagreements": [ { "trace_id": "tr_0102", "human": "Pass", "judge": "Fail", "critique": "Read 'fine.' as curt." } ]
+}

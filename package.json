@@ -1,0 +1,25 @@
+{
+  "name": "litmustest-monorepo",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "tsc -b packages/cli",
+    "test": "vitest run",
+    "docs:schemas": "node scripts/gen-schema-docs.ts",
+    "validate": "node packages/cli/src/main.ts validate"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true
+  }
+}

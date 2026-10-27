@@ -1,0 +1,4 @@
+id: refund_processed
+type: outcome
+backend: graphql
+expect: {}

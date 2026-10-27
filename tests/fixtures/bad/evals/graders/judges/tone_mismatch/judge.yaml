@@ -1,0 +1,11 @@
+id: tone_mismatch
+failure_mode: tone_mismatch
+model: claude-sonnet-4-5-20250929
+inputs: [transcript]
+output:
+  critique: { type: string }
+  result: { enum: [Pass, Fail, Unknown] }
+few_shot:
+  - { trace_id: tr_0001, label: Fail, note: "Breezy reply to a furious customer." }
+prompt: graders/judges/tone_mismatch/prompt.md
+prompt_hash: 9af78fc94e8890baa87b8bc439774eb05dcef5f9014909d4336bd061b3191b67

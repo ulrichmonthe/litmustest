@@ -1,0 +1,4 @@
+{ "task": "refund_frustrated_001", "output": "Refunded.",
+  "state": { "refunds": { "status": "processed" } },
+  "tool_calls": [ { "name": "verify_identity" }, { "name": "fetch_invoices" }, { "name": "process_refund" } ],
+  "transcript": [ { "role": "user", "content": "I was charged twice this month." }, { "role": "agent", "content": "Refunded." } ] }

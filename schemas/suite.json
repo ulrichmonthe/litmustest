@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://litmustest.dev/schemas/v1/suite.json",
+  "title": "Suite",
+  "description": "evals/suites/<name>.yaml. A named set of tasks with one job: regression stays near 100%, capability is the hill to climb, quality uses trusted judges only.",
+  "type": "object",
+  "required": ["name", "kind"],
+  "additionalProperties": false,
+  "anyOf": [ { "required": ["tasks"] }, { "required": ["include"] } ],
+  "properties": {
+    "name": { "$ref": "common.json#/$defs/name", "description": "Must equal the file name without extension." },
+    "kind": { "$ref": "common.json#/$defs/suite_kind" },
+    "description": { "type": "string", "maxLength": 1000 },
+    "tasks": { "type": "array", "items": { "$ref": "common.json#/$defs/name" }, "uniqueItems": true, "description": "Explicit task ids." },
+    "include": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "Globs under evals/tasks/, e.g. refunds/**." },
+    "gate": { "$ref": "common.json#/$defs/gate", "description": "Overrides the gate in litmustest.yaml for this suite." },
+    "path_checks": { "type": "boolean", "description": "Whether transcript checks count. Defaults to true for regression and quality, false for capability." },
+    "graduated_from": { "$ref": "common.json#/$defs/name", "description": "For a regression suite seeded from a saturated capability suite." }
+  }
+}

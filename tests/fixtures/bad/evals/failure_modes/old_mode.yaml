@@ -1,0 +1,6 @@
+name: old_mode
+definition: A retired failure mode that was merged into tone_mismatch. Kept so old labels still resolve.
+severity: low
+created: 2026-09-01
+retired: 2026-10-15
+merged_into: tone_mismatch

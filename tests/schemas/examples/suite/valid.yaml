@@ -1,0 +1,6 @@
+name: regression
+kind: regression
+description: Must stay near 100%. Seeded from traces that failed in production.
+tasks: [refund_frustrated_001, refund_business_002]
+gate: { min_pass_rate: 95, max_drop_pts: 2 }
+path_checks: true

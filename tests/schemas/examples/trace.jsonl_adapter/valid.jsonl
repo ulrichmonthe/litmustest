@@ -1,0 +1,2 @@
+{"id":"tr_0001","input":"I was charged twice.","output":"Refunded $19.99.","messages":[{"role":"user","content":"I was charged twice."},{"role":"assistant","content":"Refunded $19.99."}],"tool_calls":[{"name":"process_refund","arguments":{"invoice":"inv_2"},"result":{"ok":true},"turn":1}],"timestamp":"2026-10-19T12:00:00Z","model":"claude-sonnet-4-5-20250929"}
+{"id":"tr_0002","input":{"persona":"business","message":"Invoice please"},"output":{"text":"Sent."}}

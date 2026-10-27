@@ -1,0 +1,3 @@
+{ "judge": "missed_refund", "prompt_hash": "d9ee6e05139e6ab21790ad5e79c999c3bbadd9597235cf7e77475b3486b5c2cd", "model": "claude-sonnet-4-5-20250929",
+  "splits": { "train": { "trace_ids": [], "hash": "e85a39b33312f9b62fc9634707bee3de5a301fd927fc8ad3a4ae63b64b2d038c" }, "dev": { "trace_ids": [], "hash": "e85a39b33312f9b62fc9634707bee3de5a301fd927fc8ad3a4ae63b64b2d038c" }, "test": { "trace_ids": [], "hash": "e85a39b33312f9b62fc9634707bee3de5a301fd927fc8ad3a4ae63b64b2d038c" } },
+  "dev": { "runs": [] }, "test": null, "status": "untested" }

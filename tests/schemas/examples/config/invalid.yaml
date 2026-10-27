@@ -1,0 +1,5 @@
+# default_model is a floating alias, not a dated snapshot; gates missing
+project: support_agent
+sources: { traces: { format: jsonl, path: logs/*.jsonl } }
+runs: { trials: 5 }
+judges: { default_model: claude-sonnet-latest }

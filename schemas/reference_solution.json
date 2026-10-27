@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://litmustest.dev/schemas/v1/reference_solution.json",
+  "title": "Reference solution",
+  "description": "evals/refs/<task id>.json. A known-good trial for a task: the output, end state, and tool calls that every check on the task must pass. Confirms the task is unambiguous.",
+  "type": "object",
+  "required": ["task"],
+  "additionalProperties": false,
+  "properties": {
+    "task": { "$ref": "common.json#/$defs/name", "description": "The task id. Must match the task that references this file." },
+    "output": { "type": "string", "description": "The final response the agent should give." },
+    "state": { "type": "object", "description": "The end state an outcome check reads, keyed the way expect paths address it, e.g. { refunds: { status: processed } }." },
+    "tool_calls": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name"],
+        "additionalProperties": false,
+        "properties": {
+          "name": { "$ref": "common.json#/$defs/name" },
+          "args": { "type": "object" },
+          "result": {}
+        }
+      }
+    },
+    "transcript": {
+      "type": "array",
+      "description": "Ordered turns, the derived view a judge receives.",
+      "items": {
+        "type": "object",
+        "required": ["role", "content"],
+        "additionalProperties": false,
+        "properties": {
+          "role": { "type": "string", "enum": ["user", "agent", "tool", "system"] },
+          "content": { "type": "string" },
+          "tool": { "$ref": "common.json#/$defs/name" }
+        }
+      }
+    },
+    "note": { "type": "string", "maxLength": 2000, "description": "Why this is the right answer." },
+    "author": { "type": "string" },
+    "at": { "$ref": "common.json#/$defs/timestamp" }
+  }
+}

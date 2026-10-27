@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://litmustest.dev/schemas/v1/config.json",
+  "title": "Config",
+  "description": "evals/litmustest.yaml. Where traces come from, how runs execute, how judges are trusted, what CI enforces, and where results go.",
+  "type": "object",
+  "required": ["project", "sources", "runs", "judges", "gates"],
+  "additionalProperties": false,
+  "properties": {
+    "version": { "type": "integer", "const": 1, "default": 1, "description": "Config schema version." },
+    "project": { "$ref": "common.json#/$defs/name", "description": "The project this evals/ folder belongs to." },
+    "sources": {
+      "type": "object",
+      "description": "Where traces come from.",
+      "required": ["traces"],
+      "additionalProperties": false,
+      "properties": {
+        "traces": {
+          "type": "object",
+          "required": ["format", "path"],
+          "additionalProperties": false,
+          "properties": {
+            "format": { "type": "string", "enum": ["otel", "jsonl", "langfuse", "braintrust", "langsmith"], "description": "otel and jsonl ship in Phase 1; the platform adapters are Phase 4." },
+            "path": { "type": "string", "minLength": 1, "description": "A file or glob, relative to the repo root." }
+          }
+        },
+        "sampler": {
+          "type": "object",
+          "description": "How a review batch is drawn from the source.",
+          "additionalProperties": false,
+          "properties": {
+            "every": { "type": "string", "enum": ["manual", "daily", "weekly"], "default": "manual" },
+            "size": { "type": "integer", "minimum": 1, "maximum": 1000, "default": 60, "description": "Traces per batch." },
+            "clusters": { "type": "integer", "minimum": 1, "maximum": 100, "default": 8, "description": "Number of clusters; one representative per cluster, the rest random." }
+          }
+        }
+      }
+    },
+    "runs": {
+      "type": "object",
+      "description": "How tasks execute.",
+      "additionalProperties": false,
+      "properties": {
+        "trials": { "type": "integer", "minimum": 1, "maximum": 100, "default": 5, "description": "Trials per task unless the task overrides." },
+        "concurrency": { "type": "integer", "minimum": 1, "maximum": 256, "default": 8 },
+        "budget_usd": { "type": "number", "minimum": 0, "description": "Stop the run when spend crosses this." },
+        "environment": { "type": "string", "enum": ["inprocess", "harbor", "docker"], "default": "inprocess", "description": "Where each trial runs. Harbor and docker give a clean container per trial." },
+        "resources": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "cpus": { "type": "number", "exclusiveMinimum": 0 },
+            "memory_mb": { "type": "integer", "minimum": 128 },
+            "timeout_s": { "type": "integer", "minimum": 1, "default": 600 }
+          }
+        }
+      }
+    },
+    "judges": {
+      "type": "object",
+      "description": "Defaults for judge checks.",
+      "additionalProperties": false,
+      "properties": {
+        "default_model": { "$ref": "common.json#/$defs/model_id", "description": "Model used by a judge that does not pin its own. Must be a dated snapshot." },
+        "trust_threshold": { "type": "number", "minimum": 50, "maximum": 100, "default": 90, "description": "TPR and TNR (percent) a judge needs on the held-out test set to be trusted." },
+        "stale_on_change": { "type": "boolean", "default": true, "description": "Mark a judge stale when its prompt hash or model changes." },
+        "correct_for_judge_error": { "type": "boolean", "default": true, "description": "Correct reported pass rates for the judge's measured TPR/TNR." }
+      }
+    },
+    "gates": {
+      "type": "object",
+      "description": "Per-suite gates, keyed by suite name.",
+      "propertyNames": { "$ref": "common.json#/$defs/name" },
+      "additionalProperties": { "$ref": "common.json#/$defs/gate" }
+    },
+    "storage": {
+      "type": "object",
+      "description": "Where run output goes. Summaries are small and go in git; transcripts are evidence and get a stable address.",
+      "additionalProperties": false,
+      "properties": {
+        "summaries": { "type": "string", "default": "evals/runs", "description": "Directory for run summaries, committed." },
+        "transcripts": {
+          "type": "object",
+          "required": ["backend"],
+          "additionalProperties": false,
+          "properties": {
+            "backend": { "type": "string", "enum": ["local", "s3", "gcs", "braintrust", "langfuse", "langsmith"], "default": "local" },
+            "path": { "type": "string", "description": "Local directory (git-ignored) or bucket URI." }
+          }
+        }
+      }
+    },
+    "ci": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "pr_comment": { "type": "boolean", "default": true, "description": "Post the comparison as a PR comment." },
+        "base_run": { "type": "string", "enum": ["latest_on_base_branch", "latest"], "default": "latest_on_base_branch", "description": "Which run a CI run is compared against." }
+      }
+    }
+  }
+}

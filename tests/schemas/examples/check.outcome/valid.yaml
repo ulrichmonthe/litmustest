@@ -1,0 +1,5 @@
+id: refund_processed
+type: outcome
+backend: sql
+expect: { refunds.status: processed, refunds.amount_cents: 1999 }
+weight: 3

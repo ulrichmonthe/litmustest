@@ -1,0 +1,3 @@
+name: capability
+kind: capability
+include: ["capability/**"]

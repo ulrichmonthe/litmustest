@@ -1,0 +1,6 @@
+id: no_over_searching
+type: transcript
+path_check: true
+max_toolcalls: 6
+required_tools: [verify_identity]
+forbidden_tools: [send_confirmation]

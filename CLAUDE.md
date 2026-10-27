@@ -20,14 +20,26 @@ It reconciles two sources: the evals-skills course method (error analysis → bi
 - **Every number carries error bars**: bootstrap over tasks and judge confusion together; paired comparisons between runs.
 - **Suites**: regression (near 100%), capability (hill to climb), quality (trusted judges only). Saturated capability tasks graduate to regression.
 
-## Repo layout (target)
+## Repo layout
+
+```
+schemas/                  # JSON Schema 2020-12 for every file under evals/; $id versioned under /v1/
+packages/cli/             # the `litmustest` npm package (TypeScript, Node >= 22); schemas copied in at publish
+tests/                    # vitest: schemas/examples/<schema>/{valid,invalid}.*, fixtures/{good,bad}/evals
+scripts/gen-schema-docs.ts  # writes docs/SCHEMAS.md from the schema descriptions
+examples/support-agent/   # the sample repo (Part B of docs/FIRST-BRIEF.md)
+docs/, brand/, design/    # spec, decisions, brand book, tokens, logos, mockups
+```
+
+A user's `evals/` directory (what the CLI, server and skills read and write):
 
 ```
 evals/
-  litmustest.yaml            # sources, runs, judges, gates, storage, ci
+  litmustest.yaml         # sources, runs, judges, gates, storage, ci
   failure_modes/*.yaml
   tasks/**/*.yaml
-  graders/code/*.py
+  refs/<task id>.json     # reference solution per task; must pass every check
+  graders/code/*.py       # check(trial: dict, args: dict) -> bool
   graders/judges/<name>/{prompt.md,judge.yaml,calibration.json}
   labels/*.jsonl          # trace_id, label, note, annotator, timestamp; append-only
   datasets/{traces,synthetic}/
@@ -35,11 +47,13 @@ evals/
   runs/                   # summaries committed; raw transcripts git-ignored
 ```
 
+`npm test` runs everything; `npm run build` compiles the CLI; `npm run docs:schemas` regenerates `docs/SCHEMAS.md` (never edit it by hand); `npm run validate -- <evals dir> [--deep]` runs the validator from source.
+
 ## Conventions
 
-- Plain text files, JSON Schema for every file type (`docs/FIRST-BRIEF.md` lists them). Validate on every write.
+- Plain text files, JSON Schema for every file type (`docs/SCHEMAS.md`). Validate on every write. Add a valid and an invalid example under `tests/schemas/examples/` with every schema change.
 - Trace shape: OpenTelemetry GenAI conventions internally; a JSONL adapter for plain logs. Labels reference trace ids, never positions.
-- Pin judge model ids to dated snapshots. Never a floating alias.
+- Pin judge model ids to dated snapshots (the id must end in a date). Never a floating alias.
 - Identifiers are `snake_case` and are what the dashboard shows in mono.
 - Target Claude Code first; keep the Codex manifest the fork ships but mark it untested until Phase 2.
 - License: Apache 2.0. Modified upstream skills carry a "Modified from ai-evals-course/evals-skills (Apache 2.0)" header.

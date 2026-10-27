@@ -1,0 +1,2 @@
+{"trace_id":"tr_0012","failure_mode":"tone_mismatch","label":"Fail","note":"Says 'no worries!' to a furious customer.","annotator":"ulrich","at":"2026-10-21T14:03:11Z","rubric_version":1,"batch":"2026-10-21"}
+{"trace_id":"tr_0013","failure_mode":"overall","label":"Pass","annotator":"ulrich","at":"2026-10-21T14:04:40Z"}
