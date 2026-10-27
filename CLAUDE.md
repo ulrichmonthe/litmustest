@@ -36,6 +36,7 @@ packages/cli/ui/          # the dashboard: static HTML, CSS and one ES module, n
 packages/cli/src/server/  # app (routes and validated writes), pending (the tray), overview (read models), judges, discover_route
 packages/cli/src/{stats,judge_run,calibrate,draft}.ts  # error bars and judge-error correction; running a judge; the calibration workflow; drafting graders
 packages/cli/src/{run,compare,ci}.ts  # the runner (agent.command per trial, grading, summaries); paired comparison and gates; the CI entry
+packages/cli/src/{sample,graduate}.ts, adapters/platforms.ts  # the production sampler; graduation, saturation and doctor; Langfuse and Braintrust pull adapters
 docs/, brand/, design/    # spec, decisions, brand book, tokens, logos, mockups
 ```
 
@@ -61,7 +62,8 @@ evals/
 ## Conventions
 
 - Plain text files, JSON Schema for every file type (`docs/SCHEMAS.md`). Validate on every write. Add a valid and an invalid example under `tests/schemas/examples/` with every schema change.
-- Trace shape: OpenTelemetry GenAI conventions internally; a JSONL adapter for plain logs. Labels reference trace ids, never positions.
+- Trace shape: OpenTelemetry GenAI conventions internally; a JSONL adapter for plain logs; Langfuse and Braintrust pull adapters map to the JSONL shape first. Labels reference trace ids, never positions.
+- A change that spans files (a graduation moves a task and edits two suite lists) goes through `App.putFiles`, which validates once and reverts all together.
 - Pin judge model ids to one exact id (`claude-opus-5-5`, or a dated snapshot where the provider issues them). Never a floating alias such as `-latest`; calibration records the id it measured and a change marks the judge stale.
 - Identifiers are `snake_case` and are what the dashboard shows in mono.
 - Target Claude Code first; keep the Codex manifest the fork ships but mark it untested until Phase 2.

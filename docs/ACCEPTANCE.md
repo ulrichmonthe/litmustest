@@ -41,10 +41,10 @@ As of 2026-10-27. Derived from the 25-chapter "litmustest Master Class" guide, w
 
 ## Phase 4: Close the loop
 
-- [ ] A scheduled sampler pulls production traces into the review queue weekly.
-- [ ] Capability tasks that pass every trial for 3 runs are proposed for graduation; a suite above 90% raises a saturation alert.
-- [ ] At least two platform adapters (e.g. Langfuse, Braintrust) ingest traces without a manual export.
-- [ ] Hosted mode: dashboard saves become commits on a PR branch via a GitHub App.
+- [x] A scheduled sampler pulls production traces into the review queue weekly. (`litmustest sample --if-due` honours `sources.sampler.every`; `--write-workflow` scaffolds a weekly GitHub Action that opens a PR with the batch.)
+- [x] Capability tasks that pass every trial for 3 runs are proposed for graduation; a suite above 90% raises a saturation alert. (`litmustest graduate [--apply]`, the Tasks & suites page, and the Overview's needs-attention list; a graduation is one multi-file change: the task and both suite lists.)
+- [x] At least two platform adapters (e.g. Langfuse, Braintrust) ingest traces without a manual export. (Pull adapters over their HTTP APIs with credentials from the environment, tested against recorded response shapes rather than live accounts.)
+- [ ] Hosted mode: dashboard saves become commits on a PR branch via a GitHub App. (Not started: needs a GitHub App and a hosted deployment; the local write-back model it would mirror is in place.)
 
 ## Cross-cutting, every phase
 

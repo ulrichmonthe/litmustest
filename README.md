@@ -8,7 +8,7 @@ Install name is `litmustest`, no hyphen. The `litmus-test` packages on npm and P
 
 ## Status
 
-Pre-release. Phase 1 (schemas and validator) is in progress. Nothing is published yet.
+Pre-release. Phases 1 to 3 are complete and Phase 4 is in progress (hosted mode is not started). Nothing is published to npm yet.
 
 ## What is here
 
@@ -47,6 +47,9 @@ The skills call the `litmustest` CLI, installed separately: `npm install -g litm
 | `litmustest run` | k trials per task, graded, with error bars; infra failures excluded |
 | `litmustest compare A B` | Paired deltas, flips, failure-mode and cost deltas |
 | `litmustest ci` | Gated suites, PR comment, non-zero on a crossed gate |
+| `litmustest sample` | The production sampler: new traces since the last batch, on a schedule |
+| `litmustest graduate` | Capability tasks that passed every trial for 3 runs move to regression |
+| `litmustest doctor` | Eval health and the next step |
 | `litmustest validate` | Every file against its schema and the cross-file rules |
 
 ## Development
