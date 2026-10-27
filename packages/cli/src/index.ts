@@ -22,3 +22,5 @@ export type { JudgeAsk, Verdict } from "./judge_run.ts";
 export * as stats from "./stats.ts";
 export { draftJudge, draftCheck, trialFromView, DRAFT_MODEL } from "./draft.ts";
 export type { DraftResult } from "./draft.ts";
+export { run, splitCommand, getPath, viewFromTrial, suggestTriage } from "./run.ts";
+export type { RunOptions, RunResult, TrialResult, Grade } from "./run.ts";

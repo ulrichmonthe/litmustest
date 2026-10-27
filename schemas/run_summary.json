@@ -4,86 +4,316 @@
   "title": "Run summary",
   "description": "evals/runs/<run id>.json. What one run of one or more suites produced, small enough to commit. Raw transcripts live in the configured store and are referenced by id.",
   "type": "object",
-  "required": ["run_id", "commit", "started_at", "config_hash", "suites", "tasks", "infra_error_rate", "cost_usd"],
+  "required": [
+    "run_id",
+    "commit",
+    "started_at",
+    "config_hash",
+    "suites",
+    "tasks",
+    "infra_error_rate",
+    "cost_usd"
+  ],
   "additionalProperties": false,
   "properties": {
-    "run_id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9_-]*$", "description": "Must equal the file name without extension." },
-    "commit": { "type": "string", "pattern": "^[a-f0-9]{7,40}$", "description": "The product commit that was evaluated." },
-    "branch": { "type": "string" },
-    "started_at": { "$ref": "common.json#/$defs/timestamp" },
-    "finished_at": { "$ref": "common.json#/$defs/timestamp" },
-    "config_hash": { "$ref": "common.json#/$defs/sha256", "description": "SHA-256 of litmustest.yaml at run time." },
-    "trials": { "type": "integer", "minimum": 1 },
+    "run_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9_-]*$",
+      "description": "Must equal the file name without extension."
+    },
+    "commit": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{7,40}$",
+      "description": "The product commit that was evaluated."
+    },
+    "branch": {
+      "type": "string"
+    },
+    "started_at": {
+      "$ref": "common.json#/$defs/timestamp"
+    },
+    "finished_at": {
+      "$ref": "common.json#/$defs/timestamp"
+    },
+    "config_hash": {
+      "$ref": "common.json#/$defs/sha256",
+      "description": "SHA-256 of litmustest.yaml at run time."
+    },
+    "trials": {
+      "type": "integer",
+      "minimum": 1
+    },
     "suites": {
       "type": "object",
-      "propertyNames": { "$ref": "common.json#/$defs/name" },
+      "propertyNames": {
+        "$ref": "common.json#/$defs/name"
+      },
       "additionalProperties": {
         "type": "object",
-        "required": ["pass_rate", "ci", "pass_at_1", "pass_hat_k", "n_tasks"],
+        "required": [
+          "pass_rate",
+          "ci",
+          "pass_at_1",
+          "pass_hat_k",
+          "n_tasks"
+        ],
         "additionalProperties": false,
         "properties": {
-          "pass_rate": { "type": "number", "minimum": 0, "maximum": 100, "description": "Percent of trials with strict pass, corrected for judge error when enabled." },
-          "ci": { "$ref": "common.json#/$defs/ci_bounds" },
-          "pass_at_1": { "type": "number", "minimum": 0, "maximum": 100 },
-          "pass_hat_k": { "type": "number", "minimum": 0, "maximum": 100, "description": "Percent of tasks that passed every trial." },
-          "k": { "type": "integer", "minimum": 1 },
-          "n_tasks": { "type": "integer", "minimum": 0 },
-          "excluded_judges": { "type": "array", "items": { "$ref": "common.json#/$defs/name" }, "description": "Judges left out because they were not trusted." }
+          "pass_rate": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100,
+            "description": "Percent of trials with strict pass, corrected for judge error when enabled."
+          },
+          "ci": {
+            "$ref": "common.json#/$defs/ci_bounds"
+          },
+          "pass_at_1": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "pass_hat_k": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100,
+            "description": "Percent of tasks that passed every trial."
+          },
+          "k": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "n_tasks": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "excluded_judges": {
+            "type": "array",
+            "items": {
+              "$ref": "common.json#/$defs/name"
+            },
+            "description": "Judges left out because they were not trusted."
+          },
+          "unknown_rate": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100,
+            "description": "Percent of judge verdicts that were Unknown, routed to the review queue."
+          },
+          "n_trials": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "infra_errors": {
+            "type": "integer",
+            "minimum": 0
+          }
         }
       }
     },
     "tasks": {
       "type": "object",
-      "propertyNames": { "$ref": "common.json#/$defs/name" },
+      "propertyNames": {
+        "$ref": "common.json#/$defs/name"
+      },
       "additionalProperties": {
         "type": "object",
-        "required": ["suite", "strict_pass", "weighted", "trials"],
+        "required": [
+          "suite",
+          "strict_pass",
+          "weighted",
+          "trials"
+        ],
         "additionalProperties": false,
         "properties": {
-          "suite": { "$ref": "common.json#/$defs/name" },
-          "strict_pass": { "type": "number", "minimum": 0, "maximum": 100, "description": "Percent of trials where every check passed." },
-          "weighted": { "type": "number", "minimum": 0, "maximum": 100, "description": "Mean weighted score across trials." },
-          "flaky": { "type": "boolean", "description": "Set by the flaky-task detector." },
-          "likely_broken": { "type": "boolean", "description": "Set when the task fails every trial across several runs." },
+          "suite": {
+            "$ref": "common.json#/$defs/name"
+          },
+          "strict_pass": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100,
+            "description": "Percent of trials where every check passed."
+          },
+          "weighted": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100,
+            "description": "Mean weighted score across trials."
+          },
+          "flaky": {
+            "type": "boolean",
+            "description": "Set by the flaky-task detector."
+          },
+          "likely_broken": {
+            "type": "boolean",
+            "description": "Set when the task fails every trial across several runs."
+          },
           "trials": {
             "type": "array",
             "minItems": 1,
             "items": {
               "type": "object",
-              "required": ["pass", "failed_checks", "infra_error"],
+              "required": [
+                "pass",
+                "failed_checks",
+                "infra_error"
+              ],
               "additionalProperties": false,
               "properties": {
-                "pass": { "type": "boolean" },
-                "failed_checks": { "type": "array", "items": { "$ref": "common.json#/$defs/name" }, "uniqueItems": true },
-                "unknown_checks": { "type": "array", "items": { "$ref": "common.json#/$defs/name" }, "uniqueItems": true, "description": "Judge checks that answered Unknown." },
-                "infra_error": { "type": "boolean", "description": "Timeout, OOM or harness error. Excluded from the agent's score." },
-                "infra_error_kind": { "type": "string", "enum": ["timeout", "oom", "harness", "network", "other"] },
-                "tokens": { "type": "integer", "minimum": 0 },
-                "latency_ms": { "type": "integer", "minimum": 0 },
-                "cost_usd": { "type": "number", "minimum": 0 },
-                "transcript_ref": { "type": "string", "description": "Address of the raw transcript in the configured store." }
+                "pass": {
+                  "type": "boolean"
+                },
+                "failed_checks": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "common.json#/$defs/name"
+                  },
+                  "uniqueItems": true
+                },
+                "unknown_checks": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "common.json#/$defs/name"
+                  },
+                  "uniqueItems": true,
+                  "description": "Judge checks that answered Unknown."
+                },
+                "infra_error": {
+                  "type": "boolean",
+                  "description": "Timeout, OOM or harness error. Excluded from the agent's score."
+                },
+                "infra_error_kind": {
+                  "type": "string",
+                  "enum": [
+                    "timeout",
+                    "oom",
+                    "harness",
+                    "network",
+                    "other"
+                  ]
+                },
+                "tokens": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "latency_ms": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "cost_usd": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "transcript_ref": {
+                  "type": "string",
+                  "description": "Address of the raw transcript in the configured store."
+                },
+                "triage": {
+                  "type": "object",
+                  "required": [
+                    "verdict",
+                    "by",
+                    "at"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "verdict": {
+                      "type": "string",
+                      "enum": [
+                        "agent",
+                        "grader",
+                        "task",
+                        "infra"
+                      ]
+                    },
+                    "by": {
+                      "type": "string"
+                    },
+                    "at": {
+                      "$ref": "common.json#/$defs/timestamp"
+                    },
+                    "note": {
+                      "type": "string",
+                      "maxLength": 1000
+                    },
+                    "suggested": {
+                      "type": "string",
+                      "enum": [
+                        "agent",
+                        "grader",
+                        "task",
+                        "infra"
+                      ],
+                      "description": "What the runner suggested before a person confirmed or overrode it."
+                    }
+                  },
+                  "description": "Why this trial failed, as triaged by a person. The runner writes a suggestion; the Transcript view confirms or overrides."
+                },
+                "excluded_checks": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "common.json#/$defs/name"
+                  },
+                  "uniqueItems": true,
+                  "description": "Judge checks that did not count because the judge was not trusted."
+                }
               }
             }
           }
         }
       }
     },
-    "infra_error_rate": { "type": "number", "minimum": 0, "maximum": 100, "description": "Percent of trials with an infra error." },
-    "cost_usd": { "type": "number", "minimum": 0 },
+    "infra_error_rate": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Percent of trials with an infra error."
+    },
+    "cost_usd": {
+      "type": "number",
+      "minimum": 0
+    },
     "judge_corrections": {
       "type": "array",
       "description": "Per judge, the TPR/TNR used to correct its checks' pass rates.",
       "items": {
         "type": "object",
-        "required": ["judge", "tpr", "tnr"],
+        "required": [
+          "judge",
+          "tpr",
+          "tnr"
+        ],
         "additionalProperties": false,
         "properties": {
-          "judge": { "$ref": "common.json#/$defs/name" },
-          "tpr": { "type": "number", "minimum": 0, "maximum": 100 },
-          "tnr": { "type": "number", "minimum": 0, "maximum": 100 },
-          "prompt_hash": { "$ref": "common.json#/$defs/sha256" }
+          "judge": {
+            "$ref": "common.json#/$defs/name"
+          },
+          "tpr": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "tnr": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "prompt_hash": {
+            "$ref": "common.json#/$defs/sha256"
+          }
         }
       }
+    },
+    "suite_names": {
+      "type": "array",
+      "items": {
+        "$ref": "common.json#/$defs/name"
+      },
+      "description": "Suites this run covered, in order."
+    },
+    "agent_command": {
+      "type": "string"
     }
   }
 }

@@ -10,6 +10,7 @@ import { discover } from "./discover.ts";
 import { App } from "./server/app.ts";
 import { calibrate } from "./calibrate.ts";
 import { draftCheck, draftJudge } from "./draft.ts";
+import { run } from "./run.ts";
 
 const VERSION: string = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), "..", "package.json"), "utf8")).version;
 
@@ -31,6 +32,15 @@ Usage:
       each proposed failure_modes/<name>.yaml as a diff. Nothing is written
       unless --apply, which saves the files (validated) as pending changes
       on the branch for a person to commit. Needs ANTHROPIC_API_KEY.
+
+  litmustest run [--dir evals] [--suite s]... [--task id]... [--trials k] [--concurrency n] [--id run_id] [--dry-run] [--json]
+      Run each task k times in a fresh trial directory via agent.command
+      from litmustest.yaml, grade every check (code, outcome, transcript,
+      trusted judges), tag infra failures and exclude them, and write
+      evals/runs/<run_id>.json with pass rates, intervals corrected for
+      judge error, pass@1 and pass^k. Raw transcripts and grades go to the
+      configured store. --dry-run grades the reference solutions instead
+      of running the agent.
 
   litmustest draft-judge <failure_mode> [--dir evals]
       Draft a judge from the labels: prompt.md with Fail/Pass criteria from
@@ -78,6 +88,7 @@ function main(argv: string[]): number {
   if (cmd === "discover") { runDiscover(rest); return 0; }
   if (cmd === "calibrate") { runCalibrate(rest); return 0; }
   if (cmd === "draft-judge" || cmd === "draft-check") { runDraft(cmd, rest); return 0; }
+  if (cmd === "run") { runRun(rest); return 0; }
   if (cmd !== "validate") { process.stderr.write(`unknown command '${cmd}'\n\n${HELP}`); return 2; }
 
   const flags = new Set(rest.filter((a) => a.startsWith("--")));
@@ -144,6 +155,23 @@ function runIngest(rest: string[]): number {
     process.stdout.write(`wrote ${r.batchFile}\n`);
     return r.invalid.length ? 1 : 0;
   } catch (e) { process.stderr.write(`ingest: ${(e as Error).message}\n`); return 1; }
+}
+
+function runRun(rest: string[]): void {
+  const suites: string[] = []; const tasks: string[] = []; const values = new Map<string, string>(); const flags = new Set<string>();
+  for (let i = 0; i < rest.length; i++) { const a = rest[i]!; if (a === "--suite") suites.push(rest[++i]!); else if (a === "--task") tasks.push(rest[++i]!); else if (["--dry-run", "--json"].includes(a)) flags.add(a); else if (a.startsWith("--")) { if (!["--dir", "--trials", "--concurrency", "--id"].includes(a)) { process.stderr.write(`unknown flag ${a}\n`); process.exitCode = 2; return; } values.set(a, rest[++i]!); } }
+  const t0 = Date.now();
+  run({ evalsDir: resolve(values.get("--dir") ?? "evals"), suites, tasks, trials: values.has("--trials") ? Number(values.get("--trials")) : undefined, concurrency: values.has("--concurrency") ? Number(values.get("--concurrency")) : undefined, runId: values.get("--id"), dryRun: flags.has("--dry-run"),
+    onProgress: flags.has("--json") ? undefined : (e) => process.stderr.write(`\r  ${e.done}/${e.total} trials  ${e.task} #${e.n} ${e.result?.infra_error ? "infra:" + e.result.infra_error_kind : e.result?.pass ? "pass" : "fail " + e.result?.failed_checks.join(",")}        `) })
+    .then((r) => {
+      if (flags.has("--json")) { process.stdout.write(JSON.stringify({ run_id: r.run_id, path: r.path, summary: r.summary, warnings: r.warnings }, null, 2) + "\n"); return; }
+      process.stderr.write("\n");
+      const s = r.summary as { suites: Record<string, { pass_rate: number; ci: { low: number; high: number }; pass_at_1: number; pass_hat_k: number; k: number; n_tasks: number; infra_errors: number; excluded_judges: string[] }>; infra_error_rate: number; cost_usd: number };
+      for (const [name, x] of Object.entries(s.suites)) process.stdout.write(`${name.padEnd(12)} ${String(x.pass_rate).padStart(5)}%  (${x.ci.low}–${x.ci.high})  pass@1 ${x.pass_at_1}%  pass^${x.k} ${x.pass_hat_k}%  ${x.n_tasks} tasks  ${x.infra_errors} infra${x.excluded_judges.length ? `  excluded: ${x.excluded_judges.join(", ")}` : ""}\n`);
+      for (const w of r.warnings) process.stdout.write(`  warning ${w}\n`);
+      process.stdout.write(`infra errors ${s.infra_error_rate}% · cost $${s.cost_usd} · ${Math.round((Date.now() - t0) / 1000)}s\nwrote ${r.path}; transcripts under ${r.transcripts_dir}\n`);
+    })
+    .catch((e: Error) => { process.stderr.write(`run: ${e.message}\n`); process.exitCode = 1; });
 }
 
 function runDraft(cmd: string, rest: string[]): void {

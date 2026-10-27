@@ -39,6 +39,7 @@ evals/litmustest.yaml. Where traces come from, how runs execute, how judges are 
 | `gates` | map of [gate](#gate) | yes |  | Per-suite gates, keyed by suite name. |
 | `storage` | object |  |  | Where run output goes. Summaries are small and go in git; transcripts are evidence and get a stable address. |
 | `ci` | object |  |  |  |
+| `agent` | object |  |  | How the runner starts the agent for one trial. The command runs once per trial in a fresh trial directory and must leave <trial_dir>/trial.json in the reference_solution shape (output, state, tool_calls, transcript, optional usage and latency_ms). Placeholders: {task}, {task_file}, {trial_dir}, {trial}, {evals}; the same values arrive as LITMUSTEST_TASK, LITMUSTEST_TASK_FILE, LITMUSTEST_TRIAL_DIR, LITMUSTEST_TRIAL, LITMUSTEST_INPUT (JSON) and LITMUSTEST_EVALS. |
 
 #### `sources`
 
@@ -109,6 +110,15 @@ evals/litmustest.yaml. Where traces come from, how runs execute, how judges are 
 | --- | --- | --- | --- | --- |
 | `pr_comment` | boolean |  | default `true` | Post the comparison as a PR comment. |
 | `base_run` | `latest_on_base_branch` · `latest` |  | default `"latest_on_base_branch"` | Which run a CI run is compared against. |
+
+#### `agent`
+
+| Field | Type | Required | Constraints | Description |
+| --- | --- | --- | --- | --- |
+| `command` | string | yes | min length 1 | The command line, split on spaces (quotes respected), run without a shell. |
+| `cwd` | string |  |  | Working directory, relative to the repo root. Default: the repo root. |
+| `env` | map of string |  |  | Extra environment variables for the agent. |
+| `reset` | string |  |  | Optional command run before each trial to reset external state (a database, a sandbox). Same placeholders. |
 
 ## failure_mode
 
@@ -200,7 +210,7 @@ A check on how the agent got there rather than what it produced. Always flagged 
 
 ## reference_solution
 
-evals/refs/<task id>.json. A known-good trial for a task: the output, end state, and tool calls that every check on the task must pass. Confirms the task is unambiguous.
+evals/refs/<task id>.json, and the shape of every trial the runner grades. A known-good trial for a task: the output, end state, and tool calls that every check on the task must pass. Confirms the task is unambiguous.
 
 | Field | Type | Required | Constraints | Description |
 | --- | --- | --- | --- | --- |
@@ -212,6 +222,9 @@ evals/refs/<task id>.json. A known-good trial for a task: the output, end state,
 | `note` | string |  | max length 2000 | Why this is the right answer. |
 | `author` | string |  |  |  |
 | `at` | [timestamp](#timestamp) |  |  |  |
+| `usage` | object |  |  | Filled by the agent harness for a real trial; absent on a hand-written reference. |
+| `latency_ms` | integer |  | ≥ 0 |  |
+| `trace_id` | [trace_id](#trace_id) |  |  | Set when the trial was also written as a trace, so a disputed verdict can label it. |
 
 #### `tool_calls` (each item)
 
@@ -228,6 +241,14 @@ evals/refs/<task id>.json. A known-good trial for a task: the output, end state,
 | `role` | `user` · `agent` · `tool` · `system` | yes |  |  |
 | `content` | string | yes |  |  |
 | `tool` | [name](#name) |  |  |  |
+
+#### `usage`
+
+| Field | Type | Required | Constraints | Description |
+| --- | --- | --- | --- | --- |
+| `input_tokens` | integer |  | ≥ 0 |  |
+| `output_tokens` | integer |  | ≥ 0 |  |
+| `cost_usd` | number |  | ≥ 0 |  |
 
 ## judge
 
@@ -393,6 +414,8 @@ evals/runs/<run id>.json. What one run of one or more suites produced, small eno
 | `infra_error_rate` | number | yes | ≥ 0, ≤ 100 | Percent of trials with an infra error. |
 | `cost_usd` | number | yes | ≥ 0 |  |
 | `judge_corrections` | array of object |  |  | Per judge, the TPR/TNR used to correct its checks' pass rates. |
+| `suite_names` | array of [name](#name) |  |  | Suites this run covered, in order. |
+| `agent_command` | string |  |  |  |
 
 #### `suites` (each value)
 
@@ -405,6 +428,9 @@ evals/runs/<run id>.json. What one run of one or more suites produced, small eno
 | `k` | integer |  | ≥ 1 |  |
 | `n_tasks` | integer | yes | ≥ 0 |  |
 | `excluded_judges` | array of [name](#name) |  |  | Judges left out because they were not trusted. |
+| `unknown_rate` | number |  | ≥ 0, ≤ 100 | Percent of judge verdicts that were Unknown, routed to the review queue. |
+| `n_trials` | integer |  | ≥ 0 |  |
+| `infra_errors` | integer |  | ≥ 0 |  |
 
 #### `tasks` (each value)
 
@@ -430,6 +456,18 @@ evals/runs/<run id>.json. What one run of one or more suites produced, small eno
 | `latency_ms` | integer |  | ≥ 0 |  |
 | `cost_usd` | number |  | ≥ 0 |  |
 | `transcript_ref` | string |  |  | Address of the raw transcript in the configured store. |
+| `triage` | object |  |  | Why this trial failed, as triaged by a person. The runner writes a suggestion; the Transcript view confirms or overrides. |
+| `excluded_checks` | array of [name](#name) |  | unique | Judge checks that did not count because the judge was not trusted. |
+
+###### `triage`
+
+| Field | Type | Required | Constraints | Description |
+| --- | --- | --- | --- | --- |
+| `verdict` | `agent` · `grader` · `task` · `infra` | yes |  |  |
+| `by` | string | yes |  |  |
+| `at` | [timestamp](#timestamp) | yes |  |  |
+| `note` | string |  | max length 1000 |  |
+| `suggested` | `agent` · `grader` · `task` · `infra` |  |  | What the runner suggested before a person confirmed or overrode it. |
 
 #### `judge_corrections` (each item)
 

@@ -25,6 +25,7 @@ write("litmustest.yaml", `# evals/litmustest.yaml for the support-agent example\
   version: 1, project: "support_agent",
   sources: { traces: { format: "jsonl", path: "examples/support-agent/traces/support.jsonl" }, sampler: { every: "manual", size: 60, clusters: 8 } },
   runs: { trials: 5, concurrency: 4, budget_usd: 10, environment: "inprocess", resources: { timeout_s: 180 } },
+  agent: { command: "node examples/support-agent/src/run_trial.ts --task {task} --trial-dir {trial_dir}", cwd: "." },
   judges: { default_model: "claude-sonnet-5-5", trust_threshold: 90, stale_on_change: true, correct_for_judge_error: true },
   gates: { regression: { min_pass_rate: 95, max_drop_pts: 2, trusted_judges_only: true }, capability: { report_only: true }, quality: { min_pass_rate: 80, trusted_judges_only: true } },
   storage: { summaries: "evals/runs", transcripts: { backend: "local", path: ".litmustest/transcripts" } },
