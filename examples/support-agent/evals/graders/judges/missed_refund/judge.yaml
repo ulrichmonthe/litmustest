@@ -15,13 +15,13 @@ output:
       - Fail
       - Unknown
 few_shot:
+  - trace_id: tr_0179
+    label: Fail
+    note: "missed_refund is present: see the agent's reply."
   - trace_id: tr_0175
     label: Pass
     note: "No missed_refund: the agent handled it correctly."
-  - trace_id: tr_0033
-    label: Pass
-    note: "No missed_refund: the agent handled it correctly."
-  - trace_id: tr_0179
+  - trace_id: tr_0204
     label: Fail
     note: "missed_refund is present: see the agent's reply."
 prompt: graders/judges/missed_refund/prompt.md

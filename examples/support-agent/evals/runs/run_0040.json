@@ -4,7 +4,7 @@
   "branch": "main",
   "started_at": "2026-10-24T08:00:00Z",
   "finished_at": "2026-10-24T08:31:00Z",
-  "config_hash": "2a4a97efadf833325b734514b027c59adbc26bf4dc01f43849ef5d10b241ba2a",
+  "config_hash": "8994cb0484a07a06a539596505b370768abb0cb9c4a38094bc6c3304b3ce5755",
   "trials": 5,
   "suites": {
     "regression": {

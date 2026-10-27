@@ -34,6 +34,21 @@ claude plugin install litmustest
 
 The skills call the `litmustest` CLI, installed separately: `npm install -g litmustest` once it is published. Codex manifests ship but are untested until Phase 2.
 
+## Commands
+
+| Command | Does |
+| --- | --- |
+| `litmustest init` | Scaffolds `evals/`, detects a JSONL trace source |
+| `litmustest ingest <file>` | Normalizes traces, clusters, samples a review batch |
+| `litmustest serve` | The dashboard: review queue, failure modes, judges, overview, run compare, transcripts |
+| `litmustest discover` | Groups reviewers' notes into failure-mode files, as a diff |
+| `litmustest draft-judge` / `draft-check` | Drafts a judge or a code check from labels |
+| `litmustest calibrate <judge>` | Dev runs, then the held-out test once; TPR/TNR with intervals |
+| `litmustest run` | k trials per task, graded, with error bars; infra failures excluded |
+| `litmustest compare A B` | Paired deltas, flips, failure-mode and cost deltas |
+| `litmustest ci` | Gated suites, PR comment, non-zero on a crossed gate |
+| `litmustest validate` | Every file against its schema and the cross-file rules |
+
 ## Development
 
 ```bash

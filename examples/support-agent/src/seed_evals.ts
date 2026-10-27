@@ -25,6 +25,7 @@ write("litmustest.yaml", `# evals/litmustest.yaml for the support-agent example\
   version: 1, project: "support_agent",
   sources: { traces: { format: "jsonl", path: "examples/support-agent/traces/support.jsonl" }, sampler: { every: "manual", size: 60, clusters: 8 } },
   runs: { trials: 5, concurrency: 4, budget_usd: 10, environment: "inprocess", resources: { timeout_s: 180 } },
+  agent: { command: "node examples/support-agent/src/run_trial.ts --task {task} --trial-dir {trial_dir}", cwd: "." },
   judges: { default_model: "claude-sonnet-5-5", trust_threshold: 90, stale_on_change: true, correct_for_judge_error: true },
   gates: { regression: { min_pass_rate: 95, max_drop_pts: 2, trusted_judges_only: true }, capability: { report_only: true }, quality: { min_pass_rate: 80, trusted_judges_only: true } },
   storage: { summaries: "evals/runs", transcripts: { backend: "local", path: ".litmustest/transcripts" } },
@@ -103,7 +104,10 @@ function judge(name: string, trusted: boolean) {
   const ids = labelled[name]!.map((p) => p.trace_id);
   const train = ids.slice(0, 8), dev = ids.slice(8, 30), test = ids.slice(30, 50);
   const splitHash = (xs: string[]) => sha([...xs].sort().join("\n"));
-  const fewShot = train.slice(0, 3).map((id) => { const p = planted.find((x) => x.trace_id === id)!; const fail = p.failures.includes(name); return { trace_id: id, label: fail ? "Fail" : "Pass", note: fail ? `${name} is present: see the agent's reply.` : `No ${name}: the agent handled it correctly.` }; });
+  // a clear Fail, a clear Pass, and one more: the lint on the judge editor wants both labels among the examples
+  const byLabel = (fail: boolean) => train.filter((id) => planted.find((x) => x.trace_id === id)!.failures.includes(name) === fail);
+  const picks = [byLabel(true)[0], byLabel(false)[0], byLabel(true)[1] ?? byLabel(false)[1]].filter((x): x is string => Boolean(x));
+  const fewShot = picks.map((id) => { const p = planted.find((x) => x.trace_id === id)!; const fail = p.failures.includes(name); return { trace_id: id, label: fail ? "Fail" : "Pass", note: fail ? `${name} is present: see the agent's reply.` : `No ${name}: the agent handled it correctly.` }; });
   const currentHash = sha(prompt);
   const measuredHash = trusted ? currentHash : sha(prompt + "\n(previous version)\n");
   write(`graders/judges/${name}/prompt.md`, prompt);

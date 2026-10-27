@@ -16,6 +16,10 @@ runs:
   environment: inprocess
   resources:
     timeout_s: 180
+agent:
+  command: node examples/support-agent/src/run_trial.ts --task {task} --trial-dir
+    {trial_dir}
+  cwd: .
 judges:
   default_model: claude-sonnet-5-5
   trust_threshold: 90
