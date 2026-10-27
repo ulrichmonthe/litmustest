@@ -17,12 +17,12 @@ As of 2026-10-27. Derived from the 25-chapter "litmustest Master Class" guide, w
 
 ## Phase 2: Grade and trust
 
-- [ ] "Draft code check" produces a function in `graders/code/` and a test against labeled traces; it lands as a diff.
-- [ ] "Draft judge from labels" produces `prompt.md` and `judge.yaml` with one failure mode, Pass/Fail definitions, 3 examples from the train split, structured output with critique first and an Unknown option.
-- [ ] The judge editor shows per-field save states (saved, saved to branch, conflict) and refuses to overwrite a file changed on disk.
-- [ ] `litmustest calibrate <judge>` splits labels 15/45/40, runs dev, writes TPR/TNR and the confusion matrix to `calibration.json`, and lists disagreements.
-- [ ] "Run test set once" is disabled until dev TPR and TNR ≥ 90%; after it runs, any prompt or model change marks the judge stale. (The second half is done: the server marks a trusted calibration stale on a prompt or model edit.)
-- [ ] Stale judges are excluded from every score and gate, and shown with a stale pill.
+- [x] "Draft code check" produces a function in `graders/code/` and a test against labeled traces; it lands as a diff. (`litmustest draft-check`, or the button on the Judges page; a fixture of labelled trials is written under `graders/code/fixtures/` and the test's agreement is reported.)
+- [x] "Draft judge from labels" produces `prompt.md` and `judge.yaml` with one failure mode, Pass/Fail definitions, 3 examples from the train split, structured output with critique first and an Unknown option. (`litmustest draft-judge`; also writes `calibration.json` with the splits, status untested.)
+- [x] The judge editor shows per-field save states (saved, saved to branch, conflict) and refuses to overwrite a file changed on disk.
+- [x] `litmustest calibrate <judge>` splits labels 15/45/40, runs dev, writes TPR/TNR and the confusion matrix to `calibration.json`, and lists disagreements. (Stratified, deterministic splits; the test split is locked once drawn; bootstrap intervals on TPR and TNR.)
+- [x] "Run test set once" is disabled until dev TPR and TNR ≥ 90%; after it runs, any prompt or model change marks the judge stale.
+- [x] Stale judges are excluded from every score and gate, and shown with a stale pill. (Validator, Overview and Judges show it; the runner in Phase 3 enforces the exclusion when it scores.)
 - [ ] Reported pass rates for judge-scored checks are corrected for judge error with a bootstrap CI.
 - [ ] A task cannot join a suite without a reference solution that passes all its checks.
 - [x] Commit to branch / Open PR / Discard work from the Pending changes tray; the branch name follows `evals/<slug>`. (API: `/api/pending`, `/commit`, `/pr`, `/discard`. The tray UI lands with the dashboard.)

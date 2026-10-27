@@ -103,7 +103,10 @@ function judge(name: string, trusted: boolean) {
   const ids = labelled[name]!.map((p) => p.trace_id);
   const train = ids.slice(0, 8), dev = ids.slice(8, 30), test = ids.slice(30, 50);
   const splitHash = (xs: string[]) => sha([...xs].sort().join("\n"));
-  const fewShot = train.slice(0, 3).map((id) => { const p = planted.find((x) => x.trace_id === id)!; const fail = p.failures.includes(name); return { trace_id: id, label: fail ? "Fail" : "Pass", note: fail ? `${name} is present: see the agent's reply.` : `No ${name}: the agent handled it correctly.` }; });
+  // a clear Fail, a clear Pass, and one more: the lint on the judge editor wants both labels among the examples
+  const byLabel = (fail: boolean) => train.filter((id) => planted.find((x) => x.trace_id === id)!.failures.includes(name) === fail);
+  const picks = [byLabel(true)[0], byLabel(false)[0], byLabel(true)[1] ?? byLabel(false)[1]].filter((x): x is string => Boolean(x));
+  const fewShot = picks.map((id) => { const p = planted.find((x) => x.trace_id === id)!; const fail = p.failures.includes(name); return { trace_id: id, label: fail ? "Fail" : "Pass", note: fail ? `${name} is present: see the agent's reply.` : `No ${name}: the agent handled it correctly.` }; });
   const currentHash = sha(prompt);
   const measuredHash = trusted ? currentHash : sha(prompt + "\n(previous version)\n");
   write(`graders/judges/${name}/prompt.md`, prompt);

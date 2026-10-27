@@ -15,7 +15,7 @@ node packages/cli/dist/main.js validate examples/support-agent/evals --deep   # 
 node packages/cli/dist/main.js serve --dir examples/support-agent/evals    # the dashboard on http://127.0.0.1:4242
 ```
 
-The Review queue opens on the batch: `j`/`k` move, `p`/`f` label, `n` focuses the note, Enter saves and advances. Labels append to `evals/labels/<batch>.jsonl` and show up in the Pending changes tray, from where you commit to an `evals/<slug>` branch. From the queue, "Ask Claude to regroup notes" proposes failure-mode files from the notes as diffs; nothing is written until you accept. The Overview reads the two seeded runs (verdict, suite scorecards with margins, needs-attention, Pareto, judge trust, flips) and Failure modes edits the files in place. Tasks, Run compare, Transcripts, Judges and Settings arrive with Phases 2 and 3.
+The Review queue opens on the batch: `j`/`k` move, `p`/`f` label, `n` focuses the note, Enter saves and advances. Labels append to `evals/labels/<batch>.jsonl` and show up in the Pending changes tray, from where you commit to an `evals/<slug>` branch. From the queue, "Ask Claude to regroup notes" proposes failure-mode files from the notes as diffs; nothing is written until you accept. The Overview reads the two seeded runs (verdict, suite scorecards with margins, needs-attention, Pareto, judge trust, flips) and Failure modes edits the files in place. Judges shows the calibration stepper: edit the prompt and few-shot examples, run the dev set, run the held-out test set once, trusted. `tone_mismatch` ships trusted and `missed_refund` stale, so both halves of the flow are visible. Tasks, Run compare, Transcripts and Settings arrive with Phase 3.
 
 ## What is in here
 
