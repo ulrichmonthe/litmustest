@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>evalkit judge editor</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700&amp;family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0;background:#F6F6F3}
+a{color:#1D4ED8}a:hover{color:#1E3A8A}
+</style>
+</helmet>
+<div style="min-height: 100vh; display: flex; flex-wrap: wrap; background: #F6F6F3; color: #1C1917; font-family: Inter, system-ui, sans-serif; font-size: 14px">
+
+<nav aria-label="Main" style="flex: 1 1 220px; max-width: 100%; box-sizing: border-box; background: #FFFFFF; border-right: 1px solid #E7E5E4; padding: 24px 16px; display: flex; flex-direction: column; gap: 4px">
+<div style="display: flex; align-items: center; gap: 10px; padding: 0 8px 20px 8px">
+<svg width="30" height="30" viewBox="0 0 64 64" role="img" aria-label="evalkit"><path d="M13 31 L26 44 L50 16" fill="none" stroke="#1D4ED8" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"></path><path d="M10 56 H54 M10 50 V62 M54 50 V62" fill="none" stroke="#1C1917" stroke-width="5" stroke-linecap="round"></path></svg>
+<div style="display: flex; flex-direction: column">
+<span style="font-family: Sora, system-ui, sans-serif; font-weight: 600; font-size: 17px; letter-spacing: -0.04em; line-height: 1">eval<span style="color: #1D4ED8">kit</span></span>
+<span style="font-size: 12px; color: #57534E">support-agent repo</span>
+</div>
+</div>
+<a href="Main.dc.html" style="display: flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 8px; color: #44403C; text-decoration: none">Overview</a>
+<a href="Review.dc.html" style="display: flex; align-items: center; justify-content: space-between; min-height: 44px; padding: 0 12px; border-radius: 8px; color: #44403C; text-decoration: none">Review queue<span style="font-size: 12px; background: #F5F5F4; border-radius: 999px; padding: 2px 8px; color: #44403C">48 to review</span></a>
+<a href="Modes.dc.html" style="display: flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 8px; color: #44403C; text-decoration: none">Failure modes</a>
+<a href="Tasks.dc.html" style="display: flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 8px; color: #44403C; text-decoration: none">Tasks &amp; suites</a>
+<a href="Compare.dc.html" style="display: flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 8px; color: #44403C; text-decoration: none">Run compare</a>
+<a href="Transcript.dc.html" style="display: flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 8px; color: #44403C; text-decoration: none">Transcripts</a>
+<a href="Judges.dc.html" style="display: flex; align-items: center; justify-content: space-between; min-height: 44px; padding: 0 12px; border-radius: 8px; background: #EFF6FF; color: #1D4ED8; font-weight: 600; text-decoration: none">Judges<span style="font-size: 12px; background: #FEF3C7; border-radius: 999px; padding: 2px 8px; color: #92400E">1 stale</span></a>
+<a href="Settings.dc.html" style="display: flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 8px; color: #44403C; text-decoration: none">Settings</a>
+<div style="flex-grow: 1; min-height: 24px"></div>
+<a href="#pending" style="display: flex; flex-direction: column; gap: 4px; padding: 12px; border: 1px solid #BFDBFE; background: #EFF6FF; border-radius: 10px; text-decoration: none; color: #1C1917">
+<span style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #1E3A8A"><span>Pending changes</span><span style="background: #1D4ED8; color: #FFFFFF; border-radius: 999px; padding: 1px 8px; font-weight: 600">{{pendingCount}}</span></span>
+<span style="font-weight: 600; font-size: 13px; font-family: 'JetBrains Mono', monospace">evals/tone-judge-v3</span>
+<span style="font-size: 12px; color: #1D4ED8; font-weight: 600">Review and commit</span>
+</a>
+</nav>
+
+<main style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 28px 32px 48px 32px; display: flex; flex-direction: column; gap: 20px">
+
+<header style="display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 13px; color: #57534E">Judges / tone_mismatch</span>
+<div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap">
+<h1 style="margin: 0; font-family: Sora, system-ui, sans-serif; font-size: 24px; font-weight: 700; letter-spacing: -0.02em; font-family: 'JetBrains Mono', monospace">tone_mismatch</h1>
+<span style="font-size: 12px; font-weight: 600; border-radius: 999px; padding: 3px 10px; background: #FEF3C7; color: #92400E">Stale · v3 draft</span>
+<span style="font-size: 12px; border: 1px dashed #A8A29E; color: #57534E; border-radius: 999px; padding: 3px 10px">Sample data</span>
+</div>
+<p style="margin: 0; color: #57534E">Binary judge for one failure mode: does the reply's tone fit the customer persona? Used by 41 tasks.</p>
+</div>
+<div style="display: flex; gap: 10px; flex-wrap: wrap">
+<a href="#" style="display: inline-flex; align-items: center; min-height: 44px; padding: 0 12px; text-decoration: none; font-weight: 600">Ask Claude to explain disagreements</a>
+<button type="button" style="min-height: 44px; padding: 0 18px; border: 0; border-radius: 8px; background: #2563EB; color: #FFFFFF; font: inherit; font-weight: 600; cursor: pointer">Run on dev set</button>
+</div>
+</header>
+
+<ol aria-label="Calibration steps" style="list-style: none; margin: 0; padding: 14px 18px; display: flex; flex-wrap: wrap; gap: 8px 0; background: #FFFFFF; border: 1px solid #E7E5E4; border-radius: 12px">
+<sc-for list="{{steps}}" as="st" hint-placeholder-count="4">
+<li style="display: flex; align-items: center; gap: 10px; flex: 1 1 200px; min-width: 0">
+<span style="{{st.num}}">{{st.n}}</span>
+<span style="display: flex; flex-direction: column; min-width: 0">
+<span style="{{st.title}}">{{st.name}}</span>
+<span style="font-size: 12px; color: #57534E">{{st.sub}}</span>
+</span>
+<span style="flex: 1 1 16px; height: 1px; background: #E7E5E4; margin: 0 12px; min-width: 16px"></span>
+</li>
+</sc-for>
+</ol>
+
+<div role="status" style="display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; border-radius: 12px; background: #FFFBEB; border: 1px solid #FDE68A">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#B45309" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; margin-top: 1px"><path d="M12 9v4M12 17h.01M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"></path></svg>
+<span style="line-height: 1.5; color: #44403C"><strong style="color: #1C1917">The prompt changed after v2's test pass.</strong> v2's test numbers no longer describe this judge, so its verdicts are hidden from the Quality suite. Reach 90/90 on dev, then run the test set once with 42 fresh labels.</span>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(440px, 1fr)); gap: 16px; align-items: start">
+
+<section aria-label="Judge definition" style="background: #FFFFFF; border: 1px solid #E7E5E4; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap">
+<div style="display: flex; flex-direction: column; gap: 2px">
+<h2 style="margin: 0; font-family: Sora, system-ui, sans-serif; font-size: 16px; font-weight: 600">Definition</h2>
+<span style="font-size: 12px; color: #57534E; font-family: 'JetBrains Mono', monospace">graders/judges/tone_mismatch/</span>
+</div>
+<div role="group" aria-label="Editor mode" style="display: flex; background: #F5F5F4; border-radius: 8px; padding: 3px">
+<button type="button" onClick="{{showForm}}" aria-pressed="{{formOn}}" style="{{formTab}}">Form</button>
+<button type="button" onClick="{{showYaml}}" aria-pressed="{{yamlOn}}" style="{{yamlTab}}">Files</button>
+</div>
+</div>
+
+<sc-if value="{{formOn}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-direction: column; gap: 14px">
+<label style="display: flex; flex-direction: column; gap: 6px">
+<span style="display: flex; justify-content: space-between; align-items: baseline"><span style="font-size: 13px; font-weight: 600">Criterion</span><span style="font-size: 12px; color: #57534E">Saved · in sync with disk</span></span>
+<input type="text" value="Does the reply use a tone that fits the customer persona?" style="font: inherit; padding: 10px 12px; border: 1px solid #D6D3D1; border-radius: 8px; min-height: 44px; box-sizing: border-box">
+</label>
+<label style="display: flex; flex-direction: column; gap: 6px">
+<span style="display: flex; justify-content: space-between; align-items: baseline"><span style="font-size: 13px; font-weight: 600">PASS when</span><span style="font-size: 12px; color: #57534E">Saved</span></span>
+<textarea rows="3" style="font: inherit; padding: 10px 12px; border: 1px solid #D6D3D1; border-radius: 8px; resize: vertical; line-height: 1.5">Frustrated customers get an apology and a plain next step before any policy detail. Business customers get concise, specific language. No slang.</textarea>
+</label>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<label for="fail-def" style="display: flex; justify-content: space-between; align-items: baseline"><span style="font-size: 13px; font-weight: 600">FAIL when</span><span style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #15803D; font-weight: 600"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#15803D" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12l5 5L20 6"></path></svg>Checked and saved to branch · 2s ago</span></label>
+<textarea id="fail-def" rows="3" style="font: inherit; padding: 10px 12px; border: 2px solid #15803D; border-radius: 8px; resize: vertical; line-height: 1.5; background: #F7FEF9">Policy text comes before acknowledging the problem, the reply is curt with a frustrated customer, or it uses casual phrasing ("no worries!") with a business account.</textarea>
+<span style="font-size: 12px; color: #57534E">Edits are written to <span style="font-family: 'JetBrains Mono', monospace">prompt.md</span> on branch <span style="font-family: 'JetBrains Mono', monospace">evals/tone-judge-v3</span> after passing the checks below. Nothing reaches main until you commit.</span>
+</div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<label for="model-pin" style="display: flex; justify-content: space-between; align-items: baseline"><span style="font-size: 13px; font-weight: 600">Judge model (pinned)</span><span style="font-size: 12px; color: #B91C1C; font-weight: 600">Not saved · conflict</span></label>
+<select id="model-pin" style="font: inherit; padding: 10px 12px; border: 2px solid #B91C1C; border-radius: 8px; min-height: 44px; background: #FFF7F7"><option>[PINNED MODEL SNAPSHOT ID]</option></select>
+<span style="font-size: 12px; color: #991B1B; line-height: 1.45">judge.yaml changed on disk since you opened it (commit a71c2d, "pin new snapshot"). <a href="#" style="font-weight: 600">Reload file</a> or <a href="#" style="font-weight: 600">keep mine</a>.</span>
+</div>
+<label style="display: flex; flex-direction: column; gap: 6px">
+<span style="display: flex; justify-content: space-between; align-items: baseline"><span style="font-size: 13px; font-weight: 600">Inputs passed to judge</span><span style="font-size: 12px; color: #57534E">Saved</span></span>
+<input type="text" value="persona, final_reply" style="font: inherit; font-family: 'JetBrains Mono', monospace; font-size: 13px; padding: 10px 12px; border: 1px solid #D6D3D1; border-radius: 8px; min-height: 44px; box-sizing: border-box">
+</label>
+</div>
+<label style="display: flex; align-items: center; gap: 10px; min-height: 44px">
+<input type="checkbox" checked style="width: 18px; height: 18px">
+<span>Allow "Unknown" verdict (counted separately, sent to the review queue)</span>
+</label>
+</div>
+</sc-if>
+
+<sc-if value="{{yamlOn}}" hint-placeholder-val="{{ false }}">
+<pre style="margin: 0; padding: 16px; background: #1C1917; color: #E7E5E4; border-radius: 10px; font-family: 'JetBrains Mono', monospace; font-size: 12.5px; line-height: 1.6; overflow-x: auto; white-space: pre">{{yaml}}</pre>
+</sc-if>
+
+<div style="display: flex; flex-direction: column; gap: 10px; border-top: 1px solid #F5F5F4; padding-top: 16px">
+<div style="display: flex; justify-content: space-between; align-items: baseline; gap: 8px">
+<h3 style="margin: 0; font-size: 14px">Few-shot examples</h3>
+<span style="font-size: 12px; color: #57534E">From the train split only · 3 of 14</span>
+</div>
+<sc-for list="{{shots}}" as="e" hint-placeholder-count="3">
+<div style="display: flex; gap: 12px; align-items: center; padding: 10px 12px; border: 1px solid #E7E5E4; border-radius: 8px; min-height: 44px; box-sizing: border-box">
+<span style="{{e.pill}}">{{e.label}}</span>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 12.5px; color: #44403C">{{e.id}}</span>
+<span style="color: #57534E; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; flex: 1 1 auto">{{e.text}}</span>
+</div>
+</sc-for>
+<button type="button" style="align-self: flex-start; min-height: 44px; padding: 0 14px; border: 1px dashed #A8A29E; border-radius: 8px; background: transparent; color: #44403C; font: inherit; cursor: pointer">+ Add example from train split</button>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px; border-top: 1px solid #F5F5F4; padding-top: 16px">
+<h3 style="margin: 0; font-size: 14px">Checks run on every save</h3>
+<sc-for list="{{lint}}" as="l" hint-placeholder-count="5">
+<div style="display: flex; gap: 10px; align-items: center">
+<span style="{{l.dot}}" aria-hidden="true"></span>
+<span style="color: #44403C">{{l.text}}</span>
+</div>
+</sc-for>
+</div>
+</section>
+
+<div style="display: flex; flex-direction: column; gap: 16px">
+
+<section aria-label="Calibration" style="background: #FFFFFF; border: 1px solid #E7E5E4; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap">
+<h2 style="margin: 0; font-family: Sora, system-ui, sans-serif; font-size: 16px; font-weight: 600">Calibration · dev set</h2>
+<span style="font-size: 12px; color: #57534E">v3 draft on 44 dev traces (22 Pass, 22 Fail)</span>
+</div>
+<div style="display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-start">
+<div role="table" aria-label="Confusion matrix, human label by judge verdict" style="display: grid; grid-template-columns: 76px 88px 88px; gap: 4px; font-size: 13px">
+<span role="cell"></span>
+<span role="columnheader" style="text-align: center; color: #57534E; font-size: 12px">Judge Pass</span>
+<span role="columnheader" style="text-align: center; color: #57534E; font-size: 12px">Judge Fail</span>
+<span role="rowheader" style="color: #57534E; font-size: 12px; align-self: center">Human Pass</span>
+<span role="cell" style="background: #DBEAFE; border-radius: 6px; padding: 16px 0; text-align: center; font-weight: 700; font-size: 18px">20</span>
+<span role="cell" style="background: #F5F5F4; border-radius: 6px; padding: 16px 0; text-align: center; font-weight: 700; font-size: 18px">2</span>
+<span role="rowheader" style="color: #57534E; font-size: 12px; align-self: center">Human Fail</span>
+<span role="cell" style="background: #FEE2E2; border-radius: 6px; padding: 16px 0; text-align: center; font-weight: 700; font-size: 18px">3</span>
+<span role="cell" style="background: #DBEAFE; border-radius: 6px; padding: 16px 0; text-align: center; font-weight: 700; font-size: 18px">19</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 10px; min-width: 180px; flex: 1 1 180px">
+<div style="display: flex; justify-content: space-between; align-items: baseline"><span style="color: #57534E">TPR</span><span style="font-weight: 700; font-size: 20px; color: #15803D">90.9%</span></div>
+<div style="display: flex; justify-content: space-between; align-items: baseline"><span style="color: #57534E">TNR</span><span style="font-weight: 700; font-size: 20px; color: #B45309">86.4%</span></div>
+<div style="display: flex; justify-content: space-between; align-items: baseline"><span style="color: #57534E">Unknown</span><span style="font-weight: 600">1 trace</span></div>
+<span style="font-size: 12px; color: #92400E; line-height: 1.4">TNR is below the 90% target. The 3 false passes are listed below.</span>
+</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 12px; color: #57534E">TPR and TNR by version (dev)</span>
+<svg viewBox="0 0 400 100" width="100%" height="100" role="img" aria-label="TPR rises from 84 to 91 percent and TNR from 78 to 86 percent across versions v1 to v3, against a 90 percent target line">
+<line x1="48" y1="24" x2="380" y2="24" stroke="#16A34A" stroke-dasharray="4 4" stroke-width="1"></line>
+<text x="380" y="18" text-anchor="end" font-size="12" fill="#166534">90% target</text>
+<path d="M70 52 L215 38 L360 22" fill="none" stroke="#2563EB" stroke-width="2"></path>
+<path d="M70 70 L215 58 L360 34" fill="none" stroke="#C2410C" stroke-width="2" stroke-dasharray="5 3"></path>
+<circle cx="360" cy="22" r="3.5" fill="#2563EB"></circle>
+<circle cx="360" cy="34" r="3.5" fill="#C2410C"></circle>
+<text x="70" y="92" text-anchor="middle" font-size="12" fill="#57534E">v1</text>
+<text x="215" y="92" text-anchor="middle" font-size="12" fill="#57534E">v2</text>
+<text x="360" y="92" text-anchor="middle" font-size="12" fill="#57534E">v3 draft</text>
+<text x="8" y="56" font-size="12" font-weight="600" fill="#1D4ED8">TPR</text>
+<text x="8" y="74" font-size="12" font-weight="600" fill="#C2410C">TNR</text>
+</svg>
+</div>
+<div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center; border-top: 1px solid #F5F5F4; padding-top: 14px">
+<button type="button" disabled style="min-height: 44px; padding: 0 16px; border: 1px solid #E7E5E4; border-radius: 8px; background: #F5F5F4; color: #78716C; font: inherit; cursor: not-allowed">Run test set once</button>
+<span style="font-size: 12px; color: #57534E">Unlocks at step 3. Test split: 42 traces the judge has never seen.</span>
+</div>
+</section>
+
+<section aria-label="Disagreements" style="background: #FFFFFF; border: 1px solid #E7E5E4; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; justify-content: space-between; align-items: baseline; gap: 8px">
+<h2 style="margin: 0; font-family: Sora, system-ui, sans-serif; font-size: 16px; font-weight: 600">Disagreements with humans</h2>
+<span style="font-size: 12px; color: #57534E">5 on dev</span>
+</div>
+<sc-for list="{{dis}}" as="d" hint-placeholder-count="4">
+<div style="display: flex; flex-direction: column; gap: 4px; padding: 12px; border: 1px solid #E7E5E4; border-radius: 8px">
+<div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap">
+<span style="{{d.pill}}">{{d.kind}}</span>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 12.5px">{{d.id}}</span>
+</div>
+<span style="color: #44403C; line-height: 1.45">{{d.why}}</span>
+<div style="display: flex; gap: 4px; flex-wrap: wrap; margin-left: -12px">
+<a href="Transcript.dc.html" style="display: inline-flex; align-items: center; min-height: 44px; padding: 0 12px; font-weight: 600; text-decoration: none">Open transcript</a>
+<a href="#" style="display: inline-flex; align-items: center; min-height: 44px; padding: 0 12px; font-weight: 600; text-decoration: none">Use as few-shot</a>
+<a href="#" style="display: inline-flex; align-items: center; min-height: 44px; padding: 0 12px; font-weight: 600; text-decoration: none">Relabel</a>
+</div>
+</div>
+</sc-for>
+</section>
+
+<section id="pending" aria-label="Pending changes" style="background: #FFFFFF; border: 2px solid #2563EB; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap">
+<h2 style="margin: 0; font-family: Sora, system-ui, sans-serif; font-size: 16px; font-weight: 600">Pending changes ({{pendingCount}})</h2>
+<span style="font-size: 12px; color: #57534E; font-family: 'JetBrains Mono', monospace">branch evals/tone-judge-v3 · not on main</span>
+</div>
+<div style="border: 1px solid #E7E5E4; border-radius: 8px; overflow: hidden">
+<div style="padding: 8px 12px; background: #F5F5F4; font-family: 'JetBrains Mono', monospace; font-size: 12.5px; display: flex; justify-content: space-between; gap: 8px"><span>graders/judges/tone_mismatch/prompt.md</span><span style="color: #57534E">+2 −1</span></div>
+<pre style="margin: 0; padding: 10px 12px; font-family: 'JetBrains Mono', monospace; font-size: 12px; line-height: 1.6; overflow-x: auto; white-space: pre"><span style="display: block; color: #57534E">  ## FAIL</span><span style="display: block; background: #FEF2F2; color: #991B1B">- Uses an informal tone with a frustrated customer.</span><span style="display: block; background: #F0FDF4; color: #166534">+ Policy text comes before acknowledging the problem, the reply is curt</span><span style="display: block; background: #F0FDF4; color: #166534">+ with a frustrated customer, or uses casual phrasing with a business account.</span></pre>
+<div style="padding: 8px 12px; background: #F5F5F4; font-family: 'JetBrains Mono', monospace; font-size: 12.5px; display: flex; justify-content: space-between; gap: 8px; border-top: 1px solid #E7E5E4"><span>graders/judges/tone_mismatch/calibration.json</span><span style="color: #57534E">status: stale (auto)</span></div>
+</div>
+<div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center">
+<button type="button" style="min-height: 44px; padding: 0 18px; border: 0; border-radius: 8px; background: #2563EB; color: #FFFFFF; font: inherit; font-weight: 600; cursor: pointer">Commit to branch</button>
+<button type="button" style="min-height: 44px; padding: 0 16px; border: 1px solid #D6D3D1; border-radius: 8px; background: #FFFFFF; color: #1C1917; font: inherit; font-weight: 500; cursor: pointer">Open pull request</button>
+<a href="#" style="display: inline-flex; align-items: center; min-height: 44px; padding: 0 12px; color: #B91C1C; font-weight: 600; text-decoration: none; margin-left: auto">Discard</a>
+</div>
+</section>
+
+</div>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1420}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { mode: 'form' };
+  }
+  renderVals() {
+    var self = this;
+    var pill = function (bg, fg) {
+      return 'display: inline-block; flex-shrink: 0; font-size: 12px; font-weight: 600; border-radius: 999px; padding: 3px 10px; background: ' + bg + '; color: ' + fg;
+    };
+    var good = pill('#DCFCE7', '#166534'), warn = pill('#FEF3C7', '#92400E'), bad = pill('#FEE2E2', '#991B1B'), none = pill('#F5F5F4', '#44403C');
+    var tabOn = 'min-height: 38px; padding: 0 14px; border: 0; border-radius: 6px; background: #FFFFFF; color: #1C1917; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,0.08)';
+    var tabOff = 'min-height: 38px; padding: 0 14px; border: 0; border-radius: 6px; background: transparent; color: #57534E; font: inherit; font-size: 13px; cursor: pointer';
+    var dot = function (c) { return 'width: 10px; height: 10px; border-radius: 5px; flex-shrink: 0; background: ' + c; };
+    var num = function (state) {
+      var b = 'display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 14px; font-size: 13px; font-weight: 700; flex-shrink: 0; ';
+      if (state === 'done') return b + 'background: #DCFCE7; color: #166534';
+      if (state === 'now') return b + 'background: #1D4ED8; color: #FFFFFF';
+      return b + 'background: #F5F5F4; color: #78716C';
+    };
+    var title = function (state) {
+      return 'font-weight: 600; font-size: 13px; white-space: nowrap; color: ' + (state === 'todo' ? '#78716C' : '#1C1917');
+    };
+    var formOn = this.state.mode === 'form';
+    return {
+      pendingCount: 2,
+      formOn: formOn,
+      yamlOn: !formOn,
+      formTab: formOn ? tabOn : tabOff,
+      yamlTab: formOn ? tabOff : tabOn,
+      showForm: function () { self.setState({ mode: 'form' }); },
+      showYaml: function () { self.setState({ mode: 'yaml' }); },
+      steps: [
+        { n: '✓', name: 'Edit definition', sub: 'Saved to branch', num: num('done'), title: title('done') },
+        { n: '2', name: 'Dev set ≥ 90 / 90', sub: 'TPR 90.9 · TNR 86.4', num: num('now'), title: title('now') },
+        { n: '3', name: 'Test set, once', sub: '42 fresh labels ready', num: num('todo'), title: title('todo') },
+        { n: '4', name: 'Trusted', sub: 'Verdicts count in Quality', num: num('todo'), title: title('todo') }
+      ],
+      yaml: '# judge.yaml\nid: tone_mismatch\nfailure_mode: tone_mismatch\nmodel: [PINNED MODEL SNAPSHOT ID]\ninputs: [persona, final_reply]\noutput: {critique: string, result: Pass | Fail | Unknown}\nfew_shot: [tr_0412, tr_0977, tr_1203]   # train split\n\n# prompt.md (excerpt)\nYou are evaluating whether a support reply uses\na tone that fits the customer persona.\n\n## PASS\nFrustrated customers get an apology and a plain\nnext step before any policy detail ...\n\n## FAIL\nPolicy text comes before acknowledging the problem,\nthe reply is curt with a frustrated customer ...',
+      shots: [
+        { label: 'Pass', pill: good, id: 'tr_0412', text: 'Apologizes, then gives the refund timeline in one sentence.' },
+        { label: 'Fail', pill: bad, id: 'tr_0977', text: 'Opens with the refund policy paragraph before acknowledging the double charge.' },
+        { label: 'Borderline pass', pill: none, id: 'tr_1203', text: 'Brief and businesslike with an enterprise admin; no apology needed.' }
+      ],
+      lint: [
+        { dot: dot('#16A34A'), text: 'Schema valid' },
+        { dot: dot('#16A34A'), text: 'One failure mode; Pass and Fail both defined' },
+        { dot: dot('#16A34A'), text: 'Has a clear Pass, a clear Fail and a borderline example' },
+        { dot: dot('#16A34A'), text: 'No few-shot example appears in dev or test (no leakage)' },
+        { dot: dot('#D97706'), text: 'Calibration marked stale: prompt hash differs from the last test pass' }
+      ],
+      dis: [
+        { kind: 'False pass', pill: bad, id: 'tr_1388', why: 'Judge accepted a reply that quotes policy first because the apology comes in the same paragraph.' },
+        { kind: 'False pass', pill: bad, id: 'tr_1402', why: '"No worries!" to a business account. The FAIL definition is new in v3; the critique cites the old definition.' },
+        { kind: 'False fail', pill: warn, id: 'tr_1291', why: 'Judge flagged a short reply as curt; the customer had asked for "just the tracking number".' },
+        { kind: 'Unknown', pill: none, id: 'tr_1450', why: 'Persona field missing from the trace. Routed to the review queue.' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

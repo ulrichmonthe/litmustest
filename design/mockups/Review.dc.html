@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>evalkit review queue</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700&amp;family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0;background:#F6F6F3}
+a{color:#1D4ED8}a:hover{color:#1E3A8A}
+</style>
+</helmet>
+<div style="min-height: 100vh; display: flex; flex-wrap: wrap; background: #F6F6F3; color: #1C1917; font-family: Inter, system-ui, sans-serif; font-size: 14px">
+
+<nav aria-label="Main" style="flex: 1 1 220px; max-width: 100%; box-sizing: border-box; background: #FFFFFF; border-right: 1px solid #E7E5E4; padding: 24px 16px; display: flex; flex-direction: column; gap: 4px">
+<div style="display: flex; align-items: center; gap: 10px; padding: 0 8px 20px 8px">
+<svg width="30" height="30" viewBox="0 0 64 64" role="img" aria-label="evalkit"><path d="M13 31 L26 44 L50 16" fill="none" stroke="#1D4ED8" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"></path><path d="M10 56 H54 M10 50 V62 M54 50 V62" fill="none" stroke="#1C1917" stroke-width="5" stroke-linecap="round"></path></svg>
+<div style="display: flex; flex-direction: column">
+<span style="font-family: Sora, system-ui, sans-serif; font-weight: 600; font-size: 17px; letter-spacing: -0.04em; line-height: 1">eval<span style="color: #1D4ED8">kit</span></span>
+<span style="font-size: 12px; color: #57534E">support-agent repo</span>
+</div>
+</div>
+<a href="Main.dc.html" style="display: flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 8px; color: #44403C; text-decoration: none">Overview</a>
+<a href="Review.dc.html" style="display: flex; align-items: center; justify-content: space-between; min-height: 44px; padding: 0 12px; border-radius: 8px; background: #EFF6FF; color: #1D4ED8; font-weight: 600; text-decoration: none">Review queue<span style="font-size: 12px; background: #DBEAFE; border-radius: 999px; padding: 2px 8px; color: #1D4ED8">48 to review</span></a>
+<a href="Modes.dc.html" style="display: flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 8px; color: #44403C; text-decoration: none">Failure modes</a>
+<a href="Tasks.dc.html" style="display: flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 8px; color: #44403C; text-decoration: none">Tasks &amp; suites</a>
+<a href="Compare.dc.html" style="display: flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 8px; color: #44403C; text-decoration: none">Run compare</a>
+<a href="Transcript.dc.html" style="display: flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 8px; color: #44403C; text-decoration: none">Transcripts</a>
+<a href="Judges.dc.html" style="display: flex; align-items: center; justify-content: space-between; min-height: 44px; padding: 0 12px; border-radius: 8px; color: #44403C; text-decoration: none">Judges<span style="font-size: 12px; background: #FEF3C7; border-radius: 999px; padding: 2px 8px; color: #92400E">1 stale</span></a>
+<a href="Settings.dc.html" style="display: flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 8px; color: #44403C; text-decoration: none">Settings</a>
+<div style="flex-grow: 1; min-height: 24px"></div>
+<a href="Judges.dc.html" style="display: flex; flex-direction: column; gap: 4px; padding: 12px; border: 1px solid #BFDBFE; background: #EFF6FF; border-radius: 10px; text-decoration: none; color: #1C1917">
+<span style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #1E3A8A"><span>Pending changes</span><span style="background: #1D4ED8; color: #FFFFFF; border-radius: 999px; padding: 1px 8px; font-weight: 600">2</span></span>
+<span style="font-weight: 600; font-size: 13px; font-family: 'JetBrains Mono', monospace">evals/tone-judge-v3</span>
+<span style="font-size: 12px; color: #1D4ED8; font-weight: 600">Review and commit</span>
+</a>
+</nav>
+
+<main style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 28px 32px 48px 32px; display: flex; flex-direction: column; gap: 20px">
+
+<header style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap">
+<h1 style="margin: 0; font-family: Sora, system-ui, sans-serif; font-size: 24px; font-weight: 700; letter-spacing: -0.02em">Review queue</h1>
+<span style="font-size: 12px; border: 1px dashed #A8A29E; color: #57534E; border-radius: 999px; padding: 3px 10px">Sample data</span>
+</div>
+<p style="margin: 0; color: #57534E">Batch: 60 production traces from last week · 8 clusters + 12 random · labels save to <span style="font-family: 'JetBrains Mono', monospace">labels/review-2026-10-26.jsonl</span></p>
+</div>
+<div style="display: flex; gap: 8px; flex-wrap: wrap; font-size: 13px; color: #57534E; align-items: center">
+<kbd style="font-family: 'JetBrains Mono', monospace; border: 1px solid #D6D3D1; border-bottom-width: 2px; border-radius: 4px; padding: 2px 7px; background: #FFFFFF; color: #1C1917">j</kbd><kbd style="font-family: 'JetBrains Mono', monospace; border: 1px solid #D6D3D1; border-bottom-width: 2px; border-radius: 4px; padding: 2px 7px; background: #FFFFFF; color: #1C1917">k</kbd><span>move</span>
+<kbd style="font-family: 'JetBrains Mono', monospace; border: 1px solid #D6D3D1; border-bottom-width: 2px; border-radius: 4px; padding: 2px 7px; background: #FFFFFF; color: #1C1917">p</kbd><kbd style="font-family: 'JetBrains Mono', monospace; border: 1px solid #D6D3D1; border-bottom-width: 2px; border-radius: 4px; padding: 2px 7px; background: #FFFFFF; color: #1C1917">f</kbd><span>pass / fail</span>
+<kbd style="font-family: 'JetBrains Mono', monospace; border: 1px solid #D6D3D1; border-bottom-width: 2px; border-radius: 4px; padding: 2px 7px; background: #FFFFFF; color: #1C1917">n</kbd><span>note</span>
+<kbd style="font-family: 'JetBrains Mono', monospace; border: 1px solid #D6D3D1; border-bottom-width: 2px; border-radius: 4px; padding: 2px 7px; background: #FFFFFF; color: #1C1917">↵</kbd><span>save</span>
+</div>
+</header>
+
+<div style="display: flex; align-items: center; gap: 12px">
+<div style="flex: 1 1 auto; height: 6px; background: #E7E5E4; border-radius: 3px; overflow: hidden"><div style="width: 20%; height: 6px; background: #2563EB; border-radius: 3px"></div></div>
+<span style="font-size: 13px; color: #57534E; white-space: nowrap">Trace 12 of 60 · 11 labeled</span>
+</div>
+
+<div style="display: grid; grid-template-columns: minmax(0, 3fr) minmax(320px, 2fr); gap: 16px; align-items: start">
+
+<section aria-label="Trace" tabindex="0" style="background: #FFFFFF; border: 1px solid #E7E5E4; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 16px; outline: 2px solid #2563EB; outline-offset: 2px">
+<div style="display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap">
+<div style="display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap">
+<h2 style="margin: 0; font-size: 16px; font-family: 'JetBrains Mono', monospace">tr_8812</h2>
+<span style="font-size: 12px; color: #57534E">billing disputes · frustrated persona · 7 turns · 4 tool calls</span>
+</div>
+<a href="#" style="display: inline-flex; align-items: center; min-height: 44px; font-weight: 600; text-decoration: none">Raw JSON</a>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 10px">
+<div style="align-self: flex-start; max-width: 80%; padding: 12px 14px; border-radius: 12px; background: #F5F5F4; line-height: 1.5">
+<span style="display: block; font-size: 11.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #57534E; margin-bottom: 4px">Customer</span>
+I was charged twice for October and nobody has answered my last two emails. This is ridiculous.
+</div>
+<div style="display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; border-left: 3px solid #D6D3D1; background: #FAFAF9; font-family: 'JetBrains Mono', monospace; font-size: 12.5px; color: #44403C">
+<span>→ verify_identity(account_id="A-22817") ✓</span>
+<span>→ fetch_invoices(month="2026-10") · 2 charges of $49.00</span>
+<span>→ fetch_policy(topic="duplicate_charge")</span>
+</div>
+<div style="align-self: flex-end; max-width: 80%; padding: 12px 14px; border-radius: 12px; background: #EFF6FF; line-height: 1.5">
+<span style="display: block; font-size: 11.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #1D4ED8; margin-bottom: 4px">Agent</span>
+Per our billing policy, duplicate charges are reviewed within 5–7 business days and refunds are issued to the original payment method once approved. I can see two charges on your account.
+</div>
+<div style="display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; border-left: 3px solid #FCA5A5; background: #FFF7F7; font-family: 'JetBrains Mono', monospace; font-size: 12.5px; color: #44403C">
+<span>→ process_refund(amount=49.00) <span style="color: #B91C1C; font-weight: 600">never called</span></span>
+</div>
+<div style="align-self: flex-start; max-width: 80%; padding: 12px 14px; border-radius: 12px; background: #F5F5F4; line-height: 1.5">
+<span style="display: block; font-size: 11.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #57534E; margin-bottom: 4px">Customer</span>
+So you're not going to fix it?
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 14px; border-top: 1px solid #F5F5F4; padding-top: 16px">
+<div role="group" aria-label="Verdict" style="display: flex; gap: 10px; flex-wrap: wrap">
+<button type="button" onClick="{{pickPass}}" aria-pressed="{{isPass}}" style="{{passStyle}}">Pass <span style="font-weight: 400; opacity: 0.7">p</span></button>
+<button type="button" onClick="{{pickFail}}" aria-pressed="{{isFail}}" style="{{failStyle}}">Fail <span style="font-weight: 400; opacity: 0.7">f</span></button>
+<button type="button" style="min-height: 44px; padding: 0 16px; border: 1px solid #D6D3D1; border-radius: 8px; background: #FFFFFF; color: #44403C; font: inherit; cursor: pointer">Skip</button>
+</div>
+<label style="display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 13px; font-weight: 600">Note: the first thing that looks wrong, in your words</span>
+<textarea rows="3" style="font: inherit; padding: 10px 12px; border: 1px solid #D6D3D1; border-radius: 8px; resize: vertical; line-height: 1.5">Leads with policy before acknowledging the double charge. Verified identity and found both charges but never called process_refund.</textarea>
+</label>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<span style="font-size: 13px; font-weight: 600">Failure modes <span style="font-weight: 400; color: #57534E">(suggested from your note, toggle to confirm)</span></span>
+<div style="display: flex; gap: 8px; flex-wrap: wrap">
+<sc-for list="{{chips}}" as="c" hint-placeholder-count="4">
+<button type="button" onClick="{{c.toggle}}" aria-pressed="{{c.on}}" style="{{c.style}}">{{c.mark}}{{c.name}}</button>
+</sc-for>
+<button type="button" style="min-height: 44px; padding: 0 14px; border: 1px dashed #A8A29E; border-radius: 999px; background: transparent; color: #44403C; font: inherit; font-family: 'JetBrains Mono', monospace; font-size: 13px; cursor: pointer">+ new mode</button>
+</div>
+</div>
+<div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center">
+<button type="button" style="min-height: 44px; padding: 0 18px; border: 0; border-radius: 8px; background: #2563EB; color: #FFFFFF; font: inherit; font-weight: 600; cursor: pointer">Save and next <span style="font-weight: 400; opacity: 0.8">↵</span></button>
+<a href="#" style="display: inline-flex; align-items: center; min-height: 44px; padding: 0 12px; font-weight: 600; text-decoration: none">Promote to regression task</a>
+<span style="margin-left: auto; font-size: 12px; color: #57534E">Last label saved 40s ago · annotator: you</span>
+</div>
+</div>
+</section>
+
+<div style="display: flex; flex-direction: column; gap: 16px">
+
+<section aria-label="Failure modes so far" style="background: #FFFFFF; border: 1px solid #E7E5E4; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap">
+<h2 style="margin: 0; font-family: Sora, system-ui, sans-serif; font-size: 16px; font-weight: 600">Failure modes so far</h2>
+<span style="font-size: 12px; color: #57534E">from 11 labeled traces</span>
+</div>
+<sc-for list="{{modes}}" as="m" hint-placeholder-count="3">
+<div style="display: flex; flex-direction: column; gap: 6px; padding: 12px; border: 1px solid #E7E5E4; border-radius: 8px">
+<div style="display: flex; justify-content: space-between; gap: 8px; align-items: center">
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 500">{{m.name}}</span>
+<span style="{{m.pill}}">{{m.state}}</span>
+</div>
+<span style="color: #57534E; line-height: 1.45">{{m.def}}</span>
+<span style="font-size: 12px; color: #44403C">{{m.count}} traces · {{m.grader}}</span>
+</div>
+</sc-for>
+<div style="display: flex; gap: 4px; flex-wrap: wrap; margin-left: -12px">
+<a href="#" style="display: inline-flex; align-items: center; min-height: 44px; padding: 0 12px; font-weight: 600; text-decoration: none">Ask Claude to regroup notes</a>
+<a href="Judges.dc.html" style="display: inline-flex; align-items: center; min-height: 44px; padding: 0 12px; font-weight: 600; text-decoration: none">Draft judge from labels</a>
+</div>
+</section>
+
+<section aria-label="Coverage" style="background: #FFFFFF; border: 1px solid #E7E5E4; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap">
+<h2 style="margin: 0; font-family: Sora, system-ui, sans-serif; font-size: 16px; font-weight: 600">Coverage by cluster</h2>
+<span style="font-size: 12px; color: #57534E">reviewed / in batch</span>
+</div>
+<sc-for list="{{clusters}}" as="c" hint-placeholder-count="5">
+<div style="display: grid; grid-template-columns: 130px minmax(0, 1fr) 48px; align-items: center; gap: 12px">
+<span style="font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{c.name}}</span>
+<div style="height: 10px; background: #F5F5F4; border-radius: 5px; overflow: hidden"><div style="height: 10px; width: {{c.pct}}%; background: #2563EB; border-radius: 5px"></div></div>
+<span style="font-size: 12px; text-align: right; font-variant-numeric: tabular-nums; color: #44403C">{{c.frac}}</span>
+</div>
+</sc-for>
+<div style="padding: 12px; border-radius: 8px; background: #EFF6FF; line-height: 1.45; color: #1E3A8A">Notes stopped producing new failure modes after 9 traces in "billing disputes". The next samples come from "address changes" and "account deletion".</div>
+</section>
+
+</div>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1120}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { verdict: 'fail', chips: { tone_mismatch: true, missed_refund: true, ungrounded_policy: false, over_searching: false } };
+  }
+  renderVals() {
+    var self = this;
+    var pill = function (bg, fg) {
+      return 'display: inline-block; flex-shrink: 0; font-size: 12px; font-weight: 600; border-radius: 999px; padding: 3px 10px; background: ' + bg + '; color: ' + fg;
+    };
+    var good = pill('#DCFCE7', '#166534'), warn = pill('#FEF3C7', '#92400E');
+    var base = 'min-height: 44px; min-width: 96px; padding: 0 18px; border-radius: 8px; font: inherit; font-weight: 600; cursor: pointer; ';
+    var isPass = this.state.verdict === 'pass';
+    var isFail = this.state.verdict === 'fail';
+    var chipBase = 'min-height: 44px; padding: 0 14px; border-radius: 999px; font: inherit; font-family: JetBrains Mono, monospace; font-size: 13px; cursor: pointer; ';
+    var names = ['tone_mismatch', 'missed_refund', 'ungrounded_policy', 'over_searching'];
+    var chips = names.map(function (n) {
+      var on = !!self.state.chips[n];
+      return {
+        name: n, on: on, mark: on ? '✓ ' : '',
+        style: chipBase + (on ? 'border: 2px solid #1D4ED8; background: #EFF6FF; color: #1E3A8A; font-weight: 600' : 'border: 1px solid #D6D3D1; background: #FFFFFF; color: #44403C'),
+        toggle: function () { var c = Object.assign({}, self.state.chips); c[n] = !c[n]; self.setState({ chips: c }); }
+      };
+    });
+    return {
+      isPass: isPass,
+      isFail: isFail,
+      pickPass: function () { self.setState({ verdict: 'pass' }); },
+      pickFail: function () { self.setState({ verdict: 'fail' }); },
+      passStyle: base + (isPass ? 'border: 2px solid #15803D; background: #DCFCE7; color: #14532D' : 'border: 1px solid #D6D3D1; background: #FFFFFF; color: #44403C'),
+      failStyle: base + (isFail ? 'border: 2px solid #B91C1C; background: #FEE2E2; color: #7F1D1D' : 'border: 1px solid #D6D3D1; background: #FFFFFF; color: #44403C'),
+      chips: chips,
+      modes: [
+        { name: 'tone_mismatch', state: 'Has judge', pill: good, def: 'Policy text before acknowledging the problem; curt with frustrated customers.', count: 5, grader: 'binary judge' },
+        { name: 'missed_refund', state: 'Has check', pill: good, def: 'Duplicate charge confirmed but process_refund never called.', count: 4, grader: 'outcome check: refunds.status' },
+        { name: 'ungrounded_policy', state: 'No grader', pill: warn, def: 'States a policy detail not present in fetch_policy results.', count: 2, grader: 'needs 18 more labels for a judge' }
+      ],
+      clusters: [
+        { name: 'Billing disputes', pct: 75, frac: '9/12' },
+        { name: 'Refund status', pct: 50, frac: '4/8' },
+        { name: 'Plan changes', pct: 29, frac: '2/7' },
+        { name: 'Address changes', pct: 0, frac: '0/6' },
+        { name: 'Account deletion', pct: 0, frac: '0/5' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,64 @@
+# evalkit (working name; see docs/DECISIONS.md #1 before publishing anything)
+
+A plugin for coding agents that takes a team from raw AI-product traces to a trusted, CI-gated eval suite, with a local dashboard that edits the eval files in git.
+
+It reconciles two sources: the evals-skills course method (error analysis → binary judges → calibration) and Anthropic's agent-eval guidance (tasks, outcomes, trials, suites, error bars). Read `docs/SPEC.md` first. Everything else in `docs/` supports it.
+
+## The three rules everything depends on
+
+1. **`evals/` in git is the source of truth.** The dashboard, the CLI and the skills all read and write the same files. No separate database. Nothing changes a grader, label, task or gate without a reviewable diff.
+2. **Agents propose; people decide.** Every edit a skill makes arrives as a diff on a branch. A person commits it. Reading traces and labeling calibration data are human-only and are never automated.
+3. **No judge counts until it is calibrated.** A judge needs TPR and TNR ≥ 90% on a held-out test set, run once. Editing its prompt or model marks it stale, and stale verdicts are excluded from scores and gates.
+
+## Reconciled method (one line each)
+
+- The unit of work is a **task**: input, checks, reference solution, suite. Failure modes are tags on checks.
+- Every **check is binary**. A task reports both strict pass (all checks) and a weighted score.
+- **Code checks before judges.** Outcome checks (real end state) for agents that change things.
+- **Judges**: one failure mode each, Pass/Fail/Unknown, few-shot from the train split only, critique before verdict.
+- **Trials**: 5 per task by default; report pass@1 and pass^k; tag infra failures separately.
+- **Every number carries error bars**: bootstrap over tasks and judge confusion together; paired comparisons between runs.
+- **Suites**: regression (near 100%), capability (hill to climb), quality (trusted judges only). Saturated capability tasks graduate to regression.
+
+## Repo layout (target)
+
+```
+evals/
+  evalkit.yaml            # sources, runs, judges, gates, storage, ci
+  failure_modes/*.yaml
+  tasks/**/*.yaml
+  graders/code/*.py
+  graders/judges/<name>/{prompt.md,judge.yaml,calibration.json}
+  labels/*.jsonl          # trace_id, label, note, annotator, timestamp; append-only
+  datasets/{traces,synthetic}/
+  suites/{regression,capability,quality}.yaml
+  runs/                   # summaries committed; raw transcripts git-ignored
+```
+
+## Conventions
+
+- Plain text files, JSON Schema for every file type (`docs/FIRST-BRIEF.md` lists them). Validate on every write.
+- Trace shape: OpenTelemetry GenAI conventions internally; a JSONL adapter for plain logs. Labels reference trace ids, never positions.
+- Pin judge model ids to dated snapshots. Never a floating alias.
+- Identifiers are `snake_case` and are what the dashboard shows in mono.
+- Target Claude Code first; keep the Codex manifest the fork ships but mark it untested until Phase 2.
+- License: Apache 2.0. Modified upstream skills carry a "Modified from ai-evals-course/evals-skills (Apache 2.0)" header.
+
+## Where things are
+
+| Need | File |
+| --- | --- |
+| Full spec, architecture, build phases | `docs/SPEC.md` |
+| The six decisions with recommendations | `docs/DECISIONS.md` |
+| What each screen does and the write-back model | `docs/SCREENS.md`, `design/mockups/*.dc.html` |
+| Colours, type, spacing, voice, component rules | `docs/BRAND.md`, `brand/tokens.json`, `brand/logos/` |
+| What "done" means per phase | `docs/ACCEPTANCE.md` |
+| Phase 1 brief: schemas and sample repo | `docs/FIRST-BRIEF.md` |
+| How we compare with the two sources | `docs/COMPARISON.md` |
+
+## Working agreement for this repo
+
+- One PR per phase milestone. Each PR is reviewed against `docs/ACCEPTANCE.md` before merge.
+- Never hand-edit `calibration.json`; it is written by `evalkit calibrate` only.
+- The dashboard is a client of the CLI and the files. If something works in the dashboard but not the CLI, that is a bug.
+- Mockups in `design/mockups/` are the UI reference. Replicate their values from inline styles and `brand/tokens.json`; do not copy the markup wholesale.

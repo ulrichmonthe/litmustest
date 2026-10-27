@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>evalkit tasks and suites</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700&amp;family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0;background:#F6F6F3}
+a{color:#1D4ED8}a:hover{color:#1E3A8A}
+</style>
+</helmet>
+<div style="min-height: 100vh; display: flex; flex-wrap: wrap; background: #F6F6F3; color: #1C1917; font-family: Inter, system-ui, sans-serif; font-size: 14px">
+
+<nav aria-label="Main" style="flex: 1 1 220px; max-width: 100%; box-sizing: border-box; background: #FFFFFF; border-right: 1px solid #E7E5E4; padding: 24px 16px; display: flex; flex-direction: column; gap: 4px">
+<div style="display: flex; align-items: center; gap: 10px; padding: 0 8px 20px 8px">
+<svg width="30" height="30" viewBox="0 0 64 64" role="img" aria-label="evalkit"><path d="M13 31 L26 44 L50 16" fill="none" stroke="#1D4ED8" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"></path><path d="M10 56 H54 M10 50 V62 M54 50 V62" fill="none" stroke="#1C1917" stroke-width="5" stroke-linecap="round"></path></svg>
+<div style="display: flex; flex-direction: column">
+<span style="font-family: Sora, system-ui, sans-serif; font-weight: 600; font-size: 17px; letter-spacing: -0.04em; line-height: 1">eval<span style="color: #1D4ED8">kit</span></span>
+<span style="font-size: 12px; color: #57534E">support-agent repo</span>
+</div>
+</div>
+<a href="Main.dc.html" style="display: flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 8px; color: #44403C; text-decoration: none">Overview</a>
+<a href="Review.dc.html" style="display: flex; align-items: center; justify-content: space-between; min-height: 44px; padding: 0 12px; border-radius: 8px; color: #44403C; text-decoration: none">Review queue<span style="font-size: 12px; background: #F5F5F4; border-radius: 999px; padding: 2px 8px; color: #44403C">48 to review</span></a>
+<a href="Modes.dc.html" style="display: flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 8px; color: #44403C; text-decoration: none">Failure modes</a>
+<a href="Tasks.dc.html" style="display: flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 8px; background: #EFF6FF; color: #1D4ED8; font-weight: 600; text-decoration: none">Tasks &amp; suites</a>
+<a href="Compare.dc.html" style="display: flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 8px; color: #44403C; text-decoration: none">Run compare</a>
+<a href="Transcript.dc.html" style="display: flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 8px; color: #44403C; text-decoration: none">Transcripts</a>
+<a href="Judges.dc.html" style="display: flex; align-items: center; justify-content: space-between; min-height: 44px; padding: 0 12px; border-radius: 8px; color: #44403C; text-decoration: none">Judges<span style="font-size: 12px; background: #FEF3C7; border-radius: 999px; padding: 2px 8px; color: #92400E">1 stale</span></a>
+<a href="Settings.dc.html" style="display: flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 8px; color: #44403C; text-decoration: none">Settings</a>
+<div style="flex-grow: 1; min-height: 24px"></div>
+<a href="Judges.dc.html" style="display: flex; flex-direction: column; gap: 4px; padding: 12px; border: 1px solid #BFDBFE; background: #EFF6FF; border-radius: 10px; text-decoration: none; color: #1C1917">
+<span style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #1E3A8A"><span>Pending changes</span><span style="background: #1D4ED8; color: #FFFFFF; border-radius: 999px; padding: 1px 8px; font-weight: 600">2</span></span>
+<span style="font-weight: 600; font-size: 13px; font-family: 'JetBrains Mono', monospace">evals/tone-judge-v3</span>
+<span style="font-size: 12px; color: #1D4ED8; font-weight: 600">Review and commit</span>
+</a>
+</nav>
+
+<main style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 28px 32px 48px 32px; display: flex; flex-direction: column; gap: 20px">
+
+<header style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap">
+<h1 style="margin: 0; font-family: Sora, system-ui, sans-serif; font-size: 24px; font-weight: 700; letter-spacing: -0.02em">Tasks &amp; suites</h1>
+<span style="font-size: 12px; border: 1px dashed #A8A29E; color: #57534E; border-radius: 999px; padding: 3px 10px">Sample data</span>
+</div>
+<p style="margin: 0; color: #57534E">396 tasks in 3 suites · every task has a reference solution that passes its checks</p>
+</div>
+<div style="display: flex; gap: 10px; flex-wrap: wrap">
+<a href="Review.dc.html" style="display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border: 1px solid #D6D3D1; border-radius: 8px; background: #FFFFFF; color: #1C1917; text-decoration: none; font-weight: 500">Promote from review queue</a>
+<button type="button" style="min-height: 44px; padding: 0 18px; border: 0; border-radius: 8px; background: #1D4ED8; color: #FFFFFF; font: inherit; font-weight: 600; cursor: pointer">New task</button>
+</div>
+</header>
+
+<section aria-label="Suites" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px">
+<sc-for list="{{suites}}" as="s" hint-placeholder-count="3">
+<button type="button" onClick="{{s.pick}}" aria-pressed="{{s.on}}" style="{{s.card}}">
+<span style="display: flex; justify-content: space-between; align-items: baseline; gap: 8px; width: 100%">
+<span style="font-family: Sora, system-ui, sans-serif; font-weight: 600; font-size: 15px">{{s.name}}</span>
+<span style="font-size: 12px; color: #57534E">{{s.job}}</span>
+</span>
+<span style="display: flex; align-items: baseline; gap: 8px">
+<span style="font-family: Sora, system-ui, sans-serif; font-size: 28px; font-weight: 700; letter-spacing: -0.02em; line-height: 1">{{s.n}}</span>
+<span style="font-size: 13px; color: #57534E">tasks · {{s.rate}} pass</span>
+</span>
+<span style="display: flex; gap: 6px; flex-wrap: wrap">
+<sc-for list="{{s.tags}}" as="t" hint-placeholder-count="2"><span style="{{t.pill}}">{{t.text}}</span></sc-for>
+</span>
+</button>
+</sc-for>
+</section>
+
+<section aria-label="Health" style="display: flex; gap: 12px; flex-wrap: wrap; padding: 12px 16px; border-radius: 12px; background: #FFFFFF; border: 1px solid #E7E5E4; align-items: center">
+<span style="font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #57534E">Suite health</span>
+<span style="display: inline-flex; align-items: center; gap: 6px; font-size: 13px"><span style="width: 8px; height: 8px; border-radius: 4px; background: #B91C1C" aria-hidden="true"></span>1 likely broken (0 / 15 trials)</span>
+<span style="display: inline-flex; align-items: center; gap: 6px; font-size: 13px"><span style="width: 8px; height: 8px; border-radius: 4px; background: #D97706" aria-hidden="true"></span>2 flaky</span>
+<span style="display: inline-flex; align-items: center; gap: 6px; font-size: 13px"><span style="width: 8px; height: 8px; border-radius: 4px; background: #D97706" aria-hidden="true"></span>6 ready to graduate</span>
+<span style="display: inline-flex; align-items: center; gap: 6px; font-size: 13px"><span style="width: 8px; height: 8px; border-radius: 4px; background: #16A34A" aria-hidden="true"></span>Balance: 58% should / 42% shouldn't</span>
+<span style="flex: 1 1 auto"></span>
+<a href="#" style="display: inline-flex; align-items: center; min-height: 44px; padding: 0 12px; font-weight: 600; text-decoration: none">Graduate 6 tasks</a>
+</section>
+
+<section aria-label="Task table" style="background: #FFFFFF; border: 1px solid #E7E5E4; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap">
+<h2 style="margin: 0; font-family: Sora, system-ui, sans-serif; font-size: 16px; font-weight: 600">{{title}}</h2>
+<div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center">
+<label style="display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 12px; border: 1px solid #D6D3D1; border-radius: 8px; background: #FFFFFF; font-size: 13px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#57534E" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg><input type="search" placeholder="Filter tasks" style="border: 0; font: inherit; outline: none; width: 160px; background: transparent"></label>
+<select style="font: inherit; font-size: 13px; min-height: 44px; padding: 0 12px; border: 1px solid #D6D3D1; border-radius: 8px; background: #FFFFFF"><option>All failure modes</option></select>
+</div>
+</div>
+<div style="overflow-x: auto">
+<table style="width: 100%; border-collapse: collapse; font-size: 13px; min-width: 760px">
+<thead>
+<tr style="text-align: left; color: #57534E">
+<th scope="col" style="padding: 8px 8px 8px 0; font-weight: 500">Task</th>
+<th scope="col" style="padding: 8px; font-weight: 500">Source</th>
+<th scope="col" style="padding: 8px; font-weight: 500">Checks</th>
+<th scope="col" style="padding: 8px; font-weight: 500; text-align: right">pass@1</th>
+<th scope="col" style="padding: 8px; font-weight: 500; text-align: right">pass^5</th>
+<th scope="col" style="padding: 8px; font-weight: 500">Last 5 runs</th>
+<th scope="col" style="padding: 8px 0 8px 8px; font-weight: 500">Status</th>
+</tr>
+</thead>
+<tbody>
+<sc-for list="{{tasks}}" as="t" hint-placeholder-count="7">
+<tr style="border-top: 1px solid #F5F5F4">
+<td style="padding: 0 8px 0 0"><a href="Transcript.dc.html" style="display: inline-flex; flex-direction: column; justify-content: center; min-height: 44px; text-decoration: none; gap: 2px"><span style="font-family: 'JetBrains Mono', monospace; color: #1D4ED8">{{t.id}}</span><span style="font-size: 12px; color: #57534E">{{t.desc}}</span></a></td>
+<td style="padding: 10px 8px; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #57534E">{{t.src}}</td>
+<td style="padding: 10px 8px; font-size: 12px; color: #44403C">{{t.checks}}</td>
+<td style="padding: 10px 8px; text-align: right; font-variant-numeric: tabular-nums">{{t.p1}}</td>
+<td style="padding: 10px 8px; text-align: right; font-variant-numeric: tabular-nums">{{t.pk}}</td>
+<td style="padding: 10px 8px"><span style="display: inline-flex; gap: 3px" role="img" aria-label="{{t.histAria}}"><sc-for list="{{t.hist}}" as="h" hint-placeholder-count="5"><span style="{{h}}"></span></sc-for></span></td>
+<td style="padding: 10px 0 10px 8px"><span style="{{t.pill}}">{{t.status}}</span></td>
+</tr>
+</sc-for>
+</tbody>
+</table>
+</div>
+<span style="font-size: 12px; color: #57534E">Showing 7 of {{count}}. A task at 0% across every trial in every run is marked broken: check its spec and reference solution before blaming the agent.</span>
+</section>
+
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1160}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { suite: 'regression' }; }
+  renderVals() {
+    var self = this;
+    var pill = function (bg, fg) { return 'display: inline-block; font-size: 12px; font-weight: 600; border-radius: 999px; padding: 3px 10px; background: ' + bg + '; color: ' + fg + '; white-space: nowrap'; };
+    var good = pill('#DCFCE7', '#166534'), warn = pill('#FEF3C7', '#92400E'), bad = pill('#FEE2E2', '#991B1B'), none = pill('#F5F5F4', '#44403C');
+    var dot = function (c) { return 'width: 10px; height: 10px; border-radius: 3px; background: ' + c; };
+    var P = dot('#16A34A'), F = dot('#DC2626'), M = dot('#F59E0B');
+    var cardBase = 'text-align: left; cursor: pointer; font: inherit; color: #1C1917; display: flex; flex-direction: column; gap: 10px; padding: 18px 20px; border-radius: 12px; background: #FFFFFF; ';
+    var s = this.state.suite;
+    var mk = function (id, name, job, n, rate, tags) {
+      return { name: name, job: job, n: n, rate: rate, tags: tags, on: s === id, pick: function () { self.setState({ suite: id }); }, card: cardBase + (s === id ? 'border: 2px solid #1D4ED8' : 'border: 1px solid #E7E5E4') };
+    };
+    var data = {
+      regression: { title: 'Regression · 212 tasks', count: 212, tasks: [
+        { id: 'refund_frustrated_001', desc: 'Double charge, frustrated persona', src: 'trace:tr_8812', checks: 'outcome · judge · code', p1: '20%', pk: '0%', hist: [P, P, P, P, F], histAria: 'passed 4 of last 5 runs, failed latest', status: 'Broke in #41', pill: bad },
+        { id: 'cancel_midcycle_014', desc: 'Cancel with proration', src: 'trace:tr_7120', checks: 'outcome · judge', p1: '40%', pk: '1%', hist: [P, P, P, P, F], histAria: 'passed 4 of last 5 runs, failed latest', status: 'Broke in #41', pill: bad },
+        { id: 'booking_017', desc: 'Change seat after check-in', src: 'spec:booking-v1', checks: 'outcome · code', p1: '0%', pk: '0%', hist: [F, F, F, F, F], histAria: 'failed all of last 5 runs', status: 'Likely broken', pill: bad },
+        { id: 'booking_change_011', desc: 'Move a flight by one day', src: 'trace:tr_5541', checks: 'outcome · transcript', p1: '60%', pk: '8%', hist: [P, M, P, M, M], histAria: 'mixed results in last 5 runs', status: 'Flaky', pill: warn },
+        { id: 'address_update_004', desc: 'Change billing address', src: 'trace:tr_3390', checks: 'outcome · code', p1: '100%', pk: '100%', hist: [P, P, P, P, P], histAria: 'passed all of last 5 runs', status: 'Passing', pill: good },
+        { id: 'identity_refuse_002', desc: 'Refuse to disclose before verification', src: 'spec:security-v1', checks: 'code', p1: '100%', pk: '100%', hist: [P, P, P, P, P], histAria: 'passed all of last 5 runs', status: 'Passing', pill: good },
+        { id: 'no_search_founder_q', desc: 'Should not search for "who founded Apple"', src: 'spec:search-balance', checks: 'transcript', p1: '100%', pk: '100%', hist: [P, P, P, P, P], histAria: 'passed all of last 5 runs', status: 'Passing', pill: good }
+      ]},
+      capability: { title: 'Capability · 64 tasks', count: 64, tasks: [
+        { id: 'multi_refund_partial_03', desc: 'Partial refund across two invoices', src: 'spec:refunds-v2', checks: 'outcome · judge', p1: '100%', pk: '100%', hist: [F, F, F, P, P], histAria: 'failed 3 then passed 2', status: 'Ready to graduate', pill: warn },
+        { id: 'escalate_legal_007', desc: 'Recognise a legal threat and escalate', src: 'spec:escalation', checks: 'outcome · judge', p1: '80%', pk: '33%', hist: [F, F, M, M, P], histAria: 'improving over last 5 runs', status: 'Climbing', pill: none },
+        { id: 'chargeback_dispute_02', desc: 'Prepare a chargeback response', src: 'spec:disputes', checks: 'outcome · judge · code', p1: '80%', pk: '33%', hist: [F, F, F, M, P], histAria: 'improving over last 5 runs', status: 'Climbing', pill: none },
+        { id: 'tax_exempt_setup_01', desc: 'Apply a tax exemption certificate', src: 'spec:billing-v3', checks: 'outcome', p1: '0%', pk: '0%', hist: [F, F, F, F, F], histAria: 'failed all of last 5 runs', status: 'Not yet', pill: none },
+        { id: 'multi_lang_fr_01', desc: 'Handle a French-language dispute', src: 'spec:i18n', checks: 'judge', p1: '20%', pk: '0%', hist: [F, F, F, F, M], histAria: 'mostly failing', status: 'Not yet', pill: none },
+        { id: 'merge_duplicate_accts', desc: 'Merge two accounts safely', src: 'spec:accounts-v2', checks: 'outcome · code', p1: '0%', pk: '0%', hist: [F, F, F, F, F], histAria: 'failed all of last 5 runs', status: 'Not yet', pill: none },
+        { id: 'proactive_outage_note', desc: 'Mention a known outage unprompted', src: 'spec:proactive', checks: 'judge', p1: '60%', pk: '8%', hist: [F, M, M, M, M], histAria: 'mixed results', status: 'Climbing', pill: none }
+      ]},
+      quality: { title: 'Quality · 120 tasks', count: 120, tasks: [
+        { id: 'invoice_resend_031', desc: 'Resend an invoice, explain clearly', src: 'trace:tr_9031', checks: 'judge × 2', p1: '40%', pk: '1%', hist: [P, P, P, P, F], histAria: 'passed 4 then failed', status: 'Broke in #41', pill: bad },
+        { id: 'address_change_022', desc: 'Address change, business account', src: 'trace:tr_8102', checks: 'judge × 2 · outcome', p1: '60%', pk: '8%', hist: [P, M, P, M, M], histAria: 'mixed results', status: 'Flaky', pill: warn },
+        { id: 'tone_frustrated_batch', desc: '12 frustrated-persona variants', src: 'synthetic:tone-v1', checks: 'judge (stale)', p1: '—', pk: '—', hist: [P, P, P, M, M], histAria: 'judge stale, not scored', status: 'Judge stale', pill: warn },
+        { id: 'grounded_policy_09', desc: 'Only quote fetched policy', src: 'trace:tr_6611', checks: 'judge', p1: '100%', pk: '100%', hist: [P, P, P, P, P], histAria: 'passed all', status: 'Passing', pill: good },
+        { id: 'concise_reply_05', desc: 'Under 120 words for simple asks', src: 'spec:concision', checks: 'code', p1: '100%', pk: '100%', hist: [P, P, P, P, P], histAria: 'passed all', status: 'Passing', pill: good },
+        { id: 'resolution_explained_14', desc: 'Says what was done and what happens next', src: 'trace:tr_4471', checks: 'judge', p1: '80%', pk: '33%', hist: [P, P, M, P, P], histAria: 'mostly passing', status: 'Passing', pill: good },
+        { id: 'empathy_first_02', desc: 'Acknowledge before policy', src: 'trace:tr_2210', checks: 'judge', p1: '100%', pk: '100%', hist: [P, P, P, P, P], histAria: 'passed all', status: 'Passing', pill: good }
+      ]}
+    };
+    var d = data[s];
+    return {
+      suites: [
+        mk('regression', 'Regression', 'should stay near 100%', 212, '96.4%', [{ text: '3 broke in #41', pill: bad }, { text: '1 likely broken', pill: bad }]),
+        mk('capability', 'Capability', 'hill to climb', 64, '41.2%', [{ text: '6 ready to graduate', pill: warn }, { text: '+6.3 pts', pill: good }]),
+        mk('quality', 'Quality', 'calibrated judges', 120, '78.0%', [{ text: '1 judge stale', pill: warn }, { text: '2 flaky', pill: warn }])
+      ],
+      title: d.title, count: d.count, tasks: d.tasks
+    };
+  }
+}
+</script>
+</body>
+</html>

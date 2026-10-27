@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>evalkit run compare</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700&amp;family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0;background:#F6F6F3}
+a{color:#1D4ED8}a:hover{color:#1E3A8A}
+</style>
+</helmet>
+<div style="min-height: 100vh; display: flex; flex-wrap: wrap; background: #F6F6F3; color: #1C1917; font-family: Inter, system-ui, sans-serif; font-size: 14px">
+
+<nav aria-label="Main" style="flex: 1 1 220px; max-width: 100%; box-sizing: border-box; background: #FFFFFF; border-right: 1px solid #E7E5E4; padding: 24px 16px; display: flex; flex-direction: column; gap: 4px">
+<div style="display: flex; align-items: center; gap: 10px; padding: 0 8px 20px 8px">
+<svg width="30" height="30" viewBox="0 0 64 64" role="img" aria-label="evalkit"><path d="M13 31 L26 44 L50 16" fill="none" stroke="#1D4ED8" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"></path><path d="M10 56 H54 M10 50 V62 M54 50 V62" fill="none" stroke="#1C1917" stroke-width="5" stroke-linecap="round"></path></svg>
+<div style="display: flex; flex-direction: column">
+<span style="font-family: Sora, system-ui, sans-serif; font-weight: 600; font-size: 17px; letter-spacing: -0.04em; line-height: 1">eval<span style="color: #1D4ED8">kit</span></span>
+<span style="font-size: 12px; color: #57534E">support-agent repo</span>
+</div>
+</div>
+<a href="Main.dc.html" style="display: flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 8px; color: #44403C; text-decoration: none">Overview</a>
+<a href="Review.dc.html" style="display: flex; align-items: center; justify-content: space-between; min-height: 44px; padding: 0 12px; border-radius: 8px; color: #44403C; text-decoration: none">Review queue<span style="font-size: 12px; background: #F5F5F4; border-radius: 999px; padding: 2px 8px; color: #44403C">48 to review</span></a>
+<a href="Modes.dc.html" style="display: flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 8px; color: #44403C; text-decoration: none">Failure modes</a>
+<a href="Tasks.dc.html" style="display: flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 8px; color: #44403C; text-decoration: none">Tasks &amp; suites</a>
+<a href="Compare.dc.html" style="display: flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 8px; background: #EFF6FF; color: #1D4ED8; font-weight: 600; text-decoration: none">Run compare</a>
+<a href="Transcript.dc.html" style="display: flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 8px; color: #44403C; text-decoration: none">Transcripts</a>
+<a href="Judges.dc.html" style="display: flex; align-items: center; justify-content: space-between; min-height: 44px; padding: 0 12px; border-radius: 8px; color: #44403C; text-decoration: none">Judges<span style="font-size: 12px; background: #FEF3C7; border-radius: 999px; padding: 2px 8px; color: #92400E">1 stale</span></a>
+<a href="Settings.dc.html" style="display: flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 8px; color: #44403C; text-decoration: none">Settings</a>
+<div style="flex-grow: 1; min-height: 24px"></div>
+<a href="Judges.dc.html" style="display: flex; flex-direction: column; gap: 4px; padding: 12px; border: 1px solid #BFDBFE; background: #EFF6FF; border-radius: 10px; text-decoration: none; color: #1C1917">
+<span style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #1E3A8A"><span>Pending changes</span><span style="background: #1D4ED8; color: #FFFFFF; border-radius: 999px; padding: 1px 8px; font-weight: 600">2</span></span>
+<span style="font-weight: 600; font-size: 13px; font-family: 'JetBrains Mono', monospace">evals/tone-judge-v3</span>
+<span style="font-size: 12px; color: #1D4ED8; font-weight: 600">Review and commit</span>
+</a>
+</nav>
+
+<main style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 28px 32px 48px 32px; display: flex; flex-direction: column; gap: 20px">
+
+<header style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap">
+<h1 style="margin: 0; font-family: Sora, system-ui, sans-serif; font-size: 24px; font-weight: 700; letter-spacing: -0.02em">Run compare</h1>
+<span style="font-size: 12px; border: 1px dashed #A8A29E; color: #57534E; border-radius: 999px; padding: 3px 10px">Sample data</span>
+</div>
+<p style="margin: 0; color: #57534E">Paired comparison: the same 396 tasks, 5 trials each, on two versions of the agent</p>
+</div>
+<div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center">
+<label style="display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: #57534E">A (baseline)<select style="font: inherit; font-size: 14px; min-height: 44px; padding: 0 12px; border: 1px solid #D6D3D1; border-radius: 8px; background: #FFFFFF; font-family: 'JetBrains Mono', monospace"><option>#40 · main @ 5b7d9a1</option></select></label>
+<label style="display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: #57534E">B (candidate)<select style="font: inherit; font-size: 14px; min-height: 44px; padding: 0 12px; border: 1px solid #D6D3D1; border-radius: 8px; background: #FFFFFF; font-family: 'JetBrains Mono', monospace"><option>#41 · main @ 8c2e1f0</option></select></label>
+</div>
+</header>
+
+<section aria-label="Verdict" style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px; padding: 18px 22px; border-radius: 12px; background: #1C1917; color: #FAFAF9">
+<span style="display: flex; align-items: center; gap: 10px; font-family: Sora, system-ui, sans-serif; font-size: 17px; font-weight: 600">
+<span style="width: 12px; height: 12px; border-radius: 6px; background: #FBBF24; flex-shrink: 0" aria-hidden="true"></span>
+B is better on capability and worse on two regression tasks. Fix those two before merging.
+</span>
+<span style="flex: 1 1 auto"></span>
+<a href="Transcript.dc.html" style="display: inline-flex; align-items: center; min-height: 44px; padding: 0 14px; border-radius: 8px; background: #FFFFFF; color: #1C1917; font-weight: 600; text-decoration: none">Open the 2 broken tasks</a>
+</section>
+
+<section aria-label="Suite deltas" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px">
+<sc-for list="{{suites}}" as="s" hint-placeholder-count="3">
+<div style="background: #FFFFFF; border: 1px solid #E7E5E4; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; justify-content: space-between; align-items: baseline; gap: 8px">
+<span style="font-family: Sora, system-ui, sans-serif; font-weight: 600; font-size: 15px">{{s.name}}</span>
+<span style="font-size: 12px; color: #57534E">{{s.n}} tasks</span>
+</div>
+<div style="display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap">
+<span style="{{s.deltaStyle}}">{{s.delta}}</span>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #57534E">{{s.ci}}</span>
+</div>
+<span style="{{s.sigStyle}}">{{s.sig}}</span>
+<svg viewBox="0 0 240 44" width="100%" height="44" role="img" aria-label="{{s.aria}}">
+<line x1="120" y1="4" x2="120" y2="40" stroke="#D6D3D1" stroke-width="1"></line>
+<line x1="{{s.lo}}" y1="22" x2="{{s.hi}}" y2="22" stroke="#1D4ED8" stroke-width="3" stroke-linecap="round"></line>
+<circle cx="{{s.mid}}" cy="22" r="5" fill="#1D4ED8"></circle>
+<text x="4" y="40" font-size="10" fill="#78716C">−10</text>
+<text x="120" y="40" font-size="10" fill="#78716C" text-anchor="middle">0</text>
+<text x="236" y="40" font-size="10" fill="#78716C" text-anchor="end">+10 pts</text>
+</svg>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; border-top: 1px solid #F5F5F4; padding-top: 12px; font-size: 13px">
+<div style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 12px; color: #57534E">A</span><span style="font-weight: 600">{{s.a}}</span></div>
+<div style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 12px; color: #57534E">B</span><span style="font-weight: 600">{{s.b}}</span></div>
+<div style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 12px; color: #57534E">Flips</span><span style="font-weight: 600">{{s.flips}}</span></div>
+</div>
+</div>
+</sc-for>
+</section>
+
+<div style="display: grid; grid-template-columns: minmax(0, 3fr) minmax(300px, 2fr); gap: 16px; align-items: start">
+
+<section aria-label="Flip list" style="background: #FFFFFF; border: 1px solid #E7E5E4; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<h2 style="margin: 0; font-family: Sora, system-ui, sans-serif; font-size: 16px; font-weight: 600">Tasks that changed</h2>
+<span style="font-size: 12px; color: #57534E">Majority verdict across 5 trials · click a task for its transcripts</span>
+</div>
+<div role="group" aria-label="Filter" style="display: flex; background: #F5F5F4; border-radius: 8px; padding: 3px">
+<button type="button" onClick="{{showAll}}" aria-pressed="{{allOn}}" style="{{allTab}}">All 15</button>
+<button type="button" onClick="{{showBroke}}" aria-pressed="{{brokeOn}}" style="{{brokeTab}}">Broke 4</button>
+<button type="button" onClick="{{showFixed}}" aria-pressed="{{fixedOn}}" style="{{fixedTab}}">Fixed 9</button>
+<button type="button" onClick="{{showFlaky}}" aria-pressed="{{flakyOn}}" style="{{flakyTab}}">Flaky 2</button>
+</div>
+</div>
+<div style="overflow-x: auto">
+<table style="width: 100%; border-collapse: collapse; font-size: 13px; min-width: 560px">
+<thead>
+<tr style="text-align: left; color: #57534E">
+<th scope="col" style="padding: 8px 8px 8px 0; font-weight: 500">Task</th>
+<th scope="col" style="padding: 8px; font-weight: 500">Suite</th>
+<th scope="col" style="padding: 8px; font-weight: 500">A → B</th>
+<th scope="col" style="padding: 8px; font-weight: 500">Change</th>
+<th scope="col" style="padding: 8px 0 8px 8px; font-weight: 500">Failing check in B</th>
+</tr>
+</thead>
+<tbody>
+<sc-for list="{{rows}}" as="r" hint-placeholder-count="6">
+<tr style="border-top: 1px solid #F5F5F4">
+<td style="padding: 0 8px 0 0; font-family: 'JetBrains Mono', monospace"><a href="Transcript.dc.html" style="display: inline-flex; align-items: center; min-height: 44px; text-decoration: none">{{r.task}}</a></td>
+<td style="padding: 10px 8px; color: #57534E">{{r.suite}}</td>
+<td style="padding: 10px 8px; font-variant-numeric: tabular-nums; white-space: nowrap">{{r.ab}}</td>
+<td style="padding: 10px 8px"><span style="{{r.pill}}">{{r.change}}</span></td>
+<td style="padding: 10px 0 10px 8px; font-family: 'JetBrains Mono', monospace; color: #44403C">{{r.check}}</td>
+</tr>
+</sc-for>
+</tbody>
+</table>
+</div>
+</section>
+
+<div style="display: flex; flex-direction: column; gap: 16px">
+
+<section aria-label="Failure modes delta" style="background: #FFFFFF; border: 1px solid #E7E5E4; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<h2 style="margin: 0; font-family: Sora, system-ui, sans-serif; font-size: 16px; font-weight: 600">Failure modes, A → B</h2>
+<span style="font-size: 12px; color: #57534E">Failed checks, corrected for judge error</span>
+</div>
+<sc-for list="{{modes}}" as="m" hint-placeholder-count="5">
+<div style="display: grid; grid-template-columns: 140px minmax(0, 1fr) 72px; align-items: center; gap: 10px">
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{m.name}}</span>
+<svg viewBox="0 0 160 16" width="100%" height="16" aria-hidden="true">
+<line x1="80" y1="0" x2="80" y2="16" stroke="#D6D3D1"></line>
+<rect x="{{m.x}}" y="3" width="{{m.w}}" height="10" rx="3" fill="{{m.fill}}"></rect>
+</svg>
+<span style="{{m.style}}">{{m.delta}}</span>
+</div>
+</sc-for>
+<span style="font-size: 12px; color: #57534E">Left of the line: fewer failures in B. Right: more.</span>
+</section>
+
+<section aria-label="Cost and speed" style="background: #FFFFFF; border: 1px solid #E7E5E4; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 10px">
+<h2 style="margin: 0; font-family: Sora, system-ui, sans-serif; font-size: 16px; font-weight: 600">Cost and speed per task</h2>
+<div style="display: grid; grid-template-columns: 1fr auto auto auto; gap: 6px 14px; font-size: 13px; align-items: baseline">
+<span style="color: #57534E; font-size: 12px"></span><span style="color: #57534E; font-size: 12px; text-align: right">A</span><span style="color: #57534E; font-size: 12px; text-align: right">B</span><span style="color: #57534E; font-size: 12px; text-align: right">Δ</span>
+<span>Tokens</span><span style="text-align: right; font-variant-numeric: tabular-nums">3,410</span><span style="text-align: right; font-variant-numeric: tabular-nums">3,120</span><span style="text-align: right; font-weight: 600; color: #15803D">−9%</span>
+<span>Time to last token</span><span style="text-align: right; font-variant-numeric: tabular-nums">11.2 s</span><span style="text-align: right; font-variant-numeric: tabular-nums">9.4 s</span><span style="text-align: right; font-weight: 600; color: #15803D">−16%</span>
+<span>Cost</span><span style="text-align: right; font-variant-numeric: tabular-nums">$0.041</span><span style="text-align: right; font-variant-numeric: tabular-nums">$0.038</span><span style="text-align: right; font-weight: 600; color: #15803D">−7%</span>
+<span>Infra errors</span><span style="text-align: right; font-variant-numeric: tabular-nums">0.8%</span><span style="text-align: right; font-variant-numeric: tabular-nums">1.1%</span><span style="text-align: right; font-weight: 600; color: #57534E">within noise</span>
+</div>
+<span style="font-size: 12px; color: #57534E">Same hardware and resource limits for both runs. Differences below 3 pts on different hardware are not trusted.</span>
+</section>
+
+<section aria-label="Actions" style="display: flex; flex-direction: column; gap: 8px">
+<button type="button" style="min-height: 44px; padding: 0 16px; border: 1px solid #D6D3D1; border-radius: 8px; background: #FFFFFF; color: #1C1917; font: inherit; font-weight: 500; cursor: pointer; text-align: left">Post this comparison to the pull request</button>
+<button type="button" style="min-height: 44px; padding: 0 16px; border: 1px solid #D6D3D1; border-radius: 8px; background: #FFFFFF; color: #1C1917; font: inherit; font-weight: 500; cursor: pointer; text-align: left">Mark the 2 flaky tasks for more trials</button>
+</section>
+
+</div>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1240}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { f: 'all' }; }
+  renderVals() {
+    var self = this;
+    var pill = function (bg, fg) { return 'display: inline-block; font-size: 12px; font-weight: 600; border-radius: 999px; padding: 3px 10px; background: ' + bg + '; color: ' + fg + '; white-space: nowrap'; };
+    var good = pill('#DCFCE7', '#166534'), warn = pill('#FEF3C7', '#92400E'), bad = pill('#FEE2E2', '#991B1B');
+    var tabOn = 'min-height: 38px; padding: 0 12px; border: 0; border-radius: 6px; background: #FFFFFF; color: #1C1917; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,0.08)';
+    var tabOff = 'min-height: 38px; padding: 0 12px; border: 0; border-radius: 6px; background: transparent; color: #57534E; font: inherit; font-size: 13px; cursor: pointer';
+    var f = this.state.f;
+    var all = [
+      { task: 'refund_frustrated_001', suite: 'regression', ab: '5/5 → 1/5', change: 'Broke', k: 'broke', pill: bad, check: 'refund_processed' },
+      { task: 'cancel_midcycle_014', suite: 'regression', ab: '5/5 → 2/5', change: 'Broke', k: 'broke', pill: bad, check: 'tone_mismatch' },
+      { task: 'plan_downgrade_009', suite: 'regression', ab: '4/5 → 1/5', change: 'Broke', k: 'broke', pill: bad, check: 'ungrounded_policy' },
+      { task: 'invoice_resend_031', suite: 'quality', ab: '5/5 → 2/5', change: 'Broke', k: 'broke', pill: bad, check: 'resolution_explained' },
+      { task: 'multi_refund_partial_03', suite: 'capability', ab: '0/5 → 5/5', change: 'Fixed', k: 'fixed', pill: good, check: '—' },
+      { task: 'escalate_legal_007', suite: 'capability', ab: '1/5 → 4/5', change: 'Fixed', k: 'fixed', pill: good, check: '—' },
+      { task: 'chargeback_dispute_02', suite: 'capability', ab: '0/5 → 4/5', change: 'Fixed', k: 'fixed', pill: good, check: '—' },
+      { task: 'address_change_022', suite: 'quality', ab: '4/5 → 3/5', change: 'Flaky', k: 'flaky', pill: warn, check: 'resolution_explained' },
+      { task: 'booking_change_011', suite: 'regression', ab: '3/5 → 2/5', change: 'Flaky', k: 'flaky', pill: warn, check: 'max_turns_10' }
+    ];
+    var rows = f === 'all' ? all : all.filter(function (r) { return r.k === f; });
+    var sig = function (ok) { return 'font-size: 13px; font-weight: 600; color: ' + (ok ? '#15803D' : '#57534E'); };
+    return {
+      allOn: f === 'all', brokeOn: f === 'broke', fixedOn: f === 'fixed', flakyOn: f === 'flaky',
+      allTab: f === 'all' ? tabOn : tabOff, brokeTab: f === 'broke' ? tabOn : tabOff, fixedTab: f === 'fixed' ? tabOn : tabOff, flakyTab: f === 'flaky' ? tabOn : tabOff,
+      showAll: function () { self.setState({ f: 'all' }); }, showBroke: function () { self.setState({ f: 'broke' }); }, showFixed: function () { self.setState({ f: 'fixed' }); }, showFlaky: function () { self.setState({ f: 'flaky' }); },
+      suites: [
+        { name: 'Regression', n: 212, delta: '−0.6 pts', ci: '[−2.4, +1.2]', sig: 'Within noise (p = 0.41), but 3 tasks broke', sigStyle: sig(false), deltaStyle: 'font-family: Sora, system-ui, sans-serif; font-size: 30px; font-weight: 700; letter-spacing: -0.02em; color: #44403C', aria: 'Regression delta minus 0.6 points, interval minus 2.4 to plus 1.2', lo: '91', hi: '134', mid: '113', a: '97.0%', b: '96.4%', flips: '3 broke · 0 fixed' },
+        { name: 'Capability', n: 64, delta: '+6.3 pts', ci: '[+1.5, +11.1]', sig: 'Significant (p = 0.01)', sigStyle: sig(true), deltaStyle: 'font-family: Sora, system-ui, sans-serif; font-size: 30px; font-weight: 700; letter-spacing: -0.02em; color: #15803D', aria: 'Capability delta plus 6.3 points, interval plus 1.5 to plus 11.1', lo: '138', hi: '253', mid: '196', a: '34.9%', b: '41.2%', flips: '0 broke · 9 fixed' },
+        { name: 'Quality', n: 120, delta: '+1.1 pts', ci: '[−2.4, +4.6]', sig: 'Within noise (p = 0.38) · 1 stale judge excluded', sigStyle: sig(false), deltaStyle: 'font-family: Sora, system-ui, sans-serif; font-size: 30px; font-weight: 700; letter-spacing: -0.02em; color: #44403C', aria: 'Quality delta plus 1.1 points, interval minus 2.4 to plus 4.6', lo: '91', hi: '175', mid: '133', a: '76.9%', b: '78.0%', flips: '1 broke · 0 fixed · 2 flaky' }
+      ],
+      modes: [
+        { name: 'missed_refund', x: '35', w: '45', fill: '#15803D', delta: '−9', style: 'font-size: 13px; font-weight: 600; text-align: right; color: #15803D' },
+        { name: 'tone_mismatch', x: '80', w: '25', fill: '#B91C1C', delta: '+5', style: 'font-size: 13px; font-weight: 600; text-align: right; color: #B91C1C' },
+        { name: 'ungrounded_policy', x: '70', w: '10', fill: '#15803D', delta: '−2', style: 'font-size: 13px; font-weight: 600; text-align: right; color: #15803D' },
+        { name: 'wrong_tool_args', x: '80', w: '5', fill: '#B91C1C', delta: '+1', style: 'font-size: 13px; font-weight: 600; text-align: right; color: #B91C1C' },
+        { name: 'over_searching', x: '80', w: '1', fill: '#A8A29E', delta: '0', style: 'font-size: 13px; font-weight: 600; text-align: right; color: #57534E' }
+      ],
+      rows: rows
+    };
+  }
+}
+</script>
+</body>
+</html>

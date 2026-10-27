@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>evalkit settings</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700&amp;family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0;background:#F6F6F3}
+a{color:#1D4ED8}a:hover{color:#1E3A8A}
+</style>
+</helmet>
+<div style="min-height: 100vh; display: flex; flex-wrap: wrap; background: #F6F6F3; color: #1C1917; font-family: Inter, system-ui, sans-serif; font-size: 14px">
+
+<nav aria-label="Main" style="flex: 1 1 220px; max-width: 100%; box-sizing: border-box; background: #FFFFFF; border-right: 1px solid #E7E5E4; padding: 24px 16px; display: flex; flex-direction: column; gap: 4px">
+<div style="display: flex; align-items: center; gap: 10px; padding: 0 8px 20px 8px">
+<svg width="30" height="30" viewBox="0 0 64 64" role="img" aria-label="evalkit"><path d="M13 31 L26 44 L50 16" fill="none" stroke="#1D4ED8" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"></path><path d="M10 56 H54 M10 50 V62 M54 50 V62" fill="none" stroke="#1C1917" stroke-width="5" stroke-linecap="round"></path></svg>
+<div style="display: flex; flex-direction: column">
+<span style="font-family: Sora, system-ui, sans-serif; font-weight: 600; font-size: 17px; letter-spacing: -0.04em; line-height: 1">eval<span style="color: #1D4ED8">kit</span></span>
+<span style="font-size: 12px; color: #57534E">support-agent repo</span>
+</div>
+</div>
+<a href="Main.dc.html" style="display: flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 8px; color: #44403C; text-decoration: none">Overview</a>
+<a href="Review.dc.html" style="display: flex; align-items: center; justify-content: space-between; min-height: 44px; padding: 0 12px; border-radius: 8px; color: #44403C; text-decoration: none">Review queue<span style="font-size: 12px; background: #F5F5F4; border-radius: 999px; padding: 2px 8px; color: #44403C">48 to review</span></a>
+<a href="Modes.dc.html" style="display: flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 8px; color: #44403C; text-decoration: none">Failure modes</a>
+<a href="Tasks.dc.html" style="display: flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 8px; color: #44403C; text-decoration: none">Tasks &amp; suites</a>
+<a href="Compare.dc.html" style="display: flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 8px; color: #44403C; text-decoration: none">Run compare</a>
+<a href="Transcript.dc.html" style="display: flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 8px; color: #44403C; text-decoration: none">Transcripts</a>
+<a href="Judges.dc.html" style="display: flex; align-items: center; justify-content: space-between; min-height: 44px; padding: 0 12px; border-radius: 8px; color: #44403C; text-decoration: none">Judges<span style="font-size: 12px; background: #FEF3C7; border-radius: 999px; padding: 2px 8px; color: #92400E">1 stale</span></a>
+<a href="Settings.dc.html" style="display: flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 8px; background: #EFF6FF; color: #1D4ED8; font-weight: 600; text-decoration: none">Settings</a>
+<div style="flex-grow: 1; min-height: 24px"></div>
+<a href="Judges.dc.html" style="display: flex; flex-direction: column; gap: 4px; padding: 12px; border: 1px solid #BFDBFE; background: #EFF6FF; border-radius: 10px; text-decoration: none; color: #1C1917">
+<span style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #1E3A8A"><span>Pending changes</span><span style="background: #1D4ED8; color: #FFFFFF; border-radius: 999px; padding: 1px 8px; font-weight: 600">2</span></span>
+<span style="font-weight: 600; font-size: 13px; font-family: 'JetBrains Mono', monospace">evals/tone-judge-v3</span>
+<span style="font-size: 12px; color: #1D4ED8; font-weight: 600">Review and commit</span>
+</a>
+</nav>
+
+<main style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 28px 32px 48px 32px; display: flex; flex-direction: column; gap: 20px">
+
+<header style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap">
+<h1 style="margin: 0; font-family: Sora, system-ui, sans-serif; font-size: 24px; font-weight: 700; letter-spacing: -0.02em">Settings</h1>
+<span style="font-size: 12px; border: 1px dashed #A8A29E; color: #57534E; border-radius: 999px; padding: 3px 10px">Sample data</span>
+</div>
+<p style="margin: 0; color: #57534E">Everything here is <span style="font-family: 'JetBrains Mono', monospace">evals/evalkit.yaml</span>. Edit the form or the file; they stay in step.</p>
+</div>
+<div role="group" aria-label="Editor mode" style="display: flex; background: #F5F5F4; border-radius: 8px; padding: 3px">
+<button type="button" onClick="{{showForm}}" aria-pressed="{{formOn}}" style="{{formTab}}">Form</button>
+<button type="button" onClick="{{showYaml}}" aria-pressed="{{yamlOn}}" style="{{yamlTab}}">evalkit.yaml</button>
+</div>
+</header>
+
+<sc-if value="{{formOn}}" hint-placeholder-val="{{ true }}">
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 16px; align-items: start">
+
+<section aria-label="CI gates" style="background: #FFFFFF; border: 1px solid #E7E5E4; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<h2 style="margin: 0; font-family: Sora, system-ui, sans-serif; font-size: 16px; font-weight: 600">CI gates</h2>
+<span style="font-size: 12px; color: #57534E">What blocks a pull request. A gate compares against the base branch's last run, paired.</span>
+</div>
+<sc-for list="{{gates}}" as="g" hint-placeholder-count="3">
+<div style="display: flex; flex-direction: column; gap: 10px; padding: 14px; border: 1px solid #E7E5E4; border-radius: 10px">
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 8px">
+<span style="font-family: Sora, system-ui, sans-serif; font-weight: 600">{{g.name}}</span>
+<span style="{{g.pill}}">{{g.mode}}</span>
+</div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+<label style="display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: #57534E">Minimum pass rate<input type="text" value="{{g.min}}" style="font: inherit; font-size: 14px; min-height: 44px; padding: 0 12px; border: 1px solid #D6D3D1; border-radius: 8px; box-sizing: border-box; font-variant-numeric: tabular-nums"></label>
+<label style="display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: #57534E">Max drop vs base<input type="text" value="{{g.drop}}" style="font: inherit; font-size: 14px; min-height: 44px; padding: 0 12px; border: 1px solid #D6D3D1; border-radius: 8px; box-sizing: border-box; font-variant-numeric: tabular-nums"></label>
+</div>
+<span style="font-size: 12px; color: #57534E">{{g.note}}</span>
+</div>
+</sc-for>
+<label style="display: flex; align-items: center; gap: 10px; min-height: 44px"><input type="checkbox" checked style="width: 18px; height: 18px"><span>Only trusted judges count toward Quality gates</span></label>
+<label style="display: flex; align-items: center; gap: 10px; min-height: 44px"><input type="checkbox" checked style="width: 18px; height: 18px"><span>Post the comparison as a pull request comment</span></label>
+</section>
+
+<div style="display: flex; flex-direction: column; gap: 16px">
+
+<section aria-label="Runs" style="background: #FFFFFF; border: 1px solid #E7E5E4; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 14px">
+<h2 style="margin: 0; font-family: Sora, system-ui, sans-serif; font-size: 16px; font-weight: 600">Runs</h2>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px">
+<label style="display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: #57534E">Trials per task<input type="text" value="5" style="font: inherit; font-size: 14px; min-height: 44px; padding: 0 12px; border: 1px solid #D6D3D1; border-radius: 8px; box-sizing: border-box"></label>
+<label style="display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: #57534E">Concurrency<input type="text" value="8" style="font: inherit; font-size: 14px; min-height: 44px; padding: 0 12px; border: 1px solid #D6D3D1; border-radius: 8px; box-sizing: border-box"></label>
+<label style="display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: #57534E">Budget per run<input type="text" value="$40" style="font: inherit; font-size: 14px; min-height: 44px; padding: 0 12px; border: 1px solid #D6D3D1; border-radius: 8px; box-sizing: border-box"></label>
+<label style="display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: #57534E">Environment<select style="font: inherit; font-size: 14px; min-height: 44px; padding: 0 12px; border: 1px solid #D6D3D1; border-radius: 8px; background: #FFFFFF"><option>Container per trial (Harbor)</option></select></label>
+</div>
+<span style="font-size: 12px; color: #57534E">Resource limits: 2 CPU · 4 GB guaranteed, 3× ceiling. Infra errors are tagged and excluded from agent scores.</span>
+</section>
+
+<section aria-label="Judges" style="background: #FFFFFF; border: 1px solid #E7E5E4; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 14px">
+<h2 style="margin: 0; font-family: Sora, system-ui, sans-serif; font-size: 16px; font-weight: 600">Judges</h2>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px">
+<label style="display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: #57534E">Default judge model<input type="text" value="[PINNED MODEL SNAPSHOT ID]" style="font: inherit; font-family: 'JetBrains Mono', monospace; font-size: 13px; min-height: 44px; padding: 0 12px; border: 1px solid #D6D3D1; border-radius: 8px; box-sizing: border-box"></label>
+<label style="display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: #57534E">Trust threshold (TPR and TNR)<input type="text" value="90%" style="font: inherit; font-size: 14px; min-height: 44px; padding: 0 12px; border: 1px solid #D6D3D1; border-radius: 8px; box-sizing: border-box"></label>
+</div>
+<label style="display: flex; align-items: center; gap: 10px; min-height: 44px"><input type="checkbox" checked style="width: 18px; height: 18px"><span>Mark a judge stale when its prompt or model changes</span></label>
+<label style="display: flex; align-items: center; gap: 10px; min-height: 44px"><input type="checkbox" checked style="width: 18px; height: 18px"><span>Correct reported pass rates for judge error</span></label>
+</section>
+
+<section aria-label="Sources and storage" style="background: #FFFFFF; border: 1px solid #E7E5E4; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 14px">
+<h2 style="margin: 0; font-family: Sora, system-ui, sans-serif; font-size: 16px; font-weight: 600">Sources and storage</h2>
+<div style="display: grid; grid-template-columns: 1fr auto; gap: 8px 12px; align-items: center; font-size: 13px">
+<span>Trace source</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 12.5px; color: #44403C">otel · logs/traces/*.jsonl</span>
+<span>Production sampler</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 12.5px; color: #44403C">weekly · 60 traces · 8 clusters</span>
+<span>Run summaries</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 12.5px; color: #44403C">git · evals/runs/</span>
+<span>Raw transcripts</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 12.5px; color: #44403C">local · .evalkit/transcripts/</span>
+</div>
+<a href="#" style="display: inline-flex; align-items: center; min-height: 44px; font-weight: 600; text-decoration: none">Add a storage backend for CI</a>
+</section>
+
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{yamlOn}}" hint-placeholder-val="{{ false }}">
+<pre style="margin: 0; padding: 20px; background: #1C1917; color: #E7E5E4; border-radius: 12px; font-family: 'JetBrains Mono', monospace; font-size: 12.5px; line-height: 1.6; overflow-x: auto; white-space: pre">{{yaml}}</pre>
+</sc-if>
+
+<div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 14px 16px; background: #FFFFFF; border: 1px solid #E7E5E4; border-radius: 12px">
+<span style="font-size: 13px; color: #57534E">Changes save to <span style="font-family: 'JetBrains Mono', monospace">evalkit.yaml</span> on your branch after validation.</span>
+<span style="flex: 1 1 auto"></span>
+<button type="button" style="min-height: 44px; padding: 0 18px; border: 0; border-radius: 8px; background: #1D4ED8; color: #FFFFFF; font: inherit; font-weight: 600; cursor: pointer">Save</button>
+</div>
+
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1180}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { mode: 'form' }; }
+  renderVals() {
+    var self = this;
+    var pill = function (bg, fg) { return 'display: inline-block; font-size: 12px; font-weight: 600; border-radius: 999px; padding: 3px 10px; background: ' + bg + '; color: ' + fg + '; white-space: nowrap'; };
+    var tabOn = 'min-height: 38px; padding: 0 14px; border: 0; border-radius: 6px; background: #FFFFFF; color: #1C1917; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,0.08)';
+    var tabOff = 'min-height: 38px; padding: 0 14px; border: 0; border-radius: 6px; background: transparent; color: #57534E; font: inherit; font-size: 13px; cursor: pointer';
+    var formOn = this.state.mode === 'form';
+    return {
+      formOn: formOn, yamlOn: !formOn,
+      formTab: formOn ? tabOn : tabOff, yamlTab: formOn ? tabOff : tabOn,
+      showForm: function () { self.setState({ mode: 'form' }); }, showYaml: function () { self.setState({ mode: 'yaml' }); },
+      gates: [
+        { name: 'Regression', mode: 'Blocks merge', pill: pill('#FEE2E2', '#991B1B'), min: '95%', drop: '2 pts', note: 'A drop beyond the margin means something that worked no longer does.' },
+        { name: 'Capability', mode: 'Report only', pill: pill('#F5F5F4', '#44403C'), min: '—', drop: '—', note: 'Meant to be failing. Shown in the PR comment so the team sees the hill.' },
+        { name: 'Quality', mode: 'Blocks merge', pill: pill('#FEE2E2', '#991B1B'), min: '70%', drop: '3 pts', note: 'Stale judges are excluded, so a judge edit can never pass or block a build on its own.' }
+      ],
+      yaml: '# evals/evalkit.yaml\nproject: support-agent\n\nsources:\n  traces: { format: otel, path: logs/traces/*.jsonl }\n  sampler: { every: weekly, size: 60, clusters: 8 }\n\nruns:\n  trials: 5\n  concurrency: 8\n  budget_usd: 40\n  environment: harbor\n  resources: { cpu: 2, memory_gb: 4, ceiling: 3x }\n\njudges:\n  default_model: [PINNED MODEL SNAPSHOT ID]\n  trust_threshold: { tpr: 0.90, tnr: 0.90 }\n  stale_on_change: true\n  correct_for_judge_error: true\n\ngates:\n  regression: { min_pass_rate: 0.95, max_drop_pts: 2 }\n  capability: { report_only: true }\n  quality:    { min_pass_rate: 0.70, max_drop_pts: 3, trusted_judges_only: true }\n\nstorage:\n  summaries: git\n  transcripts: local\n\nci:\n  pr_comment: true'
+    };
+  }
+}
+</script>
+</body>
+</html>

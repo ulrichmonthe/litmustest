@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>evalkit transcript</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700&amp;family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0;background:#F6F6F3}
+a{color:#1D4ED8}a:hover{color:#1E3A8A}
+</style>
+</helmet>
+<div style="min-height: 100vh; display: flex; flex-wrap: wrap; background: #F6F6F3; color: #1C1917; font-family: Inter, system-ui, sans-serif; font-size: 14px">
+
+<nav aria-label="Main" style="flex: 1 1 220px; max-width: 100%; box-sizing: border-box; background: #FFFFFF; border-right: 1px solid #E7E5E4; padding: 24px 16px; display: flex; flex-direction: column; gap: 4px">
+<div style="display: flex; align-items: center; gap: 10px; padding: 0 8px 20px 8px">
+<svg width="30" height="30" viewBox="0 0 64 64" role="img" aria-label="evalkit"><path d="M13 31 L26 44 L50 16" fill="none" stroke="#1D4ED8" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"></path><path d="M10 56 H54 M10 50 V62 M54 50 V62" fill="none" stroke="#1C1917" stroke-width="5" stroke-linecap="round"></path></svg>
+<div style="display: flex; flex-direction: column">
+<span style="font-family: Sora, system-ui, sans-serif; font-weight: 600; font-size: 17px; letter-spacing: -0.04em; line-height: 1">eval<span style="color: #1D4ED8">kit</span></span>
+<span style="font-size: 12px; color: #57534E">support-agent repo</span>
+</div>
+</div>
+<a href="Main.dc.html" style="display: flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 8px; color: #44403C; text-decoration: none">Overview</a>
+<a href="Review.dc.html" style="display: flex; align-items: center; justify-content: space-between; min-height: 44px; padding: 0 12px; border-radius: 8px; color: #44403C; text-decoration: none">Review queue<span style="font-size: 12px; background: #F5F5F4; border-radius: 999px; padding: 2px 8px; color: #44403C">48 to review</span></a>
+<a href="Modes.dc.html" style="display: flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 8px; color: #44403C; text-decoration: none">Failure modes</a>
+<a href="Tasks.dc.html" style="display: flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 8px; color: #44403C; text-decoration: none">Tasks &amp; suites</a>
+<a href="Compare.dc.html" style="display: flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 8px; color: #44403C; text-decoration: none">Run compare</a>
+<a href="Transcript.dc.html" style="display: flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 8px; background: #EFF6FF; color: #1D4ED8; font-weight: 600; text-decoration: none">Transcripts</a>
+<a href="Judges.dc.html" style="display: flex; align-items: center; justify-content: space-between; min-height: 44px; padding: 0 12px; border-radius: 8px; color: #44403C; text-decoration: none">Judges<span style="font-size: 12px; background: #FEF3C7; border-radius: 999px; padding: 2px 8px; color: #92400E">1 stale</span></a>
+<a href="Settings.dc.html" style="display: flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 8px; color: #44403C; text-decoration: none">Settings</a>
+<div style="flex-grow: 1; min-height: 24px"></div>
+<a href="Judges.dc.html" style="display: flex; flex-direction: column; gap: 4px; padding: 12px; border: 1px solid #BFDBFE; background: #EFF6FF; border-radius: 10px; text-decoration: none; color: #1C1917">
+<span style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #1E3A8A"><span>Pending changes</span><span style="background: #1D4ED8; color: #FFFFFF; border-radius: 999px; padding: 1px 8px; font-weight: 600">2</span></span>
+<span style="font-weight: 600; font-size: 13px; font-family: 'JetBrains Mono', monospace">evals/tone-judge-v3</span>
+<span style="font-size: 12px; color: #1D4ED8; font-weight: 600">Review and commit</span>
+</a>
+</nav>
+
+<main style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 28px 32px 48px 32px; display: flex; flex-direction: column; gap: 20px">
+
+<header style="display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 13px; color: #57534E">Run #41 / regression / <a href="#" style="text-decoration: none">refund_frustrated_001</a> / trial 3 of 5</span>
+<div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap">
+<h1 style="margin: 0; font-family: Sora, system-ui, sans-serif; font-size: 24px; font-weight: 700; letter-spacing: -0.02em; font-family: 'JetBrains Mono', monospace">refund_frustrated_001</h1>
+<span style="font-size: 12px; font-weight: 600; border-radius: 999px; padding: 3px 10px; background: #FEE2E2; color: #991B1B">Failed · 1 of 5 trials passed</span>
+<span style="font-size: 12px; border: 1px dashed #A8A29E; color: #57534E; border-radius: 999px; padding: 3px 10px">Sample data</span>
+</div>
+<p style="margin: 0; color: #57534E">Passed 5 of 5 in run #40. Weighted score 0.50 (3 of 6 points). 7 turns · 4 tool calls · 3,120 tokens · 9.4 s</p>
+</div>
+<div style="display: flex; gap: 4px; flex-wrap: wrap; align-items: center">
+<a href="#" style="display: inline-flex; align-items: center; min-height: 44px; padding: 0 12px; font-weight: 600; text-decoration: none">Trial 1</a>
+<a href="#" style="display: inline-flex; align-items: center; min-height: 44px; padding: 0 12px; font-weight: 600; text-decoration: none">2</a>
+<span style="display: inline-flex; align-items: center; min-height: 44px; padding: 0 12px; font-weight: 700; border-bottom: 2px solid #1D4ED8">3</span>
+<a href="#" style="display: inline-flex; align-items: center; min-height: 44px; padding: 0 12px; font-weight: 600; text-decoration: none">4</a>
+<a href="#" style="display: inline-flex; align-items: center; min-height: 44px; padding: 0 12px; font-weight: 600; text-decoration: none">5</a>
+<button type="button" style="margin-left: 8px; min-height: 44px; padding: 0 16px; border: 1px solid #D6D3D1; border-radius: 8px; background: #FFFFFF; color: #1C1917; font: inherit; font-weight: 500; cursor: pointer">Diff with run #40</button>
+</div>
+</header>
+
+<section aria-label="Verdict" style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px; padding: 16px 22px; border-radius: 12px; background: #1C1917; color: #FAFAF9">
+<span style="font-family: Sora, system-ui, sans-serif; font-size: 16px; font-weight: 600">Agent error, not a grader problem: it found both charges and never called process_refund.</span>
+<span style="flex: 1 1 auto"></span>
+<span style="font-size: 13px; color: #D6D3D1">Triage by Claude · confirm or override</span>
+<button type="button" style="min-height: 44px; padding: 0 14px; border-radius: 8px; border: 0; background: #FFFFFF; color: #1C1917; font: inherit; font-weight: 600; cursor: pointer">Confirm</button>
+<a href="#" style="display: inline-flex; align-items: center; min-height: 44px; padding: 0 10px; color: #FAFAF9; font-weight: 600; text-decoration: underline">Override</a>
+</section>
+
+<div style="display: grid; grid-template-columns: minmax(0, 3fr) minmax(320px, 2fr); gap: 16px; align-items: start">
+
+<section aria-label="Transcript timeline" style="background: #FFFFFF; border: 1px solid #E7E5E4; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 0">
+<div style="display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; padding-bottom: 12px">
+<h2 style="margin: 0; font-family: Sora, system-ui, sans-serif; font-size: 16px; font-weight: 600">Timeline</h2>
+<span style="font-size: 12px; color: #57534E">Checks are pinned to the step they judge</span>
+</div>
+<sc-for list="{{steps}}" as="s" hint-placeholder-count="7">
+<div style="display: grid; grid-template-columns: 56px 24px minmax(0, 1fr); gap: 0 12px; border-top: 1px solid #F5F5F4">
+<span style="padding-top: 14px; font-size: 12px; color: #78716C; font-variant-numeric: tabular-nums; font-family: 'JetBrains Mono', monospace">{{s.t}}</span>
+<span style="display: flex; flex-direction: column; align-items: center; padding-top: 16px"><span style="{{s.dot}}" aria-hidden="true"></span></span>
+<div style="padding: 12px 0 14px 0; display: flex; flex-direction: column; gap: 8px; min-width: 0">
+<div style="display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap">
+<span style="font-size: 11.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #57534E">{{s.who}}</span>
+<span style="{{s.labelStyle}}">{{s.label}}</span>
+</div>
+<div style="{{s.bodyStyle}}">{{s.body}}</div>
+<sc-if value="{{s.hasCheck}}" hint-placeholder-val="{{ false }}">
+<div style="{{s.checkBox}}">
+<span style="{{s.checkPill}}">{{s.checkVerdict}}</span>
+<span style="display: flex; flex-direction: column; gap: 2px; min-width: 0">
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 12.5px; font-weight: 600">{{s.checkName}}</span>
+<span style="font-size: 13px; color: #44403C; line-height: 1.45">{{s.checkWhy}}</span>
+</span>
+<a href="{{s.checkHref}}" style="display: inline-flex; align-items: center; min-height: 44px; padding: 0 12px; font-weight: 600; text-decoration: none; white-space: nowrap; margin-left: auto">{{s.checkAction}}</a>
+</div>
+</sc-if>
+</div>
+</div>
+</sc-for>
+</section>
+
+<div style="display: flex; flex-direction: column; gap: 16px">
+
+<section aria-label="Checks" style="background: #FFFFFF; border: 1px solid #E7E5E4; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; justify-content: space-between; align-items: baseline; gap: 8px">
+<h2 style="margin: 0; font-family: Sora, system-ui, sans-serif; font-size: 16px; font-weight: 600">Checks</h2>
+<span style="font-size: 12px; color: #57534E">strict: fail · weighted: 3 / 6</span>
+</div>
+<sc-for list="{{checks}}" as="c" hint-placeholder-count="4">
+<div style="display: grid; grid-template-columns: 64px minmax(0, 1fr) 44px; align-items: center; gap: 10px; min-height: 36px">
+<span style="{{c.pill}}">{{c.verdict}}</span>
+<span style="display: flex; flex-direction: column; min-width: 0"><span style="font-family: 'JetBrains Mono', monospace; font-size: 13px">{{c.name}}</span><span style="font-size: 12px; color: #57534E">{{c.kind}}</span></span>
+<span style="text-align: right; font-size: 12px; color: #57534E; font-variant-numeric: tabular-nums">{{c.w}}</span>
+</div>
+</sc-for>
+</section>
+
+<section aria-label="Outcome state" style="background: #FFFFFF; border: 1px solid #E7E5E4; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<h2 style="margin: 0; font-family: Sora, system-ui, sans-serif; font-size: 16px; font-weight: 600">Outcome: environment state</h2>
+<span style="font-size: 12px; color: #57534E">What the agent said vs what the database shows at the end of the trial</span>
+</div>
+<div style="border: 1px solid #E7E5E4; border-radius: 8px; overflow: hidden; font-family: 'JetBrains Mono', monospace; font-size: 12.5px">
+<div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0; background: #F5F5F4; padding: 8px 12px; color: #57534E; font-family: Inter, system-ui, sans-serif; font-size: 12px"><span>Table</span><span>Expected</span><span>Actual</span></div>
+<div style="display: grid; grid-template-columns: 1fr 1fr 1fr; padding: 10px 12px; border-top: 1px solid #E7E5E4"><span>tickets.status</span><span style="color: #166534">resolved</span><span style="color: #166534">resolved</span></div>
+<div style="display: grid; grid-template-columns: 1fr 1fr 1fr; padding: 10px 12px; border-top: 1px solid #E7E5E4; background: #FFF7F7"><span>refunds.status</span><span style="color: #166534">processed</span><span style="color: #991B1B; font-weight: 600">(no row)</span></div>
+<div style="display: grid; grid-template-columns: 1fr 1fr 1fr; padding: 10px 12px; border-top: 1px solid #E7E5E4"><span>audit.events</span><span>identity_verified</span><span style="color: #166534">identity_verified</span></div>
+</div>
+</section>
+
+<section aria-label="Across trials" style="background: #FFFFFF; border: 1px solid #E7E5E4; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<h2 style="margin: 0; font-family: Sora, system-ui, sans-serif; font-size: 16px; font-weight: 600">Across 5 trials</h2>
+<span style="font-size: 12px; color: #57534E">Same failure in 4 of 5. Not flaky; a real regression.</span>
+</div>
+<div style="display: flex; gap: 6px">
+<sc-for list="{{trials}}" as="t" hint-placeholder-count="5">
+<span style="{{t.style}}" title="{{t.title}}">{{t.n}}</span>
+</sc-for>
+</div>
+<span style="font-size: 12px; color: #57534E">Run #40: 5 of 5 passed. First differing commit: 8c2e1f0 "shorten refund policy snippet".</span>
+</section>
+
+<section aria-label="Actions" style="display: flex; flex-direction: column; gap: 8px">
+<button type="button" style="min-height: 44px; padding: 0 16px; border: 1px solid #D6D3D1; border-radius: 8px; background: #FFFFFF; color: #1C1917; font: inherit; font-weight: 500; cursor: pointer; text-align: left">Dispute a check verdict (adds a label for that judge)</button>
+<button type="button" style="min-height: 44px; padding: 0 16px; border: 1px solid #D6D3D1; border-radius: 8px; background: #FFFFFF; color: #1C1917; font: inherit; font-weight: 500; cursor: pointer; text-align: left">Mark task as ambiguous and open the spec</button>
+<button type="button" style="min-height: 44px; padding: 0 16px; border: 1px solid #D6D3D1; border-radius: 8px; background: #FFFFFF; color: #1C1917; font: inherit; font-weight: 500; cursor: pointer; text-align: left">Open GitHub issue with this transcript</button>
+</section>
+
+</div>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1260}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var pill = function (bg, fg) {
+      return 'display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 12px; font-weight: 600; border-radius: 999px; padding: 3px 10px; background: ' + bg + '; color: ' + fg + '; white-space: nowrap';
+    };
+    var good = pill('#DCFCE7', '#166534'), bad = pill('#FEE2E2', '#991B1B'), warn = pill('#FEF3C7', '#92400E');
+    var dot = function (c) { return 'width: 10px; height: 10px; border-radius: 5px; background: ' + c; };
+    var msg = 'padding: 10px 12px; border-radius: 10px; line-height: 1.5; background: #F5F5F4';
+    var tool = 'padding: 8px 12px; border-left: 3px solid #D6D3D1; background: #FAFAF9; font-family: JetBrains Mono, monospace; font-size: 12.5px; color: #44403C; white-space: pre-wrap';
+    var toolBad = 'padding: 8px 12px; border-left: 3px solid #FCA5A5; background: #FFF7F7; font-family: JetBrains Mono, monospace; font-size: 12.5px; color: #44403C; white-space: pre-wrap';
+    var checkBox = function (bg, border) { return 'display: flex; gap: 10px; align-items: center; padding: 8px 10px 8px 12px; border-radius: 8px; background: ' + bg + '; border: 1px solid ' + border; };
+    var lbl = 'font-size: 12px; color: #57534E';
+    var noCheck = { hasCheck: false, checkBox: '', checkPill: '', checkVerdict: '', checkName: '', checkWhy: '', checkHref: '#', checkAction: '' };
+    var mk = function (o) { return Object.assign({}, noCheck, o); };
+    return {
+      steps: [
+        mk({ t: '0.0s', who: 'Customer', label: 'turn 1', labelStyle: lbl, dot: dot('#A8A29E'), bodyStyle: msg, body: 'I was charged twice for October and nobody has answered my last two emails. This is ridiculous.' }),
+        mk({ t: '1.2s', who: 'Tool', label: 'verify_identity', labelStyle: lbl, dot: dot('#A8A29E'), bodyStyle: tool, body: 'verify_identity(account_id="A-22817")\n→ {verified: true, plan: "pro"}', hasCheck: true, checkBox: checkBox('#F0FDF4', '#BBF7D0'), checkPill: good, checkVerdict: 'Pass', checkName: 'identity_verified', checkWhy: 'Code check · tool called with a valid account id before any account data was disclosed.', checkHref: '#', checkAction: 'Check source' }),
+        mk({ t: '2.0s', who: 'Tool', label: 'fetch_invoices', labelStyle: lbl, dot: dot('#A8A29E'), bodyStyle: tool, body: 'fetch_invoices(month="2026-10")\n→ 2 charges · $49.00 · $49.00' }),
+        mk({ t: '2.6s', who: 'Tool', label: 'fetch_policy', labelStyle: lbl, dot: dot('#A8A29E'), bodyStyle: tool, body: 'fetch_policy(topic="duplicate_charge")\n→ "Duplicate charges may be refunded immediately by the agent when both charges are visible..."' }),
+        mk({ t: '5.8s', who: 'Agent', label: 'turn 2', labelStyle: lbl, dot: dot('#B91C1C'), bodyStyle: 'padding: 10px 12px; border-radius: 10px; line-height: 1.5; background: #EFF6FF', body: 'Per our billing policy, duplicate charges are reviewed within 5–7 business days and refunds are issued to the original payment method once approved. I can see two charges on your account.', hasCheck: true, checkBox: checkBox('#FFF7F7', '#FECACA'), checkPill: bad, checkVerdict: 'Fail', checkName: 'tone_mismatch', checkWhy: 'Judge (stale, shown for information) · policy text precedes any acknowledgement of a frustrated customer.', checkHref: 'Judges.dc.html', checkAction: 'Dispute' }),
+        mk({ t: '5.8s', who: 'Tool', label: 'expected call missing', labelStyle: 'font-size: 12px; color: #B91C1C; font-weight: 600', dot: dot('#B91C1C'), bodyStyle: toolBad, body: 'process_refund(amount=49.00)   never called\nfetch_policy result allowed an immediate refund.', hasCheck: true, checkBox: checkBox('#FFF7F7', '#FECACA'), checkPill: bad, checkVerdict: 'Fail', checkName: 'refund_processed', checkWhy: 'Outcome check · refunds table has no row for this ticket at end of trial. Weight 3.', checkHref: '#', checkAction: 'State diff' }),
+        mk({ t: '9.4s', who: 'Customer', label: 'turn 3 · simulated user ends', labelStyle: lbl, dot: dot('#A8A29E'), bodyStyle: msg, body: 'So you\'re not going to fix it?' })
+      ],
+      checks: [
+        { verdict: 'Fail', pill: bad, name: 'refund_processed', kind: 'outcome · refunds.status = processed', w: 'w 3' },
+        { verdict: 'Pass', pill: good, name: 'identity_verified', kind: 'code · tool call before disclosure', w: 'w 2' },
+        { verdict: 'Fail', pill: bad, name: 'tone_mismatch', kind: 'judge · stale, not counted', w: 'w 1' },
+        { verdict: 'Pass', pill: good, name: 'max_turns_10', kind: 'transcript · 7 turns', w: 'w 1' }
+      ],
+      trials: [
+        { n: '1', title: 'Trial 1: failed, refund_processed', style: 'display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 8px; background: #FEE2E2; color: #991B1B; font-weight: 700' },
+        { n: '2', title: 'Trial 2: passed', style: 'display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 8px; background: #DCFCE7; color: #166534; font-weight: 700' },
+        { n: '3', title: 'Trial 3: failed, refund_processed (viewing)', style: 'display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 8px; background: #FEE2E2; color: #991B1B; font-weight: 700; outline: 2px solid #1C1917; outline-offset: 2px' },
+        { n: '4', title: 'Trial 4: failed, refund_processed', style: 'display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 8px; background: #FEE2E2; color: #991B1B; font-weight: 700' },
+        { n: '5', title: 'Trial 5: failed, refund_processed', style: 'display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 8px; background: #FEE2E2; color: #991B1B; font-weight: 700' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>
