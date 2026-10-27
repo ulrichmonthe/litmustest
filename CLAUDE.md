@@ -48,7 +48,7 @@ evals/
   runs/                   # summaries committed; raw transcripts git-ignored
 ```
 
-`npm test` runs everything; `npm run build` compiles the CLI; `npm run docs:schemas` regenerates `docs/SCHEMAS.md` (never edit it by hand); `npm run validate -- <evals dir> [--deep]` runs the validator from source.
+`npm test` runs everything; `npm run build` compiles the CLI; `npm run docs:schemas` regenerates `docs/SCHEMAS.md` (never edit it by hand); `npm run validate -- <evals dir> [--deep]` runs the validator from source; `node packages/cli/dist/main.js serve --dir <evals dir>` starts the local server (API only until the dashboard lands; routes are listed on `/`).
 
 ## Conventions
 
@@ -74,6 +74,6 @@ evals/
 ## Working agreement for this repo
 
 - One PR per phase milestone. Each PR is reviewed against `docs/ACCEPTANCE.md` before merge.
-- Never hand-edit `calibration.json`; it is written by `litmustest calibrate` only.
+- Never hand-edit `calibration.json`; it is written by `litmustest calibrate` only. The one exception is the server marking a trusted calibration `stale` when the judge's prompt or model changes; the API refuses direct writes to it.
 - The dashboard is a client of the CLI and the files. If something works in the dashboard but not the CLI, that is a bug.
 - Mockups in `design/mockups/` are the UI reference. Replicate their values from inline styles and `brand/tokens.json`; do not copy the markup wholesale.

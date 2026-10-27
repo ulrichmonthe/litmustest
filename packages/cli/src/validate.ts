@@ -97,7 +97,7 @@ export function validateEvals(root: string, opts: ValidateOptions = {}): Validat
       const info: JudgeInfo = { dir };
       const jf = join(dir, "judge.yaml");
       const cf = join(dir, "calibration.json");
-      if (existsSync(jf)) info.judge = load(jf, "judge"); else add("error", jf, "missing judge.yaml", "layout");
+      if (existsSync(jf)) info.judge = load(jf, "judge"); else add("warning", jf, "no judge.yaml yet; a judge directory needs prompt.md, judge.yaml and calibration.json", "layout");
       if (existsSync(cf)) info.calibration = load(cf, "calibration");
       judges.set(ent.name, info);
       const j = info.judge?.data, c = info.calibration?.data;

@@ -12,7 +12,7 @@ As of 2026-10-27. Derived from the 25-chapter "litmustest Master Class" guide, w
 - [ ] "Ask Claude to regroup notes" runs `error-discovery` and returns proposed failure-mode files as a diff in the Pending changes tray; nothing is written until accepted.
 - [ ] Failure modes view lists modes with count, severity, grader status; definition and severity edit and save to files.
 - [ ] Overview (read-only) shows a failure-mode Pareto and the review coverage.
-- [ ] Every file written validates against its JSON Schema; an invalid write is refused with the field named.
+- [x] Every file written validates against its JSON Schema; an invalid write is refused with the field named. (Server: 422 with the failing field; a write that breaks a cross-file rule is reverted and refused the same way; a stale base hash is a 409 with reload / keep mine.)
 - [ ] A domain expert who has read guide chapters 3, 6 and 7 can label 50 traces in under an hour without asking an engineer anything.
 
 ## Phase 2: Grade and trust
@@ -21,11 +21,11 @@ As of 2026-10-27. Derived from the 25-chapter "litmustest Master Class" guide, w
 - [ ] "Draft judge from labels" produces `prompt.md` and `judge.yaml` with one failure mode, Pass/Fail definitions, 3 examples from the train split, structured output with critique first and an Unknown option.
 - [ ] The judge editor shows per-field save states (saved, saved to branch, conflict) and refuses to overwrite a file changed on disk.
 - [ ] `litmustest calibrate <judge>` splits labels 15/45/40, runs dev, writes TPR/TNR and the confusion matrix to `calibration.json`, and lists disagreements.
-- [ ] "Run test set once" is disabled until dev TPR and TNR ≥ 90%; after it runs, any prompt or model change marks the judge stale.
+- [ ] "Run test set once" is disabled until dev TPR and TNR ≥ 90%; after it runs, any prompt or model change marks the judge stale. (The second half is done: the server marks a trusted calibration stale on a prompt or model edit.)
 - [ ] Stale judges are excluded from every score and gate, and shown with a stale pill.
 - [ ] Reported pass rates for judge-scored checks are corrected for judge error with a bootstrap CI.
 - [ ] A task cannot join a suite without a reference solution that passes all its checks.
-- [ ] Commit to branch / Open PR / Discard work from the Pending changes tray; the branch name follows `evals/<slug>`.
+- [x] Commit to branch / Open PR / Discard work from the Pending changes tray; the branch name follows `evals/<slug>`. (API: `/api/pending`, `/commit`, `/pr`, `/discard`. The tray UI lands with the dashboard.)
 
 ## Phase 3: Run like an agent eval
 

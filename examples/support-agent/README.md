@@ -12,10 +12,10 @@ npm run build
 node packages/cli/dist/main.js ingest examples/support-agent/traces/support.jsonl --dir examples/support-agent/evals
                                                        # clusters the traces and writes a review batch with a coverage report
 node packages/cli/dist/main.js validate examples/support-agent/evals --deep   # every file checks out
-npx litmustest serve examples/support-agent/evals      # Phase 1: the review queue (not built yet; see docs/SPEC.md)
+node packages/cli/dist/main.js serve --dir examples/support-agent/evals    # the local server on http://127.0.0.1:4242
 ```
 
-`serve` arrives with Phase 1 proper. Until then the validator and `ingest` are the product, and the seeded files plus the batch are what the review queue, the judge editor and run compare will show.
+The server is API-only until the review queue lands: `/api/batches`, `/api/traces/<id>` (with the derived turns view), validated writes on `/api/file`, append-only `/api/labels`, and the Pending changes tray on `/api/pending`. The dashboard screens come next and read these same routes.
 
 ## What is in here
 

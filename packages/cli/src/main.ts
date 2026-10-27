@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { validateEvals, type Problem } from "./validate.ts";
 import { initEvals } from "./init.ts";
 import { ingest } from "./ingest.ts";
+import { serve } from "./serve.ts";
 
 const VERSION: string = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), "..", "package.json"), "utf8")).version;
 
@@ -21,6 +22,12 @@ Usage:
       representative per cluster plus a random draw to batches/<name>.yaml
       with a coverage report. Defaults come from sources.sampler in the config.
 
+  litmustest serve [--dir evals] [--port 4242] [--host 127.0.0.1]
+      Local server over evals/: reads with content hashes, validated writes
+      that land on an evals/<slug> branch, the Pending changes API (commit,
+      open PR, discard), append-only labels, batches and traces for the
+      review queue, and server-sent events from the file watcher.
+
   litmustest validate [path] [--deep] [--json] [--quiet]
       Validate an evals/ directory (default: ./evals) against the schemas and
       the cross-file rules. --deep also runs each task's code, outcome and
@@ -29,7 +36,7 @@ Usage:
   litmustest --version
   litmustest --help
 
-Commands run, compare, calibrate, serve, ci and doctor arrive in later
+Commands run, compare, calibrate, ci and doctor arrive in later
 phases; see docs/SPEC.md.
 `;
 
@@ -39,6 +46,7 @@ function main(argv: string[]): number {
   if (cmd === "--version" || cmd === "-v") { process.stdout.write(VERSION + "\n"); return 0; }
   if (cmd === "init") return runInit(rest);
   if (cmd === "ingest") return runIngest(rest);
+  if (cmd === "serve") { runServe(rest); return 0; }
   if (cmd !== "validate") { process.stderr.write(`unknown command '${cmd}'\n\n${HELP}`); return 2; }
 
   const flags = new Set(rest.filter((a) => a.startsWith("--")));
@@ -105,6 +113,15 @@ function runIngest(rest: string[]): number {
     process.stdout.write(`wrote ${r.batchFile}\n`);
     return r.invalid.length ? 1 : 0;
   } catch (e) { process.stderr.write(`ingest: ${(e as Error).message}\n`); return 1; }
+}
+
+function runServe(rest: string[]): void {
+  try {
+    const { values } = opts(rest, ["--dir", "--port", "--host"]);
+    serve({ evalsDir: values.get("--dir") ?? "evals", port: values.has("--port") ? Number(values.get("--port")) : undefined, host: values.get("--host") })
+      .then((r) => process.stdout.write(`litmustest serving ${r.app.evalsDir} on ${r.url} (branch ${r.app.git.branch()})\n`))
+      .catch((e: Error) => { process.stderr.write(`serve: ${e.message}\n`); process.exitCode = 1; });
+  } catch (e) { process.stderr.write(`serve: ${(e as Error).message}\n`); process.exitCode = 1; }
 }
 
 process.exitCode = main(process.argv.slice(2));

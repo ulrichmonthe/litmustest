@@ -10,3 +10,6 @@ export { jsonlLineToTrace } from "./adapters/jsonl.ts";
 export { traceView, viewText } from "./trace_view.ts";
 export type { TraceView, ViewTurn, ViewCall } from "./trace_view.ts";
 export { tfidf, kmeans, tokenize } from "./cluster.ts";
+export { serve } from "./serve.ts";
+export type { ServeOptions, Running } from "./serve.ts";
+export { App, HttpError, kindOf } from "./server/app.ts";
