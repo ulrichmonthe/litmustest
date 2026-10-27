@@ -212,6 +212,19 @@ export function validateEvals(root: string, opts: ValidateOptions = {}): Validat
     });
   }
 
+  // ---- batches
+  const batchTraceIds = (dir: string) => existsSync(dir) ? new Set(readdirSync(dir).filter((f) => f.endsWith(".json")).map((f) => f.replace(/\.json$/, ""))) : new Set<string>();
+  const knownTraces = batchTraceIds(traceDir);
+  for (const f of list("batches", ".yaml")) {
+    const l = load(f, "batch"); if (!l) continue;
+    if (l.data.name !== stem(f)) add("error", f, `name '${l.data.name}' must equal the file name '${stem(f)}'`, "name_matches_file");
+    const ids = new Set<string>();
+    for (const it of l.data.items as { trace_id: string }[]) {
+      if (ids.has(it.trace_id)) add("error", f, `trace '${it.trace_id}' appears twice`, "batch_items_unique"); ids.add(it.trace_id);
+      if (!knownTraces.has(it.trace_id)) add("error", f, `trace '${it.trace_id}' not found under datasets/traces/`, "trace_exists");
+    }
+  }
+
   // ---- traces, runs
   for (const f of [...list("datasets/traces", ".json"), ...list("datasets/synthetic", ".json")]) {
     const l = load(f, "trace"); if (!l) continue;

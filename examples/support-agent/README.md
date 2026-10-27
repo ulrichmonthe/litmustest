@@ -8,11 +8,14 @@ A small but real target for litmustest: a billing support agent for a subscripti
 git clone https://github.com/ulrichmonthe/litmustest && cd litmustest
 npm install
 npm run example:seed                                   # 300 traces + the evals/ directory, no API key needed
-npm run validate -- examples/support-agent/evals --deep  # every file checks out
+npm run build
+node packages/cli/dist/main.js ingest examples/support-agent/traces/support.jsonl --dir examples/support-agent/evals
+                                                       # clusters the traces and writes a review batch with a coverage report
+node packages/cli/dist/main.js validate examples/support-agent/evals --deep   # every file checks out
 npx litmustest serve examples/support-agent/evals      # Phase 1: the review queue (not built yet; see docs/SPEC.md)
 ```
 
-`serve` arrives with Phase 1 proper. Until then the validator is the whole product, and the seeded files are what the review queue, the judge editor and run compare will show.
+`serve` arrives with Phase 1 proper. Until then the validator and `ingest` are the product, and the seeded files plus the batch are what the review queue, the judge editor and run compare will show.
 
 ## What is in here
 

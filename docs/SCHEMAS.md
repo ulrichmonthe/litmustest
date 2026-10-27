@@ -21,6 +21,7 @@ Every file under `evals/` has a JSON Schema (draft 2020-12), versioned under `ht
 | [run_summary](#run_summary) | `evals/runs/<run id>.json` | Run summary |
 | [trace](#trace) | `evals/datasets/traces/<id>.json` | Trace |
 | [trace.jsonl_adapter](#tracejsonl_adapter) | `ingest input only; never stored` | JSONL trace (adapter input) |
+| [batch](#batch) | `evals/batches/<name>.yaml` | Review batch |
 
 Shared definitions (names, timestamps, model ids, gates, confusion matrices) live in [common](#common).
 
@@ -553,6 +554,54 @@ One line of a plain JSONL log that `litmustest ingest` converts to the internal 
 | `result` | any |  |  |  |
 | `turn` | integer |  | ≥ 0 |  |
 
+## batch
+
+evals/batches/<name>.yaml. A sampled set of traces for people to read in the review queue: one representative per cluster plus a random draw, with a coverage report. Written by `litmustest ingest`.
+
+| Field | Type | Required | Constraints | Description |
+| --- | --- | --- | --- | --- |
+| `name` | string | yes | pattern `^[a-z0-9][a-z0-9_-]*$` | Must equal the file name without extension. Defaults to the ingest date. |
+| `created` | [timestamp](#timestamp) | yes |  |  |
+| `source` | string | yes | min length 1 | The file or source the traces came from. |
+| `sampler` | object | yes |  |  |
+| `items` | array of object | yes | min 1 items |  |
+| `coverage` | object | yes |  | How well the batch covers the ingested traces. |
+
+#### `sampler`
+
+| Field | Type | Required | Constraints | Description |
+| --- | --- | --- | --- | --- |
+| `size` | integer | yes | ≥ 1 |  |
+| `clusters` | integer | yes | ≥ 1 |  |
+| `seed` | integer | yes |  | Seed for the random draw, so the batch is reproducible. |
+| `method` | `tfidf_kmeans` |  | default `"tfidf_kmeans"` |  |
+
+#### `items` (each item)
+
+| Field | Type | Required | Constraints | Description |
+| --- | --- | --- | --- | --- |
+| `trace_id` | [trace_id](#trace_id) | yes |  |  |
+| `cluster` | integer | yes | ≥ 0 |  |
+| `reason` | `representative` · `random` | yes |  | Why this trace is in the batch: closest to its cluster centre, or drawn at random. |
+
+#### `coverage`
+
+| Field | Type | Required | Constraints | Description |
+| --- | --- | --- | --- | --- |
+| `total_traces` | integer | yes | ≥ 0 |  |
+| `sampled` | integer | yes | ≥ 0 |  |
+| `clusters` | array of object | yes |  |  |
+
+##### `clusters` (each item)
+
+| Field | Type | Required | Constraints | Description |
+| --- | --- | --- | --- | --- |
+| `id` | integer | yes | ≥ 0 |  |
+| `size` | integer | yes | ≥ 0 |  |
+| `sampled` | integer | yes | ≥ 0 |  |
+| `terms` | array of string | yes |  | The top terms that distinguish the cluster, for the coverage panel. |
+| `representative` | [trace_id](#trace_id) |  |  |  |
+
 ## common
 
 Shared definitions used by every litmustest schema. Not a file type of its own.
@@ -683,7 +732,8 @@ Judge verdicts against human labels on one split. Unknown verdicts are counted a
 | `code_fn_exists` | error | A code check's `fn` file exists. |
 | `check_ids_unique` | error | Check ids are unique within a task. |
 | `gate_suite_exists` | warning | Every gate in `litmustest.yaml` names a suite file. |
-| `trace_exists` | warning | A label's trace is present under `datasets/traces/` (only checked when that directory has files). |
+| `trace_exists` | warning / error | A label's trace is present under `datasets/traces/` (only checked when that directory has files); a batch item's trace must be. |
+| `batch_items_unique` | error | A review batch lists each trace once. |
 | `reference_passes` | error (`--deep`) | Each task's code, outcome and transcript checks pass against its reference solution. Judge checks are noted and skipped; they run under `litmustest run`. |
 
 ## Code check contract

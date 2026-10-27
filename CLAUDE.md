@@ -43,6 +43,7 @@ evals/
   graders/judges/<name>/{prompt.md,judge.yaml,calibration.json}
   labels/*.jsonl          # trace_id, label, note, annotator, timestamp; append-only
   datasets/{traces,synthetic}/
+  batches/<name>.yaml      # review batches sampled by `litmustest ingest`
   suites/{regression,capability,quality}.yaml
   runs/                   # summaries committed; raw transcripts git-ignored
 ```

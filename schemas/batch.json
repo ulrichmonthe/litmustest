@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://litmustest.dev/schemas/v1/batch.json",
+  "title": "Review batch",
+  "description": "evals/batches/<name>.yaml. A sampled set of traces for people to read in the review queue: one representative per cluster plus a random draw, with a coverage report. Written by `litmustest ingest`.",
+  "type": "object",
+  "required": ["name", "created", "source", "sampler", "items", "coverage"],
+  "additionalProperties": false,
+  "properties": {
+    "name": { "type": "string", "pattern": "^[a-z0-9][a-z0-9_-]*$", "description": "Must equal the file name without extension. Defaults to the ingest date." },
+    "created": { "$ref": "common.json#/$defs/timestamp" },
+    "source": { "type": "string", "minLength": 1, "description": "The file or source the traces came from." },
+    "sampler": {
+      "type": "object",
+      "required": ["size", "clusters", "seed"],
+      "additionalProperties": false,
+      "properties": {
+        "size": { "type": "integer", "minimum": 1 },
+        "clusters": { "type": "integer", "minimum": 1 },
+        "seed": { "type": "integer", "description": "Seed for the random draw, so the batch is reproducible." },
+        "method": { "type": "string", "enum": ["tfidf_kmeans"], "default": "tfidf_kmeans" }
+      }
+    },
+    "items": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["trace_id", "cluster", "reason"],
+        "additionalProperties": false,
+        "properties": {
+          "trace_id": { "$ref": "common.json#/$defs/trace_id" },
+          "cluster": { "type": "integer", "minimum": 0 },
+          "reason": { "type": "string", "enum": ["representative", "random"], "description": "Why this trace is in the batch: closest to its cluster centre, or drawn at random." }
+        }
+      }
+    },
+    "coverage": {
+      "type": "object",
+      "description": "How well the batch covers the ingested traces.",
+      "required": ["total_traces", "sampled", "clusters"],
+      "additionalProperties": false,
+      "properties": {
+        "total_traces": { "type": "integer", "minimum": 0 },
+        "sampled": { "type": "integer", "minimum": 0 },
+        "clusters": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "size", "sampled", "terms"],
+            "additionalProperties": false,
+            "properties": {
+              "id": { "type": "integer", "minimum": 0 },
+              "size": { "type": "integer", "minimum": 0 },
+              "sampled": { "type": "integer", "minimum": 0 },
+              "terms": { "type": "array", "items": { "type": "string" }, "description": "The top terms that distinguish the cluster, for the coverage panel." },
+              "representative": { "$ref": "common.json#/$defs/trace_id" }
+            }
+          }
+        }
+      }
+    }
+  }
+}

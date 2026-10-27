@@ -1,0 +1,6 @@
+name: Batch One
+created: 2026-10-27T09:00:00Z
+source: logs/traces/support.jsonl
+sampler: { size: 0, clusters: 8 }
+items: []
+coverage: { total_traces: 300, sampled: 0, clusters: [] }

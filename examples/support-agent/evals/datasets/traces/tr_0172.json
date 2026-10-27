@@ -1,7 +1,7 @@
 {
  "id": "tr_0172",
- "source": "support-agent",
- "ingested_at": "2026-10-15T12:04:02.280Z",
+ "source": "jsonl",
+ "ingested_at": "2026-10-27T13:15:54.012Z",
  "metadata": {
   "persona": "first_time",
   "scenario": "vat_invoice"
@@ -9,16 +9,15 @@
  "spans": [
   {
    "span_id": "s_root",
-   "name": "invoke_agent support",
+   "name": "invoke_agent",
    "kind": "server",
    "start_time": "2026-10-15T12:04:00.000Z",
-   "end_time": "2026-10-15T12:04:02.280Z",
+   "end_time": "2026-10-15T12:04:01.900Z",
    "status": {
     "code": "ok"
    },
    "attributes": {
     "gen_ai.operation.name": "invoke_agent",
-    "gen_ai.agent.name": "support",
     "gen_ai.conversation.id": "tr_0172"
    }
   },
@@ -28,14 +27,11 @@
    "name": "chat claude-opus-5-5",
    "kind": "client",
    "start_time": "2026-10-15T12:04:00.000Z",
-   "end_time": "2026-10-15T12:04:01.800Z",
+   "end_time": "2026-10-15T12:04:01.500Z",
    "attributes": {
     "gen_ai.operation.name": "chat",
-    "gen_ai.provider.name": "anthropic",
     "gen_ai.request.model": "claude-opus-5-5",
     "gen_ai.response.model": "claude-opus-5-5",
-    "gen_ai.usage.input_tokens": 1041,
-    "gen_ai.usage.output_tokens": 106,
     "gen_ai.input.messages": [
      {
       "role": "user",
@@ -95,12 +91,12 @@
    }
   },
   {
-   "span_id": "s_tool_0",
+   "span_id": "s_tool_tc_0_0",
    "parent_span_id": "s_chat_0",
    "name": "execute_tool verify_identity",
    "kind": "internal",
-   "start_time": "2026-10-15T12:04:01.800Z",
-   "end_time": "2026-10-15T12:04:01.920Z",
+   "start_time": "2026-10-15T12:04:01.500Z",
+   "end_time": "2026-10-15T12:04:01.600Z",
    "status": {
     "code": "ok"
    },
@@ -122,12 +118,12 @@
    }
   },
   {
-   "span_id": "s_tool_1",
+   "span_id": "s_tool_tc_1_1",
    "parent_span_id": "s_chat_0",
    "name": "execute_tool fetch_policy",
    "kind": "internal",
-   "start_time": "2026-10-15T12:04:01.920Z",
-   "end_time": "2026-10-15T12:04:02.040Z",
+   "start_time": "2026-10-15T12:04:01.600Z",
+   "end_time": "2026-10-15T12:04:01.700Z",
    "status": {
     "code": "ok"
    },
@@ -145,12 +141,12 @@
    }
   },
   {
-   "span_id": "s_tool_2",
+   "span_id": "s_tool_tc_2_2",
    "parent_span_id": "s_chat_0",
    "name": "execute_tool fetch_invoices",
    "kind": "internal",
-   "start_time": "2026-10-15T12:04:02.040Z",
-   "end_time": "2026-10-15T12:04:02.160Z",
+   "start_time": "2026-10-15T12:04:01.700Z",
+   "end_time": "2026-10-15T12:04:01.800Z",
    "status": {
     "code": "ok"
    },
@@ -173,12 +169,12 @@
    }
   },
   {
-   "span_id": "s_tool_3",
+   "span_id": "s_tool_tc_3_3",
    "parent_span_id": "s_chat_0",
    "name": "execute_tool send_confirmation",
    "kind": "internal",
-   "start_time": "2026-10-15T12:04:02.160Z",
-   "end_time": "2026-10-15T12:04:02.280Z",
+   "start_time": "2026-10-15T12:04:01.800Z",
+   "end_time": "2026-10-15T12:04:01.900Z",
    "status": {
     "code": "ok"
    },

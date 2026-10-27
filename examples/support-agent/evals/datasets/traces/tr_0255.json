@@ -1,7 +1,7 @@
 {
  "id": "tr_0255",
- "source": "support-agent",
- "ingested_at": "2026-10-22T11:45:02.640Z",
+ "source": "jsonl",
+ "ingested_at": "2026-10-27T13:15:54.012Z",
  "metadata": {
   "persona": "business",
   "scenario": "duplicate_charge"
@@ -9,16 +9,15 @@
  "spans": [
   {
    "span_id": "s_root",
-   "name": "invoke_agent support",
+   "name": "invoke_agent",
    "kind": "server",
    "start_time": "2026-10-22T11:45:00.000Z",
-   "end_time": "2026-10-22T11:45:02.640Z",
+   "end_time": "2026-10-22T11:45:02.200Z",
    "status": {
     "code": "ok"
    },
    "attributes": {
     "gen_ai.operation.name": "invoke_agent",
-    "gen_ai.agent.name": "support",
     "gen_ai.conversation.id": "tr_0255"
    }
   },
@@ -28,14 +27,11 @@
    "name": "chat claude-opus-5-5",
    "kind": "client",
    "start_time": "2026-10-22T11:45:00.000Z",
-   "end_time": "2026-10-22T11:45:01.800Z",
+   "end_time": "2026-10-22T11:45:01.500Z",
    "attributes": {
     "gen_ai.operation.name": "chat",
-    "gen_ai.provider.name": "anthropic",
     "gen_ai.request.model": "claude-opus-5-5",
     "gen_ai.response.model": "claude-opus-5-5",
-    "gen_ai.usage.input_tokens": 1170,
-    "gen_ai.usage.output_tokens": 126,
     "gen_ai.input.messages": [
      {
       "role": "user",
@@ -123,12 +119,12 @@
    }
   },
   {
-   "span_id": "s_tool_0",
+   "span_id": "s_tool_tc_0_0",
    "parent_span_id": "s_chat_0",
    "name": "execute_tool verify_identity",
    "kind": "internal",
-   "start_time": "2026-10-22T11:45:01.800Z",
-   "end_time": "2026-10-22T11:45:01.920Z",
+   "start_time": "2026-10-22T11:45:01.500Z",
+   "end_time": "2026-10-22T11:45:01.600Z",
    "status": {
     "code": "ok"
    },
@@ -150,12 +146,12 @@
    }
   },
   {
-   "span_id": "s_tool_1",
+   "span_id": "s_tool_tc_1_1",
    "parent_span_id": "s_chat_0",
    "name": "execute_tool fetch_invoices",
    "kind": "internal",
-   "start_time": "2026-10-22T11:45:01.920Z",
-   "end_time": "2026-10-22T11:45:02.040Z",
+   "start_time": "2026-10-22T11:45:01.600Z",
+   "end_time": "2026-10-22T11:45:01.700Z",
    "status": {
     "code": "ok"
    },
@@ -192,12 +188,12 @@
    }
   },
   {
-   "span_id": "s_tool_2",
+   "span_id": "s_tool_tc_2_2",
    "parent_span_id": "s_chat_0",
    "name": "execute_tool fetch_invoices",
    "kind": "internal",
-   "start_time": "2026-10-22T11:45:02.040Z",
-   "end_time": "2026-10-22T11:45:02.160Z",
+   "start_time": "2026-10-22T11:45:01.700Z",
+   "end_time": "2026-10-22T11:45:01.800Z",
    "status": {
     "code": "ok"
    },
@@ -235,12 +231,12 @@
    }
   },
   {
-   "span_id": "s_tool_3",
+   "span_id": "s_tool_tc_3_3",
    "parent_span_id": "s_chat_0",
    "name": "execute_tool fetch_invoices",
    "kind": "internal",
-   "start_time": "2026-10-22T11:45:02.160Z",
-   "end_time": "2026-10-22T11:45:02.280Z",
+   "start_time": "2026-10-22T11:45:01.800Z",
+   "end_time": "2026-10-22T11:45:01.900Z",
    "status": {
     "code": "ok"
    },
@@ -278,12 +274,12 @@
    }
   },
   {
-   "span_id": "s_tool_4",
+   "span_id": "s_tool_tc_4_4",
    "parent_span_id": "s_chat_0",
    "name": "execute_tool fetch_invoices",
    "kind": "internal",
-   "start_time": "2026-10-22T11:45:02.280Z",
-   "end_time": "2026-10-22T11:45:02.400Z",
+   "start_time": "2026-10-22T11:45:01.900Z",
+   "end_time": "2026-10-22T11:45:02.000Z",
    "status": {
     "code": "ok"
    },
@@ -321,12 +317,12 @@
    }
   },
   {
-   "span_id": "s_tool_5",
+   "span_id": "s_tool_tc_5_5",
    "parent_span_id": "s_chat_0",
    "name": "execute_tool process_refund",
    "kind": "internal",
-   "start_time": "2026-10-22T11:45:02.400Z",
-   "end_time": "2026-10-22T11:45:02.520Z",
+   "start_time": "2026-10-22T11:45:02.000Z",
+   "end_time": "2026-10-22T11:45:02.100Z",
    "status": {
     "code": "ok"
    },
@@ -348,12 +344,12 @@
    }
   },
   {
-   "span_id": "s_tool_6",
+   "span_id": "s_tool_tc_6_6",
    "parent_span_id": "s_chat_0",
    "name": "execute_tool send_confirmation",
    "kind": "internal",
-   "start_time": "2026-10-22T11:45:02.520Z",
-   "end_time": "2026-10-22T11:45:02.640Z",
+   "start_time": "2026-10-22T11:45:02.100Z",
+   "end_time": "2026-10-22T11:45:02.200Z",
    "status": {
     "code": "ok"
    },

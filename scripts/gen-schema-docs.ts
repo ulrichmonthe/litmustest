@@ -13,9 +13,9 @@ const FILE: Record<string, string> = {
   "check.code": "inline in a task", "check.judge": "inline in a task", "check.outcome": "inline in a task", "check.transcript": "inline in a task",
   reference_solution: "evals/refs/<task id>.json", judge: "evals/graders/judges/<name>/judge.yaml", calibration: "evals/graders/judges/<name>/calibration.json",
   label: "evals/labels/<batch>.jsonl (one object per line)", suite: "evals/suites/<name>.yaml", run_summary: "evals/runs/<run id>.json",
-  trace: "evals/datasets/traces/<id>.json", "trace.jsonl_adapter": "ingest input only; never stored",
+  trace: "evals/datasets/traces/<id>.json", "trace.jsonl_adapter": "ingest input only; never stored", batch: "evals/batches/<name>.yaml",
 };
-const ORDER = ["config", "failure_mode", "task", "check.code", "check.judge", "check.outcome", "check.transcript", "reference_solution", "judge", "calibration", "label", "suite", "run_summary", "trace", "trace.jsonl_adapter"];
+const ORDER = ["config", "failure_mode", "task", "check.code", "check.judge", "check.outcome", "check.transcript", "reference_solution", "judge", "calibration", "label", "suite", "run_summary", "trace", "trace.jsonl_adapter", "batch"];
 
 function refName(ref: string): string {
   const m = /^(?:([a-z_.]+)\.json)?#\/\$defs\/([a-z_]+)$/.exec(ref);
@@ -121,7 +121,8 @@ lines.push(
   "| `code_fn_exists` | error | A code check's `fn` file exists. |",
   "| `check_ids_unique` | error | Check ids are unique within a task. |",
   "| `gate_suite_exists` | warning | Every gate in `litmustest.yaml` names a suite file. |",
-  "| `trace_exists` | warning | A label's trace is present under `datasets/traces/` (only checked when that directory has files). |",
+  "| `trace_exists` | warning / error | A label's trace is present under `datasets/traces/` (only checked when that directory has files); a batch item's trace must be. |",
+  "| `batch_items_unique` | error | A review batch lists each trace once. |",
   "| `reference_passes` | error (`--deep`) | Each task's code, outcome and transcript checks pass against its reference solution. Judge checks are noted and skipped; they run under `litmustest run`. |",
   "",
   "## Code check contract",

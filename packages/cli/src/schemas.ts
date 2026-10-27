@@ -10,7 +10,7 @@ export const SCHEMA_BASE = "https://litmustest.dev/schemas/v1/";
 export type SchemaName =
   | "config" | "failure_mode" | "task" | "check.code" | "check.judge" | "check.outcome"
   | "check.transcript" | "reference_solution" | "judge" | "calibration" | "label" | "suite"
-  | "run_summary" | "trace" | "trace.jsonl_adapter";
+  | "run_summary" | "trace" | "trace.jsonl_adapter" | "batch";
 
 /** Where the schema files live: inside the published package, or at the repo root in development. */
 export function schemasDir(): string {

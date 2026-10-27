@@ -1,0 +1,14 @@
+name: 2026-10-27
+created: 2026-10-27T09:00:00Z
+source: logs/traces/support.jsonl
+sampler: { size: 60, clusters: 8, seed: 1, method: tfidf_kmeans }
+items:
+  - { trace_id: tr_0012, cluster: 0, reason: representative }
+  - { trace_id: tr_0040, cluster: 1, reason: representative }
+  - { trace_id: tr_0101, cluster: 0, reason: random }
+coverage:
+  total_traces: 300
+  sampled: 3
+  clusters:
+    - { id: 0, size: 140, sampled: 2, terms: [refund, charged, twice], representative: tr_0012 }
+    - { id: 1, size: 160, sampled: 1, terms: [invoice, copy, vat], representative: tr_0040 }

@@ -4,8 +4,8 @@ As of 2026-10-27. Derived from the 25-chapter "litmustest Master Class" guide, w
 
 ## Phase 1: Discover
 
-- [ ] `litmustest init` creates `evals/` with `litmustest.yaml`, empty folders and a README, and detects a JSONL trace source.
-- [ ] `litmustest ingest traces.jsonl` normalizes to the internal trace shape, clusters, and writes a review batch (cluster reps + random) with a coverage report.
+- [x] `litmustest init` creates `evals/` with `litmustest.yaml`, empty folders and a README, and detects a JSONL trace source.
+- [x] `litmustest ingest traces.jsonl` normalizes to the internal trace shape, clusters, and writes a review batch (cluster reps + random) with a coverage report. (Clustering is TF-IDF + k-means, offline; no model call.)
 - [ ] `litmustest serve` opens the dashboard; Review queue shows the batch.
 - [ ] In the Review queue: j/k move, p/f label, n focuses the note, Enter saves and advances. A label is appended to `labels/*.jsonl` with annotator and timestamp within one second.
 - [ ] Tool calls render between messages; an expected-but-missing tool call can be flagged by the renderer when a task specifies it.
