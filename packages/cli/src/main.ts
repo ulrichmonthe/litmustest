@@ -9,6 +9,7 @@ import { serve } from "./serve.ts";
 import { discover } from "./discover.ts";
 import { App } from "./server/app.ts";
 import { calibrate } from "./calibrate.ts";
+import { draftCheck, draftJudge } from "./draft.ts";
 
 const VERSION: string = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), "..", "package.json"), "utf8")).version;
 
@@ -30,6 +31,17 @@ Usage:
       each proposed failure_modes/<name>.yaml as a diff. Nothing is written
       unless --apply, which saves the files (validated) as pending changes
       on the branch for a person to commit. Needs ANTHROPIC_API_KEY.
+
+  litmustest draft-judge <failure_mode> [--dir evals]
+      Draft a judge from the labels: prompt.md with Fail/Pass criteria from
+      the reviewers' notes, judge.yaml with three few-shot examples from the
+      train split, and calibration.json with the splits (status untested).
+      Lands uncommitted on the branch. Needs ANTHROPIC_API_KEY.
+
+  litmustest draft-check <failure_mode> [--dir evals]
+      Draft a Python code check for the failure mode plus a test, write a
+      fixture of labelled trials under graders/code/fixtures/, run the test
+      and report agreement with the labels. Needs ANTHROPIC_API_KEY.
 
   litmustest calibrate <judge> [--dir evals] [--split dev|test|none] [--force] [--json]
       Split the judge's labels 15/45/40 (train/dev/test, test locked once
@@ -65,6 +77,7 @@ function main(argv: string[]): number {
   if (cmd === "serve") { runServe(rest); return 0; }
   if (cmd === "discover") { runDiscover(rest); return 0; }
   if (cmd === "calibrate") { runCalibrate(rest); return 0; }
+  if (cmd === "draft-judge" || cmd === "draft-check") { runDraft(cmd, rest); return 0; }
   if (cmd !== "validate") { process.stderr.write(`unknown command '${cmd}'\n\n${HELP}`); return 2; }
 
   const flags = new Set(rest.filter((a) => a.startsWith("--")));
@@ -131,6 +144,21 @@ function runIngest(rest: string[]): number {
     process.stdout.write(`wrote ${r.batchFile}\n`);
     return r.invalid.length ? 1 : 0;
   } catch (e) { process.stderr.write(`ingest: ${(e as Error).message}\n`); return 1; }
+}
+
+function runDraft(cmd: string, rest: string[]): void {
+  const { values, positional } = opts(rest, ["--dir"]);
+  const mode = positional[0];
+  if (!mode) { process.stderr.write(`${cmd}: a failure mode name is required\n`); process.exitCode = 2; return; }
+  const evalsDir = resolve(values.get("--dir") ?? "evals");
+  (cmd === "draft-judge" ? draftJudge({ evalsDir, failureMode: mode }) : draftCheck({ evalsDir, failureMode: mode }))
+    .then((r) => {
+      for (const f of r.files) process.stdout.write(`${f.action.padEnd(8)} ${f.path}\n`);
+      for (const n of r.notes) process.stdout.write(`  ${n}\n`);
+      if (r.agreement) process.stdout.write(`\n${r.agreement.output}\n`);
+      process.stdout.write("Uncommitted on the branch: review with git diff or the Pending changes tray.\n");
+    })
+    .catch((e: Error) => { process.stderr.write(`${cmd}: ${e.message}\n`); process.exitCode = 1; });
 }
 
 function runCalibrate(rest: string[]): void {

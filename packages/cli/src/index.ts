@@ -20,3 +20,5 @@ export type { CalibrateOptions, CalibrateResult, Splits } from "./calibrate.ts";
 export { judgeTraces, loadJudge, buildMessages, renderInputs, parseVerdict } from "./judge_run.ts";
 export type { JudgeAsk, Verdict } from "./judge_run.ts";
 export * as stats from "./stats.ts";
+export { draftJudge, draftCheck, trialFromView, DRAFT_MODEL } from "./draft.ts";
+export type { DraftResult } from "./draft.ts";
