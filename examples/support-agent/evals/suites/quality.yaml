@@ -1,0 +1,12 @@
+name: quality
+kind: quality
+description: Judge-only tasks on tone. Trusted judges only.
+tasks:
+  - identity_mismatch_frustrated
+  - identity_mismatch_business
+  - identity_mismatch_first_time
+  - tone_only_frustrated
+  - tone_only_business
+gate:
+  min_pass_rate: 80
+  trusted_judges_only: true

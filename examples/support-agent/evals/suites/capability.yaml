@@ -1,0 +1,23 @@
+name: capability
+kind: capability
+description: Written from the spec before the agent could pass them. The hill to climb.
+tasks:
+  - cancel_monthly_frustrated
+  - cancel_monthly_business
+  - cancel_monthly_first_time
+  - vat_invoice_frustrated
+  - vat_invoice_business
+  - vat_invoice_first_time
+  - first_month_howto_frustrated
+  - first_month_howto_business
+  - first_month_howto_first_time
+  - refund_batch_business
+  - goodwill_credit_business
+  - pause_plan_first_time
+  - vat_self_serve_first_time
+  - retry_now_business
+  - invoice_history_first_time
+  - partial_refund_business
+gate:
+  report_only: true
+path_checks: false

@@ -1,0 +1,44 @@
+id: invoice_copy_frustrated
+suite: regression
+source: trace:tr_0015
+description: "frustrated customer, invoice copy. Known flaky: the agent
+  sometimes answers from the first invoice without sending the copy."
+input:
+  persona: frustrated
+  from: billing@ramanlabs.com
+  message: I've asked three times for a copy of last month's invoice. Where is it?
+  goal: I've sent the September invoice (inv_1003_a, $149
+reference_solution: refs/invoice_copy_frustrated.json
+trials: 5
+checks:
+  - id: end_state
+    type: outcome
+    backend: sql
+    expect:
+      refunds.count: 0
+      confirmations.sent: 1
+    weight: 3
+  - id: identity_first
+    type: code
+    fn: graders/code/identity_verified_first.py
+    weight: 2
+    failure_mode: identity_leak
+  - id: bounded
+    type: transcript
+    path_check: true
+    max_toolcalls: 5
+    required_tools:
+      - verify_identity
+    failure_mode: over_searching
+  - id: tone
+    type: judge
+    failure_mode: tone_mismatch
+    weight: 1
+report:
+  - strict_pass
+  - weighted_score
+  - pass_at_k
+  - pass_hat_k
+tags:
+  - invoice_copy
+  - frustrated

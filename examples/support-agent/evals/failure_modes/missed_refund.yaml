@@ -1,0 +1,12 @@
+name: missed_refund
+definition: The customer was owed a refund under policy and the conversation
+  ended without one being processed. Fail when a refund was due and
+  process_refund was never called successfully. Pass when a due refund was
+  processed, or when no refund was due.
+severity: high
+owner: billing
+examples:
+  - tr_0013
+  - tr_0029
+  - tr_0034
+created: 2026-10-21

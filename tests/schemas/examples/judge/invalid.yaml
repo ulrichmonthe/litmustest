@@ -1,6 +1,6 @@
 id: tone_mismatch
 failure_mode: tone_mismatch
-model: claude-sonnet-4-5
+model: claude-sonnet-4-5-20250929
 inputs: []
 output:
   result: { enum: [Pass, Fail] }

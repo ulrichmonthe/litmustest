@@ -1,0 +1,12 @@
+name: over_searching
+definition: The agent calls the same lookup tool repeatedly with trivially
+  different arguments instead of using the first result. Fail when
+  fetch_invoices or fetch_policy is called three or more times for one request.
+  Pass otherwise.
+severity: low
+owner: platform
+examples:
+  - tr_0016
+  - tr_0029
+  - tr_0077
+created: 2026-10-21

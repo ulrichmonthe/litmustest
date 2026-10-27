@@ -592,9 +592,9 @@ Type: string. pattern `^(?!/)(?!.*\.\./).*$`, min length 1.
 
 #### model_id
 
-A model id pinned to a dated snapshot: it must end in a date, YYYYMMDD or YYYY-MM-DD (e.g. claude-sonnet-4-5-20250929). Floating aliases like claude-sonnet-4-5 or 'latest' are rejected.
+A model id pinned to one version, e.g. claude-opus-5-5 or claude-sonnet-4-5-20250929. Floating aliases (anything ending in latest, preview or beta) are rejected. Calibration records the exact id it measured; a change marks the judge stale.
 
-Type: string. pattern `^[a-z0-9][a-z0-9._/:@-]*(\d{8}|\d{4}-\d{2}-\d{2})$`.
+Type: string. pattern `^(?!.*(latest|preview|beta)$)[a-z0-9][a-z0-9._/:@-]*[a-z0-9]$`.
 
 #### sha256
 

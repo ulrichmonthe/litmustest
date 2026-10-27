@@ -54,8 +54,9 @@ describe("schema hygiene", () => {
   it("rejects a floating model alias and accepts a dated snapshot", () => {
     const v = schemas.ajv.compile({ $ref: "https://litmustest.dev/schemas/v1/common.json#/$defs/model_id" });
     expect(v("claude-sonnet-4-5-20250929")).toBe(true);
-    expect(v("claude-sonnet-4-5")).toBe(false);
+    expect(v("claude-opus-5-5")).toBe(true);
     expect(v("claude-sonnet-latest")).toBe(false);
+    expect(v("claude-opus-5-5-preview")).toBe(false);
   });
   it("names are snake_case", () => {
     const v = schemas.ajv.compile({ $ref: "https://litmustest.dev/schemas/v1/common.json#/$defs/name" });

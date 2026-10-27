@@ -1,0 +1,99 @@
+{
+  "task": "cancel_monthly_first_time",
+  "output": "I've cancelled the subscription; there will be no further charges. Monthly plans aren't prorated, so the current month ($9.00) stays as billed and you keep access until 3 November. A confirmation is on its way to tomas@lindqvist.se.",
+  "state": {
+    "refunds": {
+      "count": 0,
+      "status": "none",
+      "amount_cents": 0
+    },
+    "tickets": {
+      "status": "resolved"
+    },
+    "confirmations": {
+      "sent": 1
+    }
+  },
+  "tool_calls": [
+    {
+      "name": "verify_identity",
+      "args": {
+        "email": "tomas@lindqvist.se"
+      },
+      "result": {
+        "verified": true,
+        "account_id": "acc_1002",
+        "name": "Tomas Lindqvist",
+        "plan": "basic"
+      }
+    },
+    {
+      "name": "fetch_invoices",
+      "args": {
+        "account_id": "acc_1002"
+      },
+      "result": [
+        {
+          "id": "inv_1002_a",
+          "amount_cents": 900,
+          "issued": "2026-10-03",
+          "status": "paid",
+          "note": null
+        }
+      ]
+    },
+    {
+      "name": "fetch_policy",
+      "args": {
+        "topic": "cancellation"
+      },
+      "result": {
+        "topic": "cancellation",
+        "policy": "(see policy)"
+      }
+    },
+    {
+      "name": "send_confirmation",
+      "args": {
+        "account_id": "acc_1002",
+        "subject": "Cancellation confirmed"
+      },
+      "result": {
+        "sent": true
+      }
+    }
+  ],
+  "transcript": [
+    {
+      "role": "user",
+      "content": "From: tomas@lindqvist.se\n\nHow do I cancel? And do I get this month back?"
+    },
+    {
+      "role": "tool",
+      "tool": "verify_identity",
+      "content": "{\"verified\":true,\"account_id\":\"acc_1002\",\"name\":\"Tomas Lindqvist\",\"plan\":\"basic\"}"
+    },
+    {
+      "role": "tool",
+      "tool": "fetch_invoices",
+      "content": "[{\"id\":\"inv_1002_a\",\"amount_cents\":900,\"issued\":\"2026-10-03\",\"status\":\"paid\",\"note\":null}]"
+    },
+    {
+      "role": "tool",
+      "tool": "fetch_policy",
+      "content": "{\"topic\":\"cancellation\",\"policy\":\"(see policy)\"}"
+    },
+    {
+      "role": "tool",
+      "tool": "send_confirmation",
+      "content": "{\"sent\":true}"
+    },
+    {
+      "role": "agent",
+      "content": "I've cancelled the subscription; there will be no further charges. Monthly plans aren't prorated, so the current month ($9.00) stays as billed and you keep access until 3 November. A confirmation is on its way to tomas@lindqvist.se."
+    }
+  ],
+  "note": "Ideal path from the scenario catalog.",
+  "author": "ulrich",
+  "at": "2026-10-23T12:00:00Z"
+}

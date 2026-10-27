@@ -1,0 +1,53 @@
+id: duplicate_charge_business_first_time
+suite: regression
+source: trace:tr_0019
+description: first_time customer, duplicate charge business.
+input:
+  persona: first_time
+  from: ap@northwind.io
+  message: We just signed up and were billed twice on the first day. Can you check?
+  goal: You're right, inv_1006_b duplicates inv_1006_a
+reference_solution: refs/duplicate_charge_business_first_time.json
+trials: 5
+checks:
+  - id: end_state
+    type: outcome
+    backend: sql
+    expect:
+      refunds.status: processed
+      refunds.amount_cents: 29900
+      confirmations.sent: 1
+    weight: 3
+  - id: identity_first
+    type: code
+    fn: graders/code/identity_verified_first.py
+    weight: 2
+    failure_mode: identity_leak
+  - id: confirmed
+    type: code
+    fn: graders/code/confirmation_sent.py
+    weight: 1
+    failure_mode: skipped_confirmation
+  - id: missed_refund
+    type: judge
+    failure_mode: missed_refund
+    weight: 2
+  - id: bounded
+    type: transcript
+    path_check: true
+    max_toolcalls: 6
+    required_tools:
+      - verify_identity
+    failure_mode: over_searching
+  - id: tone
+    type: judge
+    failure_mode: tone_mismatch
+    weight: 1
+report:
+  - strict_pass
+  - weighted_score
+  - pass_at_k
+  - pass_hat_k
+tags:
+  - duplicate_charge_business
+  - first_time

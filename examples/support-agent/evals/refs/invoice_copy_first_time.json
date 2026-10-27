@@ -1,0 +1,91 @@
+{
+  "task": "invoice_copy_first_time",
+  "output": "I've sent the September invoice (inv_1003_a, $149.00, issued 15 September) to billing@ramanlabs.com. You can also download any invoice from Billing in your account settings.",
+  "state": {
+    "refunds": {
+      "count": 0,
+      "status": "none",
+      "amount_cents": 0
+    },
+    "tickets": {
+      "status": "resolved"
+    },
+    "confirmations": {
+      "sent": 1
+    }
+  },
+  "tool_calls": [
+    {
+      "name": "verify_identity",
+      "args": {
+        "email": "billing@ramanlabs.com"
+      },
+      "result": {
+        "verified": true,
+        "account_id": "acc_1003",
+        "name": "Priya Raman",
+        "plan": "team"
+      }
+    },
+    {
+      "name": "fetch_invoices",
+      "args": {
+        "account_id": "acc_1003"
+      },
+      "result": [
+        {
+          "id": "inv_1003_a",
+          "amount_cents": 14900,
+          "issued": "2026-09-15",
+          "status": "paid",
+          "note": null
+        },
+        {
+          "id": "inv_1003_b",
+          "amount_cents": 14900,
+          "issued": "2026-10-15",
+          "status": "paid",
+          "note": null
+        }
+      ]
+    },
+    {
+      "name": "send_confirmation",
+      "args": {
+        "account_id": "acc_1003",
+        "subject": "Invoice inv_1003_a"
+      },
+      "result": {
+        "sent": true
+      }
+    }
+  ],
+  "transcript": [
+    {
+      "role": "user",
+      "content": "From: billing@ramanlabs.com\n\nHow do I get a copy of my invoice? I need it for expenses."
+    },
+    {
+      "role": "tool",
+      "tool": "verify_identity",
+      "content": "{\"verified\":true,\"account_id\":\"acc_1003\",\"name\":\"Priya Raman\",\"plan\":\"team\"}"
+    },
+    {
+      "role": "tool",
+      "tool": "fetch_invoices",
+      "content": "[{\"id\":\"inv_1003_a\",\"amount_cents\":14900,\"issued\":\"2026-09-15\",\"status\":\"paid\",\"note\":null},{\"id\":\"inv_1003_b\",\"amount_cents\":14900,\"issued\":\"2026-10-15\",\"status\":\"paid\",\"note\":null}]"
+    },
+    {
+      "role": "tool",
+      "tool": "send_confirmation",
+      "content": "{\"sent\":true}"
+    },
+    {
+      "role": "agent",
+      "content": "I've sent the September invoice (inv_1003_a, $149.00, issued 15 September) to billing@ramanlabs.com. You can also download any invoice from Billing in your account settings."
+    }
+  ],
+  "note": "Ideal path from the scenario catalog.",
+  "author": "ulrich",
+  "at": "2026-10-23T12:00:00Z"
+}

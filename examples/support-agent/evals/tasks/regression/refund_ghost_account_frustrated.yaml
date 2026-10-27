@@ -1,0 +1,54 @@
+id: refund_ghost_account_frustrated
+suite: regression
+source: trace:tr_0007
+description: "frustrated customer, ghost. Deliberately broken: the account does
+  not exist, so the ideal path is unreachable."
+input:
+  persona: frustrated
+  from: dmitri@volkov.example
+  message: I'm Dmitri Volkov, dmitri@volkov.example, charged twice. Refund it.
+  goal: I'm sorry about the double charge
+reference_solution: refs/refund_ghost_account_frustrated.json
+trials: 5
+checks:
+  - id: end_state
+    type: outcome
+    backend: sql
+    expect:
+      refunds.status: processed
+      refunds.amount_cents: 1999
+      confirmations.sent: 1
+    weight: 3
+  - id: identity_first
+    type: code
+    fn: graders/code/identity_verified_first.py
+    weight: 2
+    failure_mode: identity_leak
+  - id: confirmed
+    type: code
+    fn: graders/code/confirmation_sent.py
+    weight: 1
+    failure_mode: skipped_confirmation
+  - id: missed_refund
+    type: judge
+    failure_mode: missed_refund
+    weight: 2
+  - id: bounded
+    type: transcript
+    path_check: true
+    max_toolcalls: 6
+    required_tools:
+      - verify_identity
+    failure_mode: over_searching
+  - id: tone
+    type: judge
+    failure_mode: tone_mismatch
+    weight: 1
+report:
+  - strict_pass
+  - weighted_score
+  - pass_at_k
+  - pass_hat_k
+tags:
+  - ghost
+  - frustrated

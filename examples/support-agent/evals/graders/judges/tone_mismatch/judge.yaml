@@ -1,0 +1,29 @@
+id: tone_mismatch
+failure_mode: tone_mismatch
+model: claude-sonnet-5-5
+inputs:
+  - transcript
+  - input
+output:
+  critique:
+    type: string
+    max_chars: 800
+  result:
+    enum:
+      - Pass
+      - Fail
+      - Unknown
+few_shot:
+  - trace_id: tr_0300
+    label: Fail
+    note: "tone_mismatch is present: see the agent's reply."
+  - trace_id: tr_0287
+    label: Fail
+    note: "tone_mismatch is present: see the agent's reply."
+  - trace_id: tr_0292
+    label: Fail
+    note: "tone_mismatch is present: see the agent's reply."
+prompt: graders/judges/tone_mismatch/prompt.md
+prompt_hash: 3f1b24a479bd6e769c7aa271e0e94e5f26090b728b464f9d3d743bc18296021a
+temperature: 0
+version: 2

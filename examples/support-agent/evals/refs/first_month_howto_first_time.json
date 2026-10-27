@@ -1,0 +1,49 @@
+{
+  "task": "first_month_howto_first_time",
+  "output": "Plan changes live under Settings, then Billing, then Change plan. An upgrade takes effect immediately and is prorated; a downgrade applies at the next renewal. Your current plan is Basic, renewing on 22 November.",
+  "state": {
+    "refunds": {
+      "count": 0,
+      "status": "none",
+      "amount_cents": 0
+    },
+    "tickets": {
+      "status": "none"
+    },
+    "confirmations": {
+      "sent": 0
+    }
+  },
+  "tool_calls": [
+    {
+      "name": "verify_identity",
+      "args": {
+        "email": "ren.ito@outlook.com"
+      },
+      "result": {
+        "verified": true,
+        "account_id": "acc_1010",
+        "name": "Ren Ito",
+        "plan": "basic"
+      }
+    }
+  ],
+  "transcript": [
+    {
+      "role": "user",
+      "content": "From: ren.ito@outlook.com\n\nJust signed up! How do I upgrade later if I need to?"
+    },
+    {
+      "role": "tool",
+      "tool": "verify_identity",
+      "content": "{\"verified\":true,\"account_id\":\"acc_1010\",\"name\":\"Ren Ito\",\"plan\":\"basic\"}"
+    },
+    {
+      "role": "agent",
+      "content": "Plan changes live under Settings, then Billing, then Change plan. An upgrade takes effect immediately and is prorated; a downgrade applies at the next renewal. Your current plan is Basic, renewing on 22 November."
+    }
+  ],
+  "note": "Ideal path from the scenario catalog.",
+  "author": "ulrich",
+  "at": "2026-10-23T12:00:00Z"
+}

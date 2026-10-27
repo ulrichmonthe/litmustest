@@ -1,0 +1,2260 @@
+{
+  "run_id": "run_0041",
+  "commit": "b7e04d5",
+  "branch": "main",
+  "started_at": "2026-10-26T08:00:00Z",
+  "finished_at": "2026-10-26T08:31:00Z",
+  "config_hash": "2a4a97efadf833325b734514b027c59adbc26bf4dc01f43849ef5d10b241ba2a",
+  "trials": 5,
+  "suites": {
+    "regression": {
+      "pass_rate": 85.1,
+      "ci": {
+        "low": 77.9,
+        "high": 92.3,
+        "method": "bootstrap"
+      },
+      "pass_at_1": 85.1,
+      "pass_hat_k": 68.4,
+      "k": 5,
+      "n_tasks": 19,
+      "excluded_judges": [
+        "missed_refund"
+      ]
+    },
+    "capability": {
+      "pass_rate": 60.8,
+      "ci": {
+        "low": 50,
+        "high": 71.6,
+        "method": "bootstrap"
+      },
+      "pass_at_1": 60.8,
+      "pass_hat_k": 6.3,
+      "k": 5,
+      "n_tasks": 16,
+      "excluded_judges": [
+        "missed_refund"
+      ]
+    },
+    "quality": {
+      "pass_rate": 64,
+      "ci": {
+        "low": 45.2,
+        "high": 82.8,
+        "method": "bootstrap"
+      },
+      "pass_at_1": 64,
+      "pass_hat_k": 0,
+      "k": 5,
+      "n_tasks": 5,
+      "excluded_judges": [
+        "missed_refund"
+      ]
+    }
+  },
+  "tasks": {
+    "duplicate_charge_frustrated": {
+      "suite": "regression",
+      "strict_pass": 100,
+      "weighted": 100,
+      "trials": [
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2259,
+          "latency_ms": 4008,
+          "cost_usd": 0.0364,
+          "transcript_ref": "local:run_0041/duplicate_charge_frustrated/5393"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2545,
+          "latency_ms": 8277,
+          "cost_usd": 0.0251,
+          "transcript_ref": "local:run_0041/duplicate_charge_frustrated/650"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2573,
+          "latency_ms": 4170,
+          "cost_usd": 0.0333,
+          "transcript_ref": "local:run_0041/duplicate_charge_frustrated/6351"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2331,
+          "latency_ms": 5349,
+          "cost_usd": 0.0329,
+          "transcript_ref": "local:run_0041/duplicate_charge_frustrated/9862"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2426,
+          "latency_ms": 7681,
+          "cost_usd": 0.0325,
+          "transcript_ref": "local:run_0041/duplicate_charge_frustrated/8290"
+        }
+      ]
+    },
+    "duplicate_charge_business": {
+      "suite": "regression",
+      "strict_pass": 100,
+      "weighted": 100,
+      "trials": [
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 1843,
+          "latency_ms": 4353,
+          "cost_usd": 0.0296,
+          "transcript_ref": "local:run_0041/duplicate_charge_business/1722"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2059,
+          "latency_ms": 6013,
+          "cost_usd": 0.0287,
+          "transcript_ref": "local:run_0041/duplicate_charge_business/6345"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2178,
+          "latency_ms": 8368,
+          "cost_usd": 0.0346,
+          "transcript_ref": "local:run_0041/duplicate_charge_business/7672"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2019,
+          "latency_ms": 7984,
+          "cost_usd": 0.0388,
+          "transcript_ref": "local:run_0041/duplicate_charge_business/5368"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 1833,
+          "latency_ms": 7460,
+          "cost_usd": 0.0303,
+          "transcript_ref": "local:run_0041/duplicate_charge_business/496"
+        }
+      ]
+    },
+    "duplicate_charge_first_time": {
+      "suite": "regression",
+      "strict_pass": 100,
+      "weighted": 100,
+      "trials": [
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 1985,
+          "latency_ms": 7576,
+          "cost_usd": 0.0205,
+          "transcript_ref": "local:run_0041/duplicate_charge_first_time/6595"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2692,
+          "latency_ms": 5403,
+          "cost_usd": 0.0285,
+          "transcript_ref": "local:run_0041/duplicate_charge_first_time/4908"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2513,
+          "latency_ms": 7375,
+          "cost_usd": 0.0339,
+          "transcript_ref": "local:run_0041/duplicate_charge_first_time/8506"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2215,
+          "latency_ms": 6868,
+          "cost_usd": 0.0333,
+          "transcript_ref": "local:run_0041/duplicate_charge_first_time/8770"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2292,
+          "latency_ms": 8896,
+          "cost_usd": 0.028,
+          "transcript_ref": "local:run_0041/duplicate_charge_first_time/7221"
+        }
+      ]
+    },
+    "duplicate_charge_business_frustrated": {
+      "suite": "regression",
+      "strict_pass": 100,
+      "weighted": 100,
+      "trials": [
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2562,
+          "latency_ms": 5514,
+          "cost_usd": 0.0323,
+          "transcript_ref": "local:run_0041/duplicate_charge_business_frustrated/2890"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2118,
+          "latency_ms": 4529,
+          "cost_usd": 0.0372,
+          "transcript_ref": "local:run_0041/duplicate_charge_business_frustrated/8055"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2386,
+          "latency_ms": 7614,
+          "cost_usd": 0.0251,
+          "transcript_ref": "local:run_0041/duplicate_charge_business_frustrated/5943"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2521,
+          "latency_ms": 4485,
+          "cost_usd": 0.0397,
+          "transcript_ref": "local:run_0041/duplicate_charge_business_frustrated/9049"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2128,
+          "latency_ms": 6746,
+          "cost_usd": 0.0286,
+          "transcript_ref": "local:run_0041/duplicate_charge_business_frustrated/1588"
+        }
+      ]
+    },
+    "duplicate_charge_business_business": {
+      "suite": "regression",
+      "strict_pass": 80,
+      "weighted": 88,
+      "trials": [
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 1992,
+          "latency_ms": 8752,
+          "cost_usd": 0.0302,
+          "transcript_ref": "local:run_0041/duplicate_charge_business_business/2275"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2155,
+          "latency_ms": 4054,
+          "cost_usd": 0.0294,
+          "transcript_ref": "local:run_0041/duplicate_charge_business_business/2150"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 1858,
+          "latency_ms": 7061,
+          "cost_usd": 0.0358,
+          "transcript_ref": "local:run_0041/duplicate_charge_business_business/269"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2659,
+          "latency_ms": 6359,
+          "cost_usd": 0.027,
+          "transcript_ref": "local:run_0041/duplicate_charge_business_business/4741"
+        },
+        {
+          "pass": false,
+          "failed_checks": [
+            "tone"
+          ],
+          "infra_error": false,
+          "tokens": 2192,
+          "latency_ms": 7607,
+          "cost_usd": 0.0254,
+          "transcript_ref": "local:run_0041/duplicate_charge_business_business/2423"
+        }
+      ]
+    },
+    "duplicate_charge_business_first_time": {
+      "suite": "regression",
+      "strict_pass": 100,
+      "weighted": 100,
+      "trials": [
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2541,
+          "latency_ms": 6174,
+          "cost_usd": 0.0369,
+          "transcript_ref": "local:run_0041/duplicate_charge_business_first_time/3481"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2655,
+          "latency_ms": 8950,
+          "cost_usd": 0.0307,
+          "transcript_ref": "local:run_0041/duplicate_charge_business_first_time/146"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2262,
+          "latency_ms": 8508,
+          "cost_usd": 0.0386,
+          "transcript_ref": "local:run_0041/duplicate_charge_business_first_time/8795"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 1859,
+          "latency_ms": 7887,
+          "cost_usd": 0.0317,
+          "transcript_ref": "local:run_0041/duplicate_charge_business_first_time/3878"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2115,
+          "latency_ms": 4842,
+          "cost_usd": 0.0329,
+          "transcript_ref": "local:run_0041/duplicate_charge_business_first_time/9938"
+        }
+      ]
+    },
+    "refund_outside_window_frustrated": {
+      "suite": "regression",
+      "strict_pass": 80,
+      "weighted": 88,
+      "trials": [
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 1834,
+          "latency_ms": 8320,
+          "cost_usd": 0.0355,
+          "transcript_ref": "local:run_0041/refund_outside_window_frustrated/2184"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2533,
+          "latency_ms": 4376,
+          "cost_usd": 0.0301,
+          "transcript_ref": "local:run_0041/refund_outside_window_frustrated/3826"
+        },
+        {
+          "pass": false,
+          "failed_checks": [
+            "tone"
+          ],
+          "infra_error": false,
+          "tokens": 1880,
+          "latency_ms": 6886,
+          "cost_usd": 0.0278,
+          "transcript_ref": "local:run_0041/refund_outside_window_frustrated/1202"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 1908,
+          "latency_ms": 7646,
+          "cost_usd": 0.0228,
+          "transcript_ref": "local:run_0041/refund_outside_window_frustrated/1701"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2390,
+          "latency_ms": 7647,
+          "cost_usd": 0.0359,
+          "transcript_ref": "local:run_0041/refund_outside_window_frustrated/2369"
+        }
+      ]
+    },
+    "refund_outside_window_business": {
+      "suite": "regression",
+      "strict_pass": 100,
+      "weighted": 100,
+      "trials": [
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 1950,
+          "latency_ms": 6250,
+          "cost_usd": 0.0374,
+          "transcript_ref": "local:run_0041/refund_outside_window_business/5912"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2488,
+          "latency_ms": 6874,
+          "cost_usd": 0.0241,
+          "transcript_ref": "local:run_0041/refund_outside_window_business/7771"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 1983,
+          "latency_ms": 7096,
+          "cost_usd": 0.0355,
+          "transcript_ref": "local:run_0041/refund_outside_window_business/6085"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2412,
+          "latency_ms": 6232,
+          "cost_usd": 0.0325,
+          "transcript_ref": "local:run_0041/refund_outside_window_business/7630"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2309,
+          "latency_ms": 6901,
+          "cost_usd": 0.0372,
+          "transcript_ref": "local:run_0041/refund_outside_window_business/846"
+        }
+      ]
+    },
+    "refund_outside_window_first_time": {
+      "suite": "regression",
+      "strict_pass": 100,
+      "weighted": 100,
+      "trials": [
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2512,
+          "latency_ms": 8513,
+          "cost_usd": 0.0209,
+          "transcript_ref": "local:run_0041/refund_outside_window_first_time/4285"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2072,
+          "latency_ms": 6724,
+          "cost_usd": 0.034,
+          "transcript_ref": "local:run_0041/refund_outside_window_first_time/4787"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2022,
+          "latency_ms": 5613,
+          "cost_usd": 0.0256,
+          "transcript_ref": "local:run_0041/refund_outside_window_first_time/5625"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2007,
+          "latency_ms": 8624,
+          "cost_usd": 0.029,
+          "transcript_ref": "local:run_0041/refund_outside_window_first_time/404"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 1949,
+          "latency_ms": 6044,
+          "cost_usd": 0.035,
+          "transcript_ref": "local:run_0041/refund_outside_window_first_time/6945"
+        }
+      ]
+    },
+    "invoice_copy_frustrated": {
+      "suite": "regression",
+      "strict_pass": 0,
+      "weighted": 40,
+      "flaky": true,
+      "trials": [
+        {
+          "pass": false,
+          "failed_checks": [
+            "tone"
+          ],
+          "infra_error": false,
+          "tokens": 1818,
+          "latency_ms": 8633,
+          "cost_usd": 0.0356,
+          "transcript_ref": "local:run_0041/invoice_copy_frustrated/9075"
+        },
+        {
+          "pass": false,
+          "failed_checks": [
+            "tone"
+          ],
+          "infra_error": false,
+          "tokens": 2574,
+          "latency_ms": 5610,
+          "cost_usd": 0.0234,
+          "transcript_ref": "local:run_0041/invoice_copy_frustrated/7380"
+        },
+        {
+          "pass": false,
+          "failed_checks": [
+            "tone"
+          ],
+          "infra_error": false,
+          "tokens": 2409,
+          "latency_ms": 4603,
+          "cost_usd": 0.035,
+          "transcript_ref": "local:run_0041/invoice_copy_frustrated/3409"
+        },
+        {
+          "pass": false,
+          "failed_checks": [
+            "tone"
+          ],
+          "infra_error": false,
+          "tokens": 2454,
+          "latency_ms": 4174,
+          "cost_usd": 0.0314,
+          "transcript_ref": "local:run_0041/invoice_copy_frustrated/7196"
+        },
+        {
+          "pass": false,
+          "failed_checks": [
+            "tone"
+          ],
+          "infra_error": false,
+          "tokens": 2333,
+          "latency_ms": 7281,
+          "cost_usd": 0.0222,
+          "transcript_ref": "local:run_0041/invoice_copy_frustrated/2998"
+        }
+      ]
+    },
+    "invoice_copy_business": {
+      "suite": "regression",
+      "strict_pass": 100,
+      "weighted": 100,
+      "trials": [
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2389,
+          "latency_ms": 5543,
+          "cost_usd": 0.0277,
+          "transcript_ref": "local:run_0041/invoice_copy_business/6192"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2159,
+          "latency_ms": 5191,
+          "cost_usd": 0.0222,
+          "transcript_ref": "local:run_0041/invoice_copy_business/3002"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2282,
+          "latency_ms": 6062,
+          "cost_usd": 0.0334,
+          "transcript_ref": "local:run_0041/invoice_copy_business/4626"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2083,
+          "latency_ms": 6335,
+          "cost_usd": 0.0288,
+          "transcript_ref": "local:run_0041/invoice_copy_business/1459"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 1813,
+          "latency_ms": 6839,
+          "cost_usd": 0.0202,
+          "transcript_ref": "local:run_0041/invoice_copy_business/3683"
+        }
+      ]
+    },
+    "invoice_copy_first_time": {
+      "suite": "regression",
+      "strict_pass": 100,
+      "weighted": 100,
+      "trials": [
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2011,
+          "latency_ms": 4550,
+          "cost_usd": 0.0391,
+          "transcript_ref": "local:run_0041/invoice_copy_first_time/3912"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 1804,
+          "latency_ms": 5331,
+          "cost_usd": 0.037,
+          "transcript_ref": "local:run_0041/invoice_copy_first_time/6277"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 1896,
+          "latency_ms": 4188,
+          "cost_usd": 0.0383,
+          "transcript_ref": "local:run_0041/invoice_copy_first_time/3213"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2687,
+          "latency_ms": 6580,
+          "cost_usd": 0.0242,
+          "transcript_ref": "local:run_0041/invoice_copy_first_time/4308"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2188,
+          "latency_ms": 4820,
+          "cost_usd": 0.0228,
+          "transcript_ref": "local:run_0041/invoice_copy_first_time/1375"
+        }
+      ]
+    },
+    "failed_payment_frustrated": {
+      "suite": "regression",
+      "strict_pass": 60,
+      "weighted": 76,
+      "trials": [
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2139,
+          "latency_ms": 6554,
+          "cost_usd": 0.0313,
+          "transcript_ref": "local:run_0041/failed_payment_frustrated/9949"
+        },
+        {
+          "pass": false,
+          "failed_checks": [
+            "tone"
+          ],
+          "infra_error": false,
+          "tokens": 1827,
+          "latency_ms": 8052,
+          "cost_usd": 0.0302,
+          "transcript_ref": "local:run_0041/failed_payment_frustrated/3770"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2545,
+          "latency_ms": 6914,
+          "cost_usd": 0.0395,
+          "transcript_ref": "local:run_0041/failed_payment_frustrated/420"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2495,
+          "latency_ms": 6906,
+          "cost_usd": 0.0286,
+          "transcript_ref": "local:run_0041/failed_payment_frustrated/1916"
+        },
+        {
+          "pass": false,
+          "failed_checks": [
+            "tone"
+          ],
+          "infra_error": false,
+          "tokens": 1945,
+          "latency_ms": 4281,
+          "cost_usd": 0.0236,
+          "transcript_ref": "local:run_0041/failed_payment_frustrated/912"
+        }
+      ]
+    },
+    "failed_payment_business": {
+      "suite": "regression",
+      "strict_pass": 100,
+      "weighted": 100,
+      "trials": [
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 1833,
+          "latency_ms": 6679,
+          "cost_usd": 0.036,
+          "transcript_ref": "local:run_0041/failed_payment_business/5088"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2177,
+          "latency_ms": 5182,
+          "cost_usd": 0.0371,
+          "transcript_ref": "local:run_0041/failed_payment_business/5349"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2365,
+          "latency_ms": 4087,
+          "cost_usd": 0.0268,
+          "transcript_ref": "local:run_0041/failed_payment_business/6800"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 1870,
+          "latency_ms": 4070,
+          "cost_usd": 0.0237,
+          "transcript_ref": "local:run_0041/failed_payment_business/8248"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 1802,
+          "latency_ms": 5694,
+          "cost_usd": 0.0336,
+          "transcript_ref": "local:run_0041/failed_payment_business/4935"
+        }
+      ]
+    },
+    "failed_payment_first_time": {
+      "suite": "regression",
+      "strict_pass": 100,
+      "weighted": 100,
+      "trials": [
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2341,
+          "latency_ms": 5037,
+          "cost_usd": 0.0266,
+          "transcript_ref": "local:run_0041/failed_payment_first_time/1700"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2634,
+          "latency_ms": 5586,
+          "cost_usd": 0.0394,
+          "transcript_ref": "local:run_0041/failed_payment_first_time/3766"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 1915,
+          "latency_ms": 5906,
+          "cost_usd": 0.0355,
+          "transcript_ref": "local:run_0041/failed_payment_first_time/628"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 1834,
+          "latency_ms": 7250,
+          "cost_usd": 0.0259,
+          "transcript_ref": "local:run_0041/failed_payment_first_time/3916"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2566,
+          "latency_ms": 8253,
+          "cost_usd": 0.0326,
+          "transcript_ref": "local:run_0041/failed_payment_first_time/8534"
+        }
+      ]
+    },
+    "cancel_monthly_frustrated": {
+      "suite": "capability",
+      "strict_pass": 20,
+      "weighted": 52,
+      "trials": [
+        {
+          "pass": false,
+          "failed_checks": [
+            "tone"
+          ],
+          "infra_error": false,
+          "tokens": 2414,
+          "latency_ms": 7606,
+          "cost_usd": 0.0309,
+          "transcript_ref": "local:run_0041/cancel_monthly_frustrated/3818"
+        },
+        {
+          "pass": false,
+          "failed_checks": [
+            "tone"
+          ],
+          "infra_error": false,
+          "tokens": 1876,
+          "latency_ms": 6572,
+          "cost_usd": 0.0238,
+          "transcript_ref": "local:run_0041/cancel_monthly_frustrated/9338"
+        },
+        {
+          "pass": false,
+          "failed_checks": [
+            "tone"
+          ],
+          "infra_error": false,
+          "tokens": 1908,
+          "latency_ms": 4962,
+          "cost_usd": 0.033,
+          "transcript_ref": "local:run_0041/cancel_monthly_frustrated/3280"
+        },
+        {
+          "pass": false,
+          "failed_checks": [
+            "tone"
+          ],
+          "infra_error": false,
+          "tokens": 2559,
+          "latency_ms": 5746,
+          "cost_usd": 0.0238,
+          "transcript_ref": "local:run_0041/cancel_monthly_frustrated/3529"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2565,
+          "latency_ms": 4639,
+          "cost_usd": 0.036,
+          "transcript_ref": "local:run_0041/cancel_monthly_frustrated/6015"
+        }
+      ]
+    },
+    "cancel_monthly_business": {
+      "suite": "capability",
+      "strict_pass": 60,
+      "weighted": 76,
+      "trials": [
+        {
+          "pass": false,
+          "failed_checks": [
+            "tone"
+          ],
+          "infra_error": false,
+          "tokens": 2515,
+          "latency_ms": 4166,
+          "cost_usd": 0.0234,
+          "transcript_ref": "local:run_0041/cancel_monthly_business/9260"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2617,
+          "latency_ms": 4347,
+          "cost_usd": 0.0247,
+          "transcript_ref": "local:run_0041/cancel_monthly_business/508"
+        },
+        {
+          "pass": false,
+          "failed_checks": [
+            "tone"
+          ],
+          "infra_error": false,
+          "tokens": 2469,
+          "latency_ms": 7687,
+          "cost_usd": 0.0294,
+          "transcript_ref": "local:run_0041/cancel_monthly_business/7272"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2468,
+          "latency_ms": 6775,
+          "cost_usd": 0.0397,
+          "transcript_ref": "local:run_0041/cancel_monthly_business/183"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2275,
+          "latency_ms": 6604,
+          "cost_usd": 0.0243,
+          "transcript_ref": "local:run_0041/cancel_monthly_business/816"
+        }
+      ]
+    },
+    "cancel_monthly_first_time": {
+      "suite": "capability",
+      "strict_pass": 80,
+      "weighted": 88,
+      "trials": [
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 1833,
+          "latency_ms": 6402,
+          "cost_usd": 0.032,
+          "transcript_ref": "local:run_0041/cancel_monthly_first_time/5618"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 1844,
+          "latency_ms": 7216,
+          "cost_usd": 0.0339,
+          "transcript_ref": "local:run_0041/cancel_monthly_first_time/7704"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2410,
+          "latency_ms": 6792,
+          "cost_usd": 0.0253,
+          "transcript_ref": "local:run_0041/cancel_monthly_first_time/7612"
+        },
+        {
+          "pass": false,
+          "failed_checks": [
+            "tone"
+          ],
+          "infra_error": false,
+          "tokens": 1871,
+          "latency_ms": 6572,
+          "cost_usd": 0.0263,
+          "transcript_ref": "local:run_0041/cancel_monthly_first_time/6834"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 1965,
+          "latency_ms": 7454,
+          "cost_usd": 0.0317,
+          "transcript_ref": "local:run_0041/cancel_monthly_first_time/6914"
+        }
+      ]
+    },
+    "vat_invoice_frustrated": {
+      "suite": "capability",
+      "strict_pass": 60,
+      "weighted": 76,
+      "trials": [
+        {
+          "pass": false,
+          "failed_checks": [
+            "tone"
+          ],
+          "infra_error": false,
+          "tokens": 2530,
+          "latency_ms": 6418,
+          "cost_usd": 0.021,
+          "transcript_ref": "local:run_0041/vat_invoice_frustrated/9410"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2459,
+          "latency_ms": 6474,
+          "cost_usd": 0.0355,
+          "transcript_ref": "local:run_0041/vat_invoice_frustrated/856"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2046,
+          "latency_ms": 8743,
+          "cost_usd": 0.0213,
+          "transcript_ref": "local:run_0041/vat_invoice_frustrated/6462"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2112,
+          "latency_ms": 5347,
+          "cost_usd": 0.0309,
+          "transcript_ref": "local:run_0041/vat_invoice_frustrated/9025"
+        },
+        {
+          "pass": false,
+          "failed_checks": [
+            "tone"
+          ],
+          "infra_error": false,
+          "tokens": 2149,
+          "latency_ms": 5593,
+          "cost_usd": 0.0331,
+          "transcript_ref": "local:run_0041/vat_invoice_frustrated/2092"
+        }
+      ]
+    },
+    "vat_invoice_business": {
+      "suite": "capability",
+      "strict_pass": 40,
+      "weighted": 64,
+      "trials": [
+        {
+          "pass": false,
+          "failed_checks": [
+            "tone"
+          ],
+          "infra_error": false,
+          "tokens": 2366,
+          "latency_ms": 8874,
+          "cost_usd": 0.0314,
+          "transcript_ref": "local:run_0041/vat_invoice_business/360"
+        },
+        {
+          "pass": false,
+          "failed_checks": [
+            "tone"
+          ],
+          "infra_error": false,
+          "tokens": 2597,
+          "latency_ms": 8620,
+          "cost_usd": 0.0223,
+          "transcript_ref": "local:run_0041/vat_invoice_business/491"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2188,
+          "latency_ms": 4120,
+          "cost_usd": 0.0281,
+          "transcript_ref": "local:run_0041/vat_invoice_business/7406"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 1809,
+          "latency_ms": 8048,
+          "cost_usd": 0.0354,
+          "transcript_ref": "local:run_0041/vat_invoice_business/6333"
+        },
+        {
+          "pass": false,
+          "failed_checks": [
+            "tone"
+          ],
+          "infra_error": false,
+          "tokens": 2006,
+          "latency_ms": 8234,
+          "cost_usd": 0.024,
+          "transcript_ref": "local:run_0041/vat_invoice_business/5627"
+        }
+      ]
+    },
+    "vat_invoice_first_time": {
+      "suite": "capability",
+      "strict_pass": 100,
+      "weighted": 100,
+      "trials": [
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2636,
+          "latency_ms": 5329,
+          "cost_usd": 0.0392,
+          "transcript_ref": "local:run_0041/vat_invoice_first_time/7221"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2556,
+          "latency_ms": 5003,
+          "cost_usd": 0.0267,
+          "transcript_ref": "local:run_0041/vat_invoice_first_time/14"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2015,
+          "latency_ms": 8718,
+          "cost_usd": 0.0251,
+          "transcript_ref": "local:run_0041/vat_invoice_first_time/7472"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2178,
+          "latency_ms": 6627,
+          "cost_usd": 0.0354,
+          "transcript_ref": "local:run_0041/vat_invoice_first_time/6799"
+        },
+        {
+          "pass": false,
+          "failed_checks": [],
+          "infra_error": true,
+          "infra_error_kind": "timeout",
+          "tokens": 2183,
+          "latency_ms": 7634,
+          "cost_usd": 0.0352,
+          "transcript_ref": "local:run_0041/vat_invoice_first_time/9670"
+        }
+      ]
+    },
+    "identity_mismatch_frustrated": {
+      "suite": "quality",
+      "strict_pass": 80,
+      "weighted": 88,
+      "trials": [
+        {
+          "pass": false,
+          "failed_checks": [
+            "tone"
+          ],
+          "infra_error": false,
+          "tokens": 1906,
+          "latency_ms": 5592,
+          "cost_usd": 0.0269,
+          "transcript_ref": "local:run_0041/identity_mismatch_frustrated/4094"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2028,
+          "latency_ms": 4230,
+          "cost_usd": 0.0216,
+          "transcript_ref": "local:run_0041/identity_mismatch_frustrated/1309"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2681,
+          "latency_ms": 5411,
+          "cost_usd": 0.0255,
+          "transcript_ref": "local:run_0041/identity_mismatch_frustrated/3688"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2177,
+          "latency_ms": 7958,
+          "cost_usd": 0.0318,
+          "transcript_ref": "local:run_0041/identity_mismatch_frustrated/7812"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2609,
+          "latency_ms": 4633,
+          "cost_usd": 0.0272,
+          "transcript_ref": "local:run_0041/identity_mismatch_frustrated/8031"
+        }
+      ]
+    },
+    "identity_mismatch_business": {
+      "suite": "quality",
+      "strict_pass": 80,
+      "weighted": 88,
+      "trials": [
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2106,
+          "latency_ms": 8501,
+          "cost_usd": 0.0355,
+          "transcript_ref": "local:run_0041/identity_mismatch_business/8274"
+        },
+        {
+          "pass": false,
+          "failed_checks": [
+            "tone"
+          ],
+          "infra_error": false,
+          "tokens": 2602,
+          "latency_ms": 5558,
+          "cost_usd": 0.0212,
+          "transcript_ref": "local:run_0041/identity_mismatch_business/8521"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2642,
+          "latency_ms": 8992,
+          "cost_usd": 0.0382,
+          "transcript_ref": "local:run_0041/identity_mismatch_business/6656"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2450,
+          "latency_ms": 6772,
+          "cost_usd": 0.0279,
+          "transcript_ref": "local:run_0041/identity_mismatch_business/6814"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2135,
+          "latency_ms": 6355,
+          "cost_usd": 0.0253,
+          "transcript_ref": "local:run_0041/identity_mismatch_business/9017"
+        }
+      ]
+    },
+    "identity_mismatch_first_time": {
+      "suite": "quality",
+      "strict_pass": 80,
+      "weighted": 88,
+      "trials": [
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2104,
+          "latency_ms": 7270,
+          "cost_usd": 0.0215,
+          "transcript_ref": "local:run_0041/identity_mismatch_first_time/5778"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2188,
+          "latency_ms": 5078,
+          "cost_usd": 0.0339,
+          "transcript_ref": "local:run_0041/identity_mismatch_first_time/8336"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2002,
+          "latency_ms": 8074,
+          "cost_usd": 0.0245,
+          "transcript_ref": "local:run_0041/identity_mismatch_first_time/2215"
+        },
+        {
+          "pass": false,
+          "failed_checks": [
+            "tone"
+          ],
+          "infra_error": false,
+          "tokens": 2686,
+          "latency_ms": 4886,
+          "cost_usd": 0.028,
+          "transcript_ref": "local:run_0041/identity_mismatch_first_time/4647"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2055,
+          "latency_ms": 4891,
+          "cost_usd": 0.0318,
+          "transcript_ref": "local:run_0041/identity_mismatch_first_time/2248"
+        }
+      ]
+    },
+    "pro_refund_in_window_frustrated": {
+      "suite": "regression",
+      "strict_pass": 100,
+      "weighted": 100,
+      "trials": [
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2191,
+          "latency_ms": 7408,
+          "cost_usd": 0.0391,
+          "transcript_ref": "local:run_0041/pro_refund_in_window_frustrated/5428"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 1805,
+          "latency_ms": 7240,
+          "cost_usd": 0.02,
+          "transcript_ref": "local:run_0041/pro_refund_in_window_frustrated/7360"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2676,
+          "latency_ms": 8106,
+          "cost_usd": 0.0364,
+          "transcript_ref": "local:run_0041/pro_refund_in_window_frustrated/4726"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2513,
+          "latency_ms": 7888,
+          "cost_usd": 0.0279,
+          "transcript_ref": "local:run_0041/pro_refund_in_window_frustrated/3328"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 1945,
+          "latency_ms": 5013,
+          "cost_usd": 0.0238,
+          "transcript_ref": "local:run_0041/pro_refund_in_window_frustrated/2475"
+        }
+      ]
+    },
+    "pro_refund_in_window_business": {
+      "suite": "regression",
+      "strict_pass": 100,
+      "weighted": 100,
+      "trials": [
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 1929,
+          "latency_ms": 7957,
+          "cost_usd": 0.0337,
+          "transcript_ref": "local:run_0041/pro_refund_in_window_business/6294"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2297,
+          "latency_ms": 5828,
+          "cost_usd": 0.0395,
+          "transcript_ref": "local:run_0041/pro_refund_in_window_business/7570"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2634,
+          "latency_ms": 8731,
+          "cost_usd": 0.0355,
+          "transcript_ref": "local:run_0041/pro_refund_in_window_business/5432"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 1892,
+          "latency_ms": 8286,
+          "cost_usd": 0.0244,
+          "transcript_ref": "local:run_0041/pro_refund_in_window_business/4111"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2266,
+          "latency_ms": 7244,
+          "cost_usd": 0.0286,
+          "transcript_ref": "local:run_0041/pro_refund_in_window_business/9030"
+        }
+      ]
+    },
+    "pro_refund_in_window_first_time": {
+      "suite": "regression",
+      "strict_pass": 80,
+      "weighted": 88,
+      "trials": [
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2175,
+          "latency_ms": 8507,
+          "cost_usd": 0.0242,
+          "transcript_ref": "local:run_0041/pro_refund_in_window_first_time/1013"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 1994,
+          "latency_ms": 8984,
+          "cost_usd": 0.0266,
+          "transcript_ref": "local:run_0041/pro_refund_in_window_first_time/5732"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2310,
+          "latency_ms": 7922,
+          "cost_usd": 0.0371,
+          "transcript_ref": "local:run_0041/pro_refund_in_window_first_time/8859"
+        },
+        {
+          "pass": false,
+          "failed_checks": [
+            "end_state"
+          ],
+          "infra_error": false,
+          "tokens": 2514,
+          "latency_ms": 8591,
+          "cost_usd": 0.0354,
+          "transcript_ref": "local:run_0041/pro_refund_in_window_first_time/6822"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2188,
+          "latency_ms": 5988,
+          "cost_usd": 0.0354,
+          "transcript_ref": "local:run_0041/pro_refund_in_window_first_time/1326"
+        }
+      ]
+    },
+    "first_month_howto_frustrated": {
+      "suite": "capability",
+      "strict_pass": 60,
+      "weighted": 76,
+      "trials": [
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2447,
+          "latency_ms": 5369,
+          "cost_usd": 0.0308,
+          "transcript_ref": "local:run_0041/first_month_howto_frustrated/7113"
+        },
+        {
+          "pass": false,
+          "failed_checks": [
+            "tone"
+          ],
+          "infra_error": false,
+          "tokens": 2345,
+          "latency_ms": 8207,
+          "cost_usd": 0.0368,
+          "transcript_ref": "local:run_0041/first_month_howto_frustrated/1519"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2324,
+          "latency_ms": 6312,
+          "cost_usd": 0.0247,
+          "transcript_ref": "local:run_0041/first_month_howto_frustrated/9416"
+        },
+        {
+          "pass": false,
+          "failed_checks": [
+            "tone"
+          ],
+          "infra_error": false,
+          "tokens": 2647,
+          "latency_ms": 8215,
+          "cost_usd": 0.0378,
+          "transcript_ref": "local:run_0041/first_month_howto_frustrated/2037"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 1863,
+          "latency_ms": 7032,
+          "cost_usd": 0.0209,
+          "transcript_ref": "local:run_0041/first_month_howto_frustrated/7959"
+        }
+      ]
+    },
+    "first_month_howto_business": {
+      "suite": "capability",
+      "strict_pass": 80,
+      "weighted": 88,
+      "trials": [
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 1836,
+          "latency_ms": 4004,
+          "cost_usd": 0.0214,
+          "transcript_ref": "local:run_0041/first_month_howto_business/9466"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2629,
+          "latency_ms": 4168,
+          "cost_usd": 0.0304,
+          "transcript_ref": "local:run_0041/first_month_howto_business/7525"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2469,
+          "latency_ms": 5662,
+          "cost_usd": 0.0224,
+          "transcript_ref": "local:run_0041/first_month_howto_business/8401"
+        },
+        {
+          "pass": false,
+          "failed_checks": [
+            "tone"
+          ],
+          "infra_error": false,
+          "tokens": 1968,
+          "latency_ms": 6967,
+          "cost_usd": 0.0248,
+          "transcript_ref": "local:run_0041/first_month_howto_business/5555"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 1975,
+          "latency_ms": 7259,
+          "cost_usd": 0.0219,
+          "transcript_ref": "local:run_0041/first_month_howto_business/1225"
+        }
+      ]
+    },
+    "first_month_howto_first_time": {
+      "suite": "capability",
+      "strict_pass": 60,
+      "weighted": 76,
+      "trials": [
+        {
+          "pass": false,
+          "failed_checks": [
+            "tone"
+          ],
+          "infra_error": false,
+          "tokens": 2444,
+          "latency_ms": 8124,
+          "cost_usd": 0.0285,
+          "transcript_ref": "local:run_0041/first_month_howto_first_time/7970"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2251,
+          "latency_ms": 7321,
+          "cost_usd": 0.0357,
+          "transcript_ref": "local:run_0041/first_month_howto_first_time/330"
+        },
+        {
+          "pass": false,
+          "failed_checks": [
+            "tone"
+          ],
+          "infra_error": false,
+          "tokens": 2069,
+          "latency_ms": 5605,
+          "cost_usd": 0.0367,
+          "transcript_ref": "local:run_0041/first_month_howto_first_time/7422"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2152,
+          "latency_ms": 4634,
+          "cost_usd": 0.0298,
+          "transcript_ref": "local:run_0041/first_month_howto_first_time/8768"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2091,
+          "latency_ms": 6221,
+          "cost_usd": 0.0226,
+          "transcript_ref": "local:run_0041/first_month_howto_first_time/2115"
+        }
+      ]
+    },
+    "refund_batch_business": {
+      "suite": "capability",
+      "strict_pass": 60,
+      "weighted": 76,
+      "trials": [
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2432,
+          "latency_ms": 6341,
+          "cost_usd": 0.0345,
+          "transcript_ref": "local:run_0041/refund_batch_business/6408"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2060,
+          "latency_ms": 7664,
+          "cost_usd": 0.0245,
+          "transcript_ref": "local:run_0041/refund_batch_business/2874"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 1842,
+          "latency_ms": 6579,
+          "cost_usd": 0.0205,
+          "transcript_ref": "local:run_0041/refund_batch_business/7241"
+        },
+        {
+          "pass": false,
+          "failed_checks": [
+            "tone"
+          ],
+          "infra_error": false,
+          "tokens": 2549,
+          "latency_ms": 4859,
+          "cost_usd": 0.0272,
+          "transcript_ref": "local:run_0041/refund_batch_business/3588"
+        },
+        {
+          "pass": false,
+          "failed_checks": [
+            "tone"
+          ],
+          "infra_error": false,
+          "tokens": 2108,
+          "latency_ms": 7678,
+          "cost_usd": 0.0307,
+          "transcript_ref": "local:run_0041/refund_batch_business/9657"
+        }
+      ]
+    },
+    "goodwill_credit_business": {
+      "suite": "capability",
+      "strict_pass": 40,
+      "weighted": 64,
+      "trials": [
+        {
+          "pass": false,
+          "failed_checks": [
+            "tone"
+          ],
+          "infra_error": false,
+          "tokens": 2343,
+          "latency_ms": 6566,
+          "cost_usd": 0.0329,
+          "transcript_ref": "local:run_0041/goodwill_credit_business/6890"
+        },
+        {
+          "pass": false,
+          "failed_checks": [
+            "tone"
+          ],
+          "infra_error": false,
+          "tokens": 2476,
+          "latency_ms": 4250,
+          "cost_usd": 0.0391,
+          "transcript_ref": "local:run_0041/goodwill_credit_business/7757"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2146,
+          "latency_ms": 7236,
+          "cost_usd": 0.028,
+          "transcript_ref": "local:run_0041/goodwill_credit_business/5159"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2206,
+          "latency_ms": 5946,
+          "cost_usd": 0.0228,
+          "transcript_ref": "local:run_0041/goodwill_credit_business/7866"
+        },
+        {
+          "pass": false,
+          "failed_checks": [
+            "tone"
+          ],
+          "infra_error": false,
+          "tokens": 2216,
+          "latency_ms": 4700,
+          "cost_usd": 0.0263,
+          "transcript_ref": "local:run_0041/goodwill_credit_business/2775"
+        }
+      ]
+    },
+    "pause_plan_first_time": {
+      "suite": "capability",
+      "strict_pass": 80,
+      "weighted": 88,
+      "trials": [
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2110,
+          "latency_ms": 5297,
+          "cost_usd": 0.0385,
+          "transcript_ref": "local:run_0041/pause_plan_first_time/9362"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2594,
+          "latency_ms": 8336,
+          "cost_usd": 0.0344,
+          "transcript_ref": "local:run_0041/pause_plan_first_time/3918"
+        },
+        {
+          "pass": false,
+          "failed_checks": [
+            "tone"
+          ],
+          "infra_error": false,
+          "tokens": 1973,
+          "latency_ms": 4513,
+          "cost_usd": 0.0335,
+          "transcript_ref": "local:run_0041/pause_plan_first_time/6795"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 1913,
+          "latency_ms": 5206,
+          "cost_usd": 0.0331,
+          "transcript_ref": "local:run_0041/pause_plan_first_time/6263"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2369,
+          "latency_ms": 6006,
+          "cost_usd": 0.0207,
+          "transcript_ref": "local:run_0041/pause_plan_first_time/7188"
+        }
+      ]
+    },
+    "vat_self_serve_first_time": {
+      "suite": "capability",
+      "strict_pass": 40,
+      "weighted": 64,
+      "trials": [
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2586,
+          "latency_ms": 4844,
+          "cost_usd": 0.0208,
+          "transcript_ref": "local:run_0041/vat_self_serve_first_time/9033"
+        },
+        {
+          "pass": false,
+          "failed_checks": [
+            "tone"
+          ],
+          "infra_error": false,
+          "tokens": 2458,
+          "latency_ms": 7879,
+          "cost_usd": 0.0242,
+          "transcript_ref": "local:run_0041/vat_self_serve_first_time/2063"
+        },
+        {
+          "pass": false,
+          "failed_checks": [
+            "tone"
+          ],
+          "infra_error": false,
+          "tokens": 2159,
+          "latency_ms": 8846,
+          "cost_usd": 0.0261,
+          "transcript_ref": "local:run_0041/vat_self_serve_first_time/3710"
+        },
+        {
+          "pass": false,
+          "failed_checks": [
+            "tone"
+          ],
+          "infra_error": false,
+          "tokens": 2185,
+          "latency_ms": 4265,
+          "cost_usd": 0.0281,
+          "transcript_ref": "local:run_0041/vat_self_serve_first_time/3651"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2080,
+          "latency_ms": 7650,
+          "cost_usd": 0.0351,
+          "transcript_ref": "local:run_0041/vat_self_serve_first_time/1405"
+        }
+      ]
+    },
+    "retry_now_business": {
+      "suite": "capability",
+      "strict_pass": 80,
+      "weighted": 88,
+      "trials": [
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2015,
+          "latency_ms": 5750,
+          "cost_usd": 0.0221,
+          "transcript_ref": "local:run_0041/retry_now_business/6442"
+        },
+        {
+          "pass": false,
+          "failed_checks": [
+            "tone"
+          ],
+          "infra_error": false,
+          "tokens": 2526,
+          "latency_ms": 4991,
+          "cost_usd": 0.0237,
+          "transcript_ref": "local:run_0041/retry_now_business/8688"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2395,
+          "latency_ms": 7568,
+          "cost_usd": 0.0364,
+          "transcript_ref": "local:run_0041/retry_now_business/9086"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 1950,
+          "latency_ms": 8222,
+          "cost_usd": 0.0206,
+          "transcript_ref": "local:run_0041/retry_now_business/2107"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 1805,
+          "latency_ms": 6819,
+          "cost_usd": 0.0323,
+          "transcript_ref": "local:run_0041/retry_now_business/2901"
+        }
+      ]
+    },
+    "invoice_history_first_time": {
+      "suite": "capability",
+      "strict_pass": 80,
+      "weighted": 88,
+      "trials": [
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2220,
+          "latency_ms": 5490,
+          "cost_usd": 0.0398,
+          "transcript_ref": "local:run_0041/invoice_history_first_time/3474"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2485,
+          "latency_ms": 5568,
+          "cost_usd": 0.0373,
+          "transcript_ref": "local:run_0041/invoice_history_first_time/3865"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 1848,
+          "latency_ms": 6861,
+          "cost_usd": 0.0383,
+          "transcript_ref": "local:run_0041/invoice_history_first_time/2276"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 1813,
+          "latency_ms": 8277,
+          "cost_usd": 0.032,
+          "transcript_ref": "local:run_0041/invoice_history_first_time/2121"
+        },
+        {
+          "pass": false,
+          "failed_checks": [
+            "tone"
+          ],
+          "infra_error": false,
+          "tokens": 2563,
+          "latency_ms": 8879,
+          "cost_usd": 0.0227,
+          "transcript_ref": "local:run_0041/invoice_history_first_time/3732"
+        }
+      ]
+    },
+    "partial_refund_business": {
+      "suite": "capability",
+      "strict_pass": 40,
+      "weighted": 64,
+      "trials": [
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2085,
+          "latency_ms": 8693,
+          "cost_usd": 0.0295,
+          "transcript_ref": "local:run_0041/partial_refund_business/1591"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2219,
+          "latency_ms": 5530,
+          "cost_usd": 0.0386,
+          "transcript_ref": "local:run_0041/partial_refund_business/8402"
+        },
+        {
+          "pass": false,
+          "failed_checks": [
+            "tone"
+          ],
+          "infra_error": false,
+          "tokens": 2178,
+          "latency_ms": 4166,
+          "cost_usd": 0.0375,
+          "transcript_ref": "local:run_0041/partial_refund_business/7791"
+        },
+        {
+          "pass": false,
+          "failed_checks": [
+            "end_state"
+          ],
+          "infra_error": false,
+          "tokens": 2554,
+          "latency_ms": 4652,
+          "cost_usd": 0.025,
+          "transcript_ref": "local:run_0041/partial_refund_business/4852"
+        },
+        {
+          "pass": false,
+          "failed_checks": [
+            "end_state"
+          ],
+          "infra_error": false,
+          "tokens": 2180,
+          "latency_ms": 7422,
+          "cost_usd": 0.0307,
+          "transcript_ref": "local:run_0041/partial_refund_business/7213"
+        }
+      ]
+    },
+    "tone_only_frustrated": {
+      "suite": "quality",
+      "strict_pass": 60,
+      "weighted": 76,
+      "trials": [
+        {
+          "pass": false,
+          "failed_checks": [
+            "tone"
+          ],
+          "infra_error": false,
+          "tokens": 2607,
+          "latency_ms": 6439,
+          "cost_usd": 0.025,
+          "transcript_ref": "local:run_0041/tone_only_frustrated/5370"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2667,
+          "latency_ms": 8879,
+          "cost_usd": 0.0293,
+          "transcript_ref": "local:run_0041/tone_only_frustrated/3582"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2313,
+          "latency_ms": 4758,
+          "cost_usd": 0.0202,
+          "transcript_ref": "local:run_0041/tone_only_frustrated/4893"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 2170,
+          "latency_ms": 8086,
+          "cost_usd": 0.035,
+          "transcript_ref": "local:run_0041/tone_only_frustrated/6983"
+        },
+        {
+          "pass": false,
+          "failed_checks": [
+            "tone"
+          ],
+          "infra_error": false,
+          "tokens": 2335,
+          "latency_ms": 6913,
+          "cost_usd": 0.0229,
+          "transcript_ref": "local:run_0041/tone_only_frustrated/9666"
+        }
+      ]
+    },
+    "tone_only_business": {
+      "suite": "quality",
+      "strict_pass": 20,
+      "weighted": 52,
+      "trials": [
+        {
+          "pass": false,
+          "failed_checks": [
+            "tone"
+          ],
+          "infra_error": false,
+          "tokens": 1802,
+          "latency_ms": 4216,
+          "cost_usd": 0.0316,
+          "transcript_ref": "local:run_0041/tone_only_business/5295"
+        },
+        {
+          "pass": false,
+          "failed_checks": [
+            "tone"
+          ],
+          "infra_error": false,
+          "tokens": 2221,
+          "latency_ms": 7799,
+          "cost_usd": 0.0257,
+          "transcript_ref": "local:run_0041/tone_only_business/3605"
+        },
+        {
+          "pass": false,
+          "failed_checks": [
+            "tone"
+          ],
+          "infra_error": false,
+          "tokens": 2161,
+          "latency_ms": 8913,
+          "cost_usd": 0.022,
+          "transcript_ref": "local:run_0041/tone_only_business/4795"
+        },
+        {
+          "pass": true,
+          "failed_checks": [],
+          "infra_error": false,
+          "tokens": 1803,
+          "latency_ms": 6216,
+          "cost_usd": 0.027,
+          "transcript_ref": "local:run_0041/tone_only_business/7752"
+        },
+        {
+          "pass": false,
+          "failed_checks": [
+            "tone"
+          ],
+          "infra_error": false,
+          "tokens": 2358,
+          "latency_ms": 8879,
+          "cost_usd": 0.0372,
+          "transcript_ref": "local:run_0041/tone_only_business/1732"
+        }
+      ]
+    },
+    "refund_ghost_account_frustrated": {
+      "suite": "regression",
+      "strict_pass": 0,
+      "weighted": 40,
+      "likely_broken": true,
+      "trials": [
+        {
+          "pass": false,
+          "failed_checks": [
+            "tone"
+          ],
+          "infra_error": false,
+          "tokens": 1902,
+          "latency_ms": 7801,
+          "cost_usd": 0.0266,
+          "transcript_ref": "local:run_0041/refund_ghost_account_frustrated/2129"
+        },
+        {
+          "pass": false,
+          "failed_checks": [
+            "end_state"
+          ],
+          "infra_error": false,
+          "tokens": 2380,
+          "latency_ms": 8681,
+          "cost_usd": 0.0239,
+          "transcript_ref": "local:run_0041/refund_ghost_account_frustrated/6611"
+        },
+        {
+          "pass": false,
+          "failed_checks": [
+            "end_state"
+          ],
+          "infra_error": false,
+          "tokens": 1823,
+          "latency_ms": 7450,
+          "cost_usd": 0.029,
+          "transcript_ref": "local:run_0041/refund_ghost_account_frustrated/730"
+        },
+        {
+          "pass": false,
+          "failed_checks": [],
+          "infra_error": true,
+          "infra_error_kind": "timeout",
+          "tokens": 1835,
+          "latency_ms": 6876,
+          "cost_usd": 0.0204,
+          "transcript_ref": "local:run_0041/refund_ghost_account_frustrated/4548"
+        },
+        {
+          "pass": false,
+          "failed_checks": [
+            "end_state"
+          ],
+          "infra_error": false,
+          "tokens": 1813,
+          "latency_ms": 4508,
+          "cost_usd": 0.0228,
+          "transcript_ref": "local:run_0041/refund_ghost_account_frustrated/6850"
+        }
+      ]
+    }
+  },
+  "infra_error_rate": 1,
+  "cost_usd": 5.97,
+  "judge_corrections": [
+    {
+      "judge": "tone_mismatch",
+      "tpr": 90,
+      "tnr": 100,
+      "prompt_hash": "3f1b24a479bd6e769c7aa271e0e94e5f26090b728b464f9d3d743bc18296021a"
+    }
+  ]
+}

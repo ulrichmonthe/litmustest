@@ -1,0 +1,15 @@
+{
+  "name": "support-agent-example",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "A small subscription-support agent used as the target for litmustest's own evals.",
+  "scripts": {
+    "seed-db": "node src/db.ts seed",
+    "trial": "node src/run_trial.ts",
+    "generate-traces": "node src/generate_traces.ts",
+    "seed-evals": "node src/seed_evals.ts"
+  },
+  "dependencies": { "@anthropic-ai/sdk": "^0.80.0" },
+  "engines": { "node": ">=22.13" }
+}

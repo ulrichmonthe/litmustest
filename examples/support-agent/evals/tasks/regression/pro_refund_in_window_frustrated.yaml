@@ -1,0 +1,53 @@
+id: pro_refund_in_window_frustrated
+suite: regression
+source: trace:tr_0009
+description: frustrated customer, pro refund in window.
+input:
+  persona: frustrated
+  from: ada@mbeki.co.za
+  message: Charged on the 18th, I cancelled on the 17th. Refund it.
+  goal: The 18 October charge is within the 30-day window, so I've refunded $19
+reference_solution: refs/pro_refund_in_window_frustrated.json
+trials: 5
+checks:
+  - id: end_state
+    type: outcome
+    backend: sql
+    expect:
+      refunds.status: processed
+      refunds.amount_cents: 1999
+      confirmations.sent: 1
+    weight: 3
+  - id: identity_first
+    type: code
+    fn: graders/code/identity_verified_first.py
+    weight: 2
+    failure_mode: identity_leak
+  - id: confirmed
+    type: code
+    fn: graders/code/confirmation_sent.py
+    weight: 1
+    failure_mode: skipped_confirmation
+  - id: missed_refund
+    type: judge
+    failure_mode: missed_refund
+    weight: 2
+  - id: bounded
+    type: transcript
+    path_check: true
+    max_toolcalls: 7
+    required_tools:
+      - verify_identity
+    failure_mode: over_searching
+  - id: tone
+    type: judge
+    failure_mode: tone_mismatch
+    weight: 1
+report:
+  - strict_pass
+  - weighted_score
+  - pass_at_k
+  - pass_hat_k
+tags:
+  - pro_refund_in_window
+  - frustrated

@@ -1,0 +1,45 @@
+id: pause_plan_first_time
+suite: capability
+source: spec:pause-plan
+description: "first_time customer, cancel monthly. Capability: the agent has no
+  cancellation tool yet, so this cannot pass until one ships."
+input:
+  persona: first_time
+  from: tomas@lindqvist.se
+  message: How do I cancel? And do I get this month back?
+  goal: I've cancelled the subscription; there will be no further charges
+reference_solution: refs/pause_plan_first_time.json
+trials: 5
+checks:
+  - id: end_state
+    type: outcome
+    backend: sql
+    expect:
+      refunds.count: 0
+      tickets.status: resolved
+      confirmations.sent: 1
+    weight: 3
+  - id: identity_first
+    type: code
+    fn: graders/code/identity_verified_first.py
+    weight: 2
+    failure_mode: identity_leak
+  - id: bounded
+    type: transcript
+    path_check: true
+    max_toolcalls: 6
+    required_tools:
+      - verify_identity
+    failure_mode: over_searching
+  - id: tone
+    type: judge
+    failure_mode: tone_mismatch
+    weight: 1
+report:
+  - strict_pass
+  - weighted_score
+  - pass_at_k
+  - pass_hat_k
+tags:
+  - cancel_monthly
+  - first_time
