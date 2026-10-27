@@ -5,8 +5,10 @@ import { existsSync, readFileSync } from "node:fs";
 import { dirname, extname, join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { App, HttpError, type Reply } from "./server/app.ts";
+import { discoverRoute } from "./server/discover_route.ts";
+import type { Ask } from "./discover.ts";
 
-export interface ServeOptions { evalsDir: string; port?: number; host?: string; watch?: boolean }
+export interface ServeOptions { evalsDir: string; port?: number; host?: string; watch?: boolean; ask?: Ask }
 export interface Running { server: Server; app: App; url: string; close: () => Promise<void> }
 
 export async function serve(o: ServeOptions): Promise<Running> {
@@ -24,14 +26,14 @@ export async function serve(o: ServeOptions): Promise<Running> {
       });
     } catch { /* recursive watch unsupported: validation still happens on every request */ }
   }
-  const server = createServer((req, res) => void handle(app, req, res));
+  const server = createServer((req, res) => void handle(app, req, res, o.ask));
   await new Promise<void>((r) => server.listen(o.port ?? 4242, o.host ?? "127.0.0.1", r));
   const addr = server.address() as { address: string; port: number };
   const url = `http://${addr.address}:${addr.port}`;
   return { server, app, url, close: () => new Promise((r) => { watcher?.close(); server.close(() => r()); }) };
 }
 
-async function handle(app: App, req: IncomingMessage, res: ServerResponse): Promise<void> {
+async function handle(app: App, req: IncomingMessage, res: ServerResponse, ask?: Ask): Promise<void> {
   const url = new URL(req.url ?? "/", "http://localhost");
   const path = url.pathname; const q = (k: string) => url.searchParams.get(k) ?? undefined;
   const send = (r: Reply) => { res.writeHead(r.status, { "content-type": "application/json", "cache-control": "no-store", ...(r.headers ?? {}) }); res.end(JSON.stringify(r.body)); };
@@ -45,6 +47,7 @@ async function handle(app: App, req: IncomingMessage, res: ServerResponse): Prom
     const body = ["PUT", "POST"].includes(req.method ?? "") ? await readJson(req) : {};
     if (!path.startsWith("/api/") && req.method === "GET") return serveStatic(path, res);
     if (path === "/api/failure_modes" && req.method === "GET") return send(app.failureModes());
+    if (path === "/api/discover" && req.method === "POST") return send(await discoverRoute(app, body, ask));
     if (path === "/api/health") return send(app.health());
     if (path === "/api/validate") return send({ status: 200, body: app.validate(Boolean(q("refresh"))) });
     if (path === "/api/files" && req.method === "GET") return send(app.listFiles());

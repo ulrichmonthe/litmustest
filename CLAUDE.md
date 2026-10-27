@@ -23,6 +23,9 @@ It reconciles two sources: the evals-skills course method (error analysis → bi
 ## Repo layout
 
 ```
+.claude-plugin/marketplace.json  # the marketplace: points at plugin/
+plugin/                   # the plugin: .claude-plugin/plugin.json (name litmustest), skills/<name>/SKILL.md; .codex-plugin untested until Phase 2
+                          # modified upstream skills carry the Apache 2.0 attribution comment
 schemas/                  # JSON Schema 2020-12 for every file under evals/; $id versioned under /v1/
 packages/cli/             # the `litmustest` npm package (TypeScript, Node >= 22); schemas copied in at publish
 examples/support-agent/   # the sample repo: agent, trace generator, seed evals, Harbor task (Part B)
@@ -76,6 +79,7 @@ evals/
 ## Working agreement for this repo
 
 - One PR per phase milestone. Each PR is reviewed against `docs/ACCEPTANCE.md` before merge.
+- A skill writes files under `evals/` and stops; the Pending changes tray shows every uncommitted change there, and a person commits. `litmustest discover` is the model-backed step of error discovery; it proposes and writes only with `--apply`.
 - Never hand-edit `calibration.json`; it is written by `litmustest calibrate` only. The one exception is the server marking a trusted calibration `stale` when the judge's prompt or model changes; the API refuses direct writes to it.
 - The dashboard is a client of the CLI and the files. If something works in the dashboard but not the CLI, that is a bug.
 - Mockups in `design/mockups/` are the UI reference. Replicate their values from inline styles and `brand/tokens.json`; do not copy the markup wholesale. In `packages/cli/ui/` every colour, radius and spacing is a `var(--token)` from the generated `tokens.css`; no hex values in `app.css`.

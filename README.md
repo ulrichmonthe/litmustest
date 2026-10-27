@@ -22,7 +22,17 @@ Pre-release. Phase 1 (schemas and validator) is in progress. Nothing is publishe
 | `docs/SCREENS.md`, `design/mockups/` | The eight dashboard screens |
 | `docs/BRAND.md`, `brand/` | Brand book, design tokens, logos |
 | `schemas/` | JSON Schema (draft 2020-12) for every file under `evals/` |
-| `packages/cli/` | The `litmustest` CLI |
+| `packages/cli/` | The `litmustest` CLI, server and dashboard |
+| `plugin/` | The Claude Code plugin: manifest and skills (`error-discovery` so far) |
+
+## Install the plugin
+
+```bash
+claude plugin marketplace add ulrichmonthe/litmustest
+claude plugin install litmustest
+```
+
+The skills call the `litmustest` CLI, installed separately: `npm install -g litmustest` once it is published. Codex manifests ship but are untested until Phase 2.
 
 ## Development
 

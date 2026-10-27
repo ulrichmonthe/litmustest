@@ -13,3 +13,5 @@ export { tfidf, kmeans, tokenize } from "./cluster.ts";
 export { serve } from "./serve.ts";
 export type { ServeOptions, Running } from "./serve.ts";
 export { App, HttpError, kindOf } from "./server/app.ts";
+export { discover, gatherNotes, diffText, parseJson, DISCOVER_MODEL } from "./discover.ts";
+export type { Proposal, DiscoverResult, Ask } from "./discover.ts";

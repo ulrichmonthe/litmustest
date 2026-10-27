@@ -23,9 +23,10 @@ export const VIEWS_FOR = (rel: string): string[] => {
 export class Pending {
   private file: string;
   private git: Git;
+  private evalsDir: string;
   private written = new Map<string, string>(); // repo-relative path -> written_at
   constructor(git: Git, evalsDir: string) {
-    this.git = git;
+    this.git = git; this.evalsDir = evalsDir;
     this.file = join(evalsDir, "..", ".litmustest", "pending.json");
     if (existsSync(this.file)) {
       try { for (const [k, v] of Object.entries(JSON.parse(readFileSync(this.file, "utf8")) as Record<string, string>)) this.written.set(k, v); } catch { /* start empty */ }
@@ -34,17 +35,24 @@ export class Pending {
   private save(): void { mkdirSync(dirname(this.file), { recursive: true }); writeFileSync(this.file, JSON.stringify(Object.fromEntries(this.written), null, 2)); }
   track(abs: string): void { this.written.set(this.git.rel(abs), new Date().toISOString()); this.save(); }
   paths(): string[] { return [...this.written.keys()]; }
+  /** Every uncommitted change under evals/: what the server wrote, plus what a skill or an editor changed on disk. */
   state(): PendingState {
     const files: PendingFile[] = [];
-    for (const [rel, at] of this.written) {
-      const status = this.git.status(rel);
-      if (status === "unchanged") { this.written.delete(rel); continue; } // reverted outside the server
+    const evalsRel = this.git.rel(this.evalsDir);
+    const changed = new Map<string, "added" | "modified" | "deleted">();
+    for (const line of this.git.run(["status", "--porcelain", "--untracked-files=all", "--", evalsRel]).split("\n")) {
+      if (!line.trim()) continue;
+      const code = line.slice(0, 2); const rel = line.slice(3).trim().replace(/^"|"$/g, "");
+      changed.set(rel, code.includes("D") ? "deleted" : code === "??" || code.includes("A") ? "added" : "modified");
+    }
+    for (const rel of this.written.keys()) if (!changed.has(rel)) this.written.delete(rel); // reverted or committed outside the server
+    for (const [rel, status] of changed) {
       let diff = "";
-      try { diff = this.git.diff(rel); } catch { diff = ""; }
-      files.push({ path: rel, status, diff, affected_views: VIEWS_FOR(rel), written_at: at });
+      try { diff = status === "deleted" ? this.git.run(["diff", "HEAD", "--", rel]) : this.git.diff(rel); } catch { diff = ""; }
+      files.push({ path: rel, status, diff, affected_views: VIEWS_FOR(rel), written_at: this.written.get(rel) ?? "" });
     }
     this.save();
-    return { branch: this.git.branch(), files };
+    return { branch: this.git.branch(), files: files.sort((a, b) => a.path.localeCompare(b.path)) };
   }
   clear(rels?: string[]): void { if (!rels) this.written.clear(); else for (const r of rels) this.written.delete(r); this.save(); }
 }

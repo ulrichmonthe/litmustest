@@ -6,6 +6,8 @@ import { validateEvals, type Problem } from "./validate.ts";
 import { initEvals } from "./init.ts";
 import { ingest } from "./ingest.ts";
 import { serve } from "./serve.ts";
+import { discover } from "./discover.ts";
+import { App } from "./server/app.ts";
 
 const VERSION: string = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), "..", "package.json"), "utf8")).version;
 
@@ -21,6 +23,12 @@ Usage:
       them (TF-IDF + k-means, offline), and write a review batch of one
       representative per cluster plus a random draw to batches/<name>.yaml
       with a coverage report. Defaults come from sources.sampler in the config.
+
+  litmustest discover [--dir evals] [--batch name] [--apply] [--json]
+      Group the reviewers' notes into failure modes with the model and show
+      each proposed failure_modes/<name>.yaml as a diff. Nothing is written
+      unless --apply, which saves the files (validated) as pending changes
+      on the branch for a person to commit. Needs ANTHROPIC_API_KEY.
 
   litmustest serve [--dir evals] [--port 4242] [--host 127.0.0.1]
       Local server over evals/: reads with content hashes, validated writes
@@ -47,6 +55,7 @@ function main(argv: string[]): number {
   if (cmd === "init") return runInit(rest);
   if (cmd === "ingest") return runIngest(rest);
   if (cmd === "serve") { runServe(rest); return 0; }
+  if (cmd === "discover") { runDiscover(rest); return 0; }
   if (cmd !== "validate") { process.stderr.write(`unknown command '${cmd}'\n\n${HELP}`); return 2; }
 
   const flags = new Set(rest.filter((a) => a.startsWith("--")));
@@ -81,7 +90,7 @@ function opts(rest: string[], known: string[]): { values: Map<string, string>; f
     if (!a.startsWith("--")) { positional.push(a); continue; }
     if (!known.includes(a)) throw new Error(`unknown flag ${a}`);
     const next = rest[i + 1];
-    if (["--force", "--json"].includes(a) || next === undefined || next.startsWith("--")) flags.add(a); else { values.set(a, next); i++; }
+    if (["--force", "--json", "--apply"].includes(a) || next === undefined || next.startsWith("--")) flags.add(a); else { values.set(a, next); i++; }
   }
   return { values, flags, positional };
 }
@@ -113,6 +122,20 @@ function runIngest(rest: string[]): number {
     process.stdout.write(`wrote ${r.batchFile}\n`);
     return r.invalid.length ? 1 : 0;
   } catch (e) { process.stderr.write(`ingest: ${(e as Error).message}\n`); return 1; }
+}
+
+function runDiscover(rest: string[]): void {
+  const { values, flags } = opts(rest, ["--dir", "--batch", "--apply", "--json"]);
+  const dir = values.get("--dir") ?? "evals";
+  discover({ evalsDir: resolve(dir), batch: values.get("--batch") }).then((r) => {
+    if (flags.has("--json")) { process.stdout.write(JSON.stringify(r, null, 2) + "\n"); return; }
+    process.stdout.write(`${r.proposals.length} proposed failure-mode files from ${r.notes_used} notes on ${r.traces_used} traces (model ${r.model}); ${r.unassigned.length} notes fit no mode\n\n`);
+    for (const p of r.proposals) process.stdout.write(`== ${p.action} ${p.path}\n   ${p.rationale}\n${p.diff}\n`);
+    if (!flags.has("--apply")) { process.stdout.write("Nothing written. Re-run with --apply to save these as pending changes, or accept them in the dashboard.\n"); return; }
+    const app = new App(dir);
+    for (const p of r.proposals) { const res = app.putFile(p.path, p.content); process.stdout.write(`${res.status === 200 ? "saved  " : "refused"} ${p.path}${res.status !== 200 ? `: ${(res.body as { message: string }).message}` : ""}\n`); }
+    process.stdout.write(`Pending on branch ${app.git.branch()}. Review with git diff, then commit, or open the Pending changes tray.\n`);
+  }).catch((e: Error) => { process.stderr.write(`discover: ${e.message}\n`); process.exitCode = 1; });
 }
 
 function runServe(rest: string[]): void {
