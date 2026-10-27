@@ -9,6 +9,7 @@ import { discoverRoute } from "./server/discover_route.ts";
 import type { Ask } from "./discover.ts";
 import type { JudgeAsk } from "./judge_run.ts";
 import { checkDraft, judgeCalibrate, judgeDetail, judgeDraft, judgesList, trainExcerpts } from "./server/judges.ts";
+import { dispute, setTriage, transcriptsIndex, trial } from "./server/transcripts.ts";
 
 export interface ServeOptions { evalsDir: string; port?: number; host?: string; watch?: boolean; ask?: Ask; judgeAsk?: JudgeAsk; draftAsk?: Ask }
 export interface Running { server: Server; app: App; url: string; close: () => Promise<void> }
@@ -52,6 +53,11 @@ async function handle(app: App, req: IncomingMessage, res: ServerResponse, ask?:
     if (path === "/api/modes" && req.method === "GET") return send(app.modes());
     if (path === "/api/overview" && req.method === "GET") return send(app.overview());
     if (path === "/api/runs" && req.method === "GET") return send(app.runs());
+    if (path === "/api/transcripts" && req.method === "GET") return send(transcriptsIndex(app, q("run")));
+    let tm: RegExpExecArray | null;
+    if ((tm = /^\/api\/transcripts\/([^/]+)\/([^/]+)\/(\d+)$/.exec(path)) && req.method === "GET") return send(trial(app, decodeURIComponent(tm[1]!), decodeURIComponent(tm[2]!), Number(tm[3])));
+    if ((tm = /^\/api\/transcripts\/([^/]+)\/([^/]+)\/(\d+)\/triage$/.exec(path)) && req.method === "POST") return send(setTriage(app, decodeURIComponent(tm[1]!), decodeURIComponent(tm[2]!), Number(tm[3]), body));
+    if ((tm = /^\/api\/transcripts\/([^/]+)\/([^/]+)\/(\d+)\/dispute$/.exec(path)) && req.method === "POST") return send(dispute(app, decodeURIComponent(tm[1]!), decodeURIComponent(tm[2]!), Number(tm[3]), body));
     if (path === "/api/compare" && req.method === "GET") return send(app.compare(need(q("a"), "a"), need(q("b"), "b")));
     if (path === "/api/discover" && req.method === "POST") return send(await discoverRoute(app, body, ask));
     if (path === "/api/judges" && req.method === "GET") return send(judgesList(app));

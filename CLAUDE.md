@@ -35,6 +35,7 @@ scripts/gen-tokens-css.ts   # writes packages/cli/ui/tokens.css from brand/token
 packages/cli/ui/          # the dashboard: static HTML, CSS and one ES module, no build step; served by `litmustest serve`
 packages/cli/src/server/  # app (routes and validated writes), pending (the tray), overview (read models), judges, discover_route
 packages/cli/src/{stats,judge_run,calibrate,draft}.ts  # error bars and judge-error correction; running a judge; the calibration workflow; drafting graders
+packages/cli/src/{run,compare,ci}.ts  # the runner (agent.command per trial, grading, summaries); paired comparison and gates; the CI entry
 docs/, brand/, design/    # spec, decisions, brand book, tokens, logos, mockups
 ```
 
@@ -82,6 +83,7 @@ evals/
 
 - One PR per phase milestone. Each PR is reviewed against `docs/ACCEPTANCE.md` before merge.
 - A skill writes files under `evals/` and stops; the Pending changes tray shows every uncommitted change there, and a person commits. `litmustest discover` is the model-backed step of error discovery; it proposes and writes only with `--apply`.
+- The runner's contract: `agent.command` runs once per trial in a fresh directory and must leave `trial.json` in the reference-solution shape; the harness snapshots the end state into `state`. Only trusted judges count; infra failures are excluded and reported.
 - Judges: one failure mode each, few-shot from the train split only, critique before verdict, Unknown allowed. `litmustest calibrate` is the only writer of `calibration.json`, with one exception below. A judge counts in gates only while `status: trusted`.
 - Never hand-edit `calibration.json`; it is written by `litmustest calibrate` only. The one exception is the server marking a trusted calibration `stale` when the judge's prompt or model changes; the API refuses direct writes to it.
 - The dashboard is a client of the CLI and the files. If something works in the dashboard but not the CLI, that is a bug.

@@ -23,21 +23,21 @@ As of 2026-10-27. Derived from the 25-chapter "litmustest Master Class" guide, w
 - [x] `litmustest calibrate <judge>` splits labels 15/45/40, runs dev, writes TPR/TNR and the confusion matrix to `calibration.json`, and lists disagreements. (Stratified, deterministic splits; the test split is locked once drawn; bootstrap intervals on TPR and TNR.)
 - [x] "Run test set once" is disabled until dev TPR and TNR ≥ 90%; after it runs, any prompt or model change marks the judge stale.
 - [x] Stale judges are excluded from every score and gate, and shown with a stale pill. (Validator, Overview and Judges show it; the runner in Phase 3 enforces the exclusion when it scores.)
-- [ ] Reported pass rates for judge-scored checks are corrected for judge error with a bootstrap CI.
-- [ ] A task cannot join a suite without a reference solution that passes all its checks.
+- [x] Reported pass rates for judge-scored checks are corrected for judge error with a bootstrap CI. (One bootstrap over tasks and the suite's main judge's confusion matrix.)
+- [x] A task cannot join a suite without a reference solution that passes all its checks. (`validate --deep` for code, outcome and transcript checks; `run --dry-run` grades the references with the judges too.)
 - [x] Commit to branch / Open PR / Discard work from the Pending changes tray; the branch name follows `evals/<slug>`. (API: `/api/pending`, `/commit`, `/pr`, `/discard`. The tray UI lands with the dashboard.)
 
 ## Phase 3: Run like an agent eval
 
-- [ ] `litmustest run --suite regression --trials 5` runs each task in a clean environment per trial, grades, and writes a run summary to `evals/runs/`; raw transcripts go to the configured store.
-- [ ] Infra failures (timeouts, OOM, harness errors) are tagged and excluded from the agent's score; their rate is reported.
-- [ ] Outcome checks read real end state (SQL, filesystem, HTTP) and the Transcript view shows an expected-vs-actual diff.
-- [ ] pass@1 and pass^k are reported per task and per suite; a flaky-task detector flags inconsistent tasks.
-- [ ] `litmustest compare A B` produces paired deltas with CIs per suite, a flip list, failure-mode deltas and cost deltas; Run compare renders them.
-- [ ] Transcript view shows the timeline with each check pinned to its step, a triage verdict (agent / grader / task / infra) to confirm or override, and the trial strip.
-- [ ] Disputing a verdict writes a label for that judge.
-- [ ] `litmustest ci` runs gated suites, posts the comparison as a PR comment, and exits non-zero on a crossed gate; capability is report-only.
-- [ ] A task failing 0/15 across 3 runs is flagged "likely broken".
+- [x] `litmustest run --suite regression --trials 5` runs each task in a clean environment per trial, grades, and writes a run summary to `evals/runs/`; raw transcripts go to the configured store. (A fresh trial directory per trial; `agent.command` in the config is the contract; `runs.environment` other than inprocess waits on decision #2.)
+- [x] Infra failures (timeouts, OOM, harness errors) are tagged and excluded from the agent's score; their rate is reported.
+- [x] Outcome checks read real end state (SQL, filesystem, HTTP) and the Transcript view shows an expected-vs-actual diff. (The agent harness snapshots the end state into `trial.state`; the example reads its SQLite database. Direct SQL/HTTP readers from the runner are a later step.)
+- [x] pass@1 and pass^k are reported per task and per suite; a flaky-task detector flags inconsistent tasks.
+- [x] `litmustest compare A B` produces paired deltas with CIs per suite, a flip list, failure-mode deltas and cost deltas; Run compare renders them.
+- [x] Transcript view shows the timeline with each check pinned to its step, a triage verdict (agent / grader / task / infra) to confirm or override, and the trial strip. (Triage is written into the run summary through the validated save path.)
+- [x] Disputing a verdict writes a label for that judge. (The trial is written as a trace under `datasets/traces/` first, so the label resolves and feeds calibration.)
+- [x] `litmustest ci` runs gated suites, posts the comparison as a PR comment, and exits non-zero on a crossed gate; capability is report-only. (`--write-workflow` scaffolds the GitHub Action.)
+- [x] A task failing 0/15 across 3 runs is flagged "likely broken".
 
 ## Phase 4: Close the loop
 

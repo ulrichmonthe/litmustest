@@ -235,3 +235,22 @@ textarea.prompt { font-family: var(--font-mono); font-size: 12.5px; line-height:
 .cost-grid > div { display: flex; flex-direction: column; gap: 2px; }
 .cost-grid span:first-child { font-size: 11px; color: var(--ink-muted); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; }
 .cost-grid span:nth-child(2) { font-family: var(--font-mono); font-size: 14px; font-variant-numeric: tabular-nums; }
+
+/* transcripts */
+.trial-strip { display: flex; gap: 6px; flex-wrap: wrap; }
+.trial-strip button { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 2px; min-width: 64px; min-height: 52px; padding: 6px 12px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-md); cursor: pointer; color: var(--ink); }
+.trial-strip button[aria-pressed="true"] { background: var(--blue-tint); border: 1.5px solid var(--blue); color: var(--blue-ink); }
+.trial-strip button span:first-child { font-weight: 600; font-size: 14px; line-height: 1; }
+.trial-strip button span:last-child { font-size: 12px; }
+.check-panel { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 12px; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--radius-md); }
+.check-panel.dashed { border-style: dashed; }
+.check-panel .mid { flex: 1 1 260px; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.check-panel .why { font-size: 13px; color: var(--ink-muted); }
+.check-panel .critique { font-size: 13px; color: var(--ink); white-space: pre-wrap; }
+.state-table td.diff { color: var(--bad); font-weight: 600; }
+.task-row { display: grid; grid-template-columns: minmax(0, 1fr) 60px 70px auto; gap: 10px; align-items: center; min-height: 44px; padding: 6px 0; border-top: 1px solid var(--line-soft); }
+.task-row:first-of-type { border-top: 0; }
+.task-row .dots { display: flex; gap: 4px; }
+.task-row .dots span { width: 10px; height: 10px; border-radius: 999px; background: var(--good); display: inline-block; }
+.task-row .dots span.fail { background: var(--bad); } .task-row .dots span.infra { background: var(--ink-faint); }
+.task-row .dots a { display: inline-flex; align-items: center; min-height: 44px; gap: 4px; }

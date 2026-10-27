@@ -15,7 +15,7 @@ node packages/cli/dist/main.js validate examples/support-agent/evals --deep   # 
 node packages/cli/dist/main.js serve --dir examples/support-agent/evals    # the dashboard on http://127.0.0.1:4242
 ```
 
-The Review queue opens on the batch: `j`/`k` move, `p`/`f` label, `n` focuses the note, Enter saves and advances. Labels append to `evals/labels/<batch>.jsonl` and show up in the Pending changes tray, from where you commit to an `evals/<slug>` branch. From the queue, "Ask Claude to regroup notes" proposes failure-mode files from the notes as diffs; nothing is written until you accept. The Overview reads the two seeded runs (verdict, suite scorecards with margins, needs-attention, Pareto, judge trust, flips) and Failure modes edits the files in place. Judges shows the calibration stepper: edit the prompt and few-shot examples, run the dev set, run the held-out test set once, trusted. `tone_mismatch` ships trusted and `missed_refund` stale, so both halves of the flow are visible. Tasks, Run compare, Transcripts and Settings arrive with Phase 3.
+The Review queue opens on the batch: `j`/`k` move, `p`/`f` label, `n` focuses the note, Enter saves and advances. Labels append to `evals/labels/<batch>.jsonl` and show up in the Pending changes tray, from where you commit to an `evals/<slug>` branch. From the queue, "Ask Claude to regroup notes" proposes failure-mode files from the notes as diffs; nothing is written until you accept. The Overview reads the two seeded runs (verdict, suite scorecards with margins, needs-attention, Pareto, judge trust, flips) and Failure modes edits the files in place. Judges shows the calibration stepper: edit the prompt and few-shot examples, run the dev set, run the held-out test set once, trusted. `tone_mismatch` ships trusted and `missed_refund` stale, so both halves of the flow are visible. Run compare pairs the two seeded runs; Transcripts reads any run's trials from the local store.
 
 ## What is in here
 
@@ -56,6 +56,15 @@ Realised counts print when you run `npm run generate-traces`. Because some modes
 - **2 judges**: `tone_mismatch` is trusted (test TPR 90 / TNR 100); `missed_refund` is stale because its prompt was edited after its test run, so its verdicts are excluded from gates until it is re-calibrated.
 - **100 labels** over the two judged failure modes, balanced, drawn from the planted truth.
 - **2 run summaries** (`run_0040`, `run_0041`) so `compare` has something to compare.
+
+## Running the suites
+
+```bash
+node packages/cli/dist/main.js run --dir examples/support-agent/evals --suite regression --trials 3
+node packages/cli/dist/main.js compare run_0041 <new run id> --dir examples/support-agent/evals
+```
+
+`litmustest.yaml` names the agent command, which starts `src/run_trial.ts` once per trial in a fresh directory; each trial copies the seed database, so trials never share state. `--dry-run` grades the reference solutions instead, which needs no agent.
 
 ## Running the agent for real
 
