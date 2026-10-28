@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { readFileSync } from "node:fs";
+import { explainRun, explainText } from "./explain_run.ts";
 import { dirname, join, resolve } from "node:path";
 import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
@@ -39,7 +40,7 @@ Usage:
       unless --apply, which saves the files (validated) as pending changes
       on the branch for a person to commit. Needs ANTHROPIC_API_KEY.
 
-  litmustest run [--dir evals] [--suite s]... [--task id]... [--trials k] [--concurrency n] [--id run_id] [--dry-run] [--json]
+  litmustest run [--dir evals] [--suite s]... [--task id]... [--trials k] [--concurrency n] [--id run_id] [--dry-run] [--explain] [--json]
       Run each task k times in a fresh trial directory via agent.command
       from litmustest.yaml, grade every check (code, outcome, transcript,
       trusted judges), tag infra failures and exclude them, and write
@@ -47,6 +48,15 @@ Usage:
       judge error, pass@1 and pass^k. Raw transcripts and grades go to the
       configured store. --dry-run grades the reference solutions instead
       of running the agent.
+      --explain asks Claude to explain each failed task afterwards.
+
+  litmustest explain [--dir evals] [--run id] [--task id]... [--all] [--force] [--no-model] [--json]
+      Explain the failed trials of a run (the latest by default) in plain
+      words: what was tested, what went wrong and at which step, what kind
+      of failure it is, and what would make it pass. Claude adds its reading
+      of the transcript and saves it in the run summary as an uncommitted
+      change; --no-model prints the template only and writes nothing. One
+      trial per task unless --all; --force re-explains. Needs a model token.
 
   litmustest compare <A> <B> [--dir evals] [--json] [--markdown]
       Paired comparison of two run summaries over their common tasks: per-suite
@@ -125,6 +135,7 @@ function main(argv: string[]): number {
   if (cmd === "calibrate") { runCalibrate(rest); return 0; }
   if (cmd === "draft-judge" || cmd === "draft-check") { runDraft(cmd, rest); return 0; }
   if (cmd === "run") { runRun(rest); return 0; }
+  if (cmd === "explain") { runExplain(rest); return 0; }
   if (cmd === "sample") { runSample(rest); return 0; }
   if (cmd === "graduate") return runGraduate(rest);
   if (cmd === "doctor") return runDoctor(rest);
@@ -265,7 +276,7 @@ function runDoctor(rest: string[]): number {
 
 function runRun(rest: string[]): void {
   const suites: string[] = []; const tasks: string[] = []; const values = new Map<string, string>(); const flags = new Set<string>();
-  for (let i = 0; i < rest.length; i++) { const a = rest[i]!; if (a === "--suite") suites.push(rest[++i]!); else if (a === "--task") tasks.push(rest[++i]!); else if (["--dry-run", "--json"].includes(a)) flags.add(a); else if (a.startsWith("--")) { if (!["--dir", "--trials", "--concurrency", "--id"].includes(a)) { process.stderr.write(`unknown flag ${a}\n`); process.exitCode = 2; return; } values.set(a, rest[++i]!); } }
+  for (let i = 0; i < rest.length; i++) { const a = rest[i]!; if (a === "--suite") suites.push(rest[++i]!); else if (a === "--task") tasks.push(rest[++i]!); else if (["--dry-run", "--json", "--explain"].includes(a)) flags.add(a); else if (a.startsWith("--")) { if (!["--dir", "--trials", "--concurrency", "--id"].includes(a)) { process.stderr.write(`unknown flag ${a}\n`); process.exitCode = 2; return; } values.set(a, rest[++i]!); } }
   const t0 = Date.now();
   run({ evalsDir: resolve(values.get("--dir") ?? "evals"), suites, tasks, trials: values.has("--trials") ? Number(values.get("--trials")) : undefined, concurrency: values.has("--concurrency") ? Number(values.get("--concurrency")) : undefined, runId: values.get("--id"), dryRun: flags.has("--dry-run"),
     onProgress: flags.has("--json") ? undefined : (e) => process.stderr.write(`\r  ${e.done}/${e.total} trials  ${e.task} #${e.n} ${e.result?.infra_error ? "infra:" + e.result.infra_error_kind : e.result?.pass ? "pass" : "fail " + e.result?.failed_checks.join(",")}        `) })
@@ -276,8 +287,22 @@ function runRun(rest: string[]): void {
       for (const [name, x] of Object.entries(s.suites)) process.stdout.write(`${name.padEnd(12)} ${String(x.pass_rate).padStart(5)}%  (${x.ci.low}–${x.ci.high})  pass@1 ${x.pass_at_1}%  pass^${x.k} ${x.pass_hat_k}%  ${x.n_tasks} tasks  ${x.infra_errors} infra${x.excluded_judges.length ? `  excluded: ${x.excluded_judges.join(", ")}` : ""}\n`);
       for (const w of r.warnings) process.stdout.write(`  warning ${w}\n`);
       process.stdout.write(`infra errors ${s.infra_error_rate}% · cost $${s.cost_usd} · ${Math.round((Date.now() - t0) / 1000)}s\nwrote ${r.path}; transcripts under ${r.transcripts_dir}\n`);
+      if (flags.has("--explain") && !flags.has("--dry-run")) return explainRun({ evalsDir: resolve(values.get("--dir") ?? "evals"), runId: r.run_id }).then((x) => { process.stdout.write("\n"); for (const i of x.items) process.stdout.write(explainText(i) + "\n\n"); if (x.written) process.stdout.write(`wrote ${x.written} explanation${x.written > 1 ? "s" : ""} to ${x.path}\n`); });
     })
     .catch((e: Error) => { process.stderr.write(`run: ${e.message}\n`); process.exitCode = 1; });
+}
+
+function runExplain(rest: string[]): void {
+  const tasks: string[] = []; const values = new Map<string, string>(); const flags = new Set<string>();
+  for (let i = 0; i < rest.length; i++) { const a = rest[i]!; if (a === "--task") tasks.push(rest[++i]!); else if (["--all", "--force", "--no-model", "--json"].includes(a)) flags.add(a); else if (["--dir", "--run", "--concurrency"].includes(a)) values.set(a, rest[++i]!); else { process.stderr.write(`unknown argument ${a}\n`); process.exitCode = 2; return; } }
+  explainRun({ evalsDir: resolve(values.get("--dir") ?? "evals"), runId: values.get("--run"), tasks, all: flags.has("--all"), force: flags.has("--force"), model: !flags.has("--no-model"), concurrency: values.has("--concurrency") ? Number(values.get("--concurrency")) : undefined, onItem: flags.has("--json") ? undefined : (i) => process.stdout.write(explainText(i) + "\n\n") })
+    .then((r) => {
+      if (flags.has("--json")) { process.stdout.write(JSON.stringify(r, null, 2) + "\n"); return; }
+      if (!r.items.length) process.stdout.write(`${r.run_id}: no failed trials to explain.\n`);
+      else if (r.written) process.stdout.write(`wrote ${r.written} explanation${r.written > 1 ? "s" : ""} to ${r.path}; review and commit it with the run.\n`);
+      if (r.items.some((i) => i.error)) process.exitCode = 1;
+    })
+    .catch((e: Error) => { process.stderr.write(`explain: ${e.message}\n`); process.exitCode = 1; });
 }
 
 function runDraft(cmd: string, rest: string[]): void {

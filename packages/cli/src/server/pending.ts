@@ -35,6 +35,8 @@ export class Pending {
   private save(): void { mkdirSync(dirname(this.file), { recursive: true }); writeFileSync(this.file, JSON.stringify(Object.fromEntries(this.written), null, 2)); }
   track(abs: string): void { this.written.set(this.git.rel(abs), new Date().toISOString()); this.save(); }
   paths(): string[] { return [...this.written.keys()]; }
+  /** How many files under evals/ differ from HEAD right now, by git status (what the tray will list). */
+  count(): number { return this.git.run(["status", "--porcelain", "--untracked-files=all", "--", this.git.rel(this.evalsDir)]).split("\n").filter((l) => l.trim()).length; }
   /** Every uncommitted change under evals/: what the server wrote, plus what a skill or an editor changed on disk. */
   state(): PendingState {
     const files: PendingFile[] = [];

@@ -7,12 +7,15 @@ import { SchemaSet } from "../schemas.ts";
 import { viewFromTrial } from "../run.ts";
 import { loadFiles } from "./overview.ts";
 import { HttpError, type App, type Reply } from "./app.ts";
+import { explainTemplate, explainWithClaude, type ClaudeExplanation, type ExplainInput, type Grade } from "../explain.ts";
+import type { Ask } from "../discover.ts";
 
 type Obj = Record<string, unknown>;
 
-function storeDir(app: App): string {
-  const cfg = existsSync(join(app.evalsDir, "litmustest.yaml")) ? (parseYaml(readFileSync(join(app.evalsDir, "litmustest.yaml"), "utf8")) as Obj) : {};
-  return resolve(dirname(app.evalsDir), String(((cfg.storage as Obj | undefined)?.transcripts as Obj | undefined)?.path ?? ".litmustest/transcripts"));
+function storeDir(app: App): string { return storeDirFor(app.evalsDir); }
+export function storeDirFor(evalsDir: string): string {
+  const cfg = existsSync(join(evalsDir, "litmustest.yaml")) ? (parseYaml(readFileSync(join(evalsDir, "litmustest.yaml"), "utf8")) as Obj) : {};
+  return resolve(dirname(evalsDir), String(((cfg.storage as Obj | undefined)?.transcripts as Obj | undefined)?.path ?? ".litmustest/transcripts"));
 }
 const safe = (s: string) => s.replace(/[^A-Za-z0-9_.-]/g, "");
 
@@ -26,25 +29,60 @@ export function transcriptsIndex(app: App, runId?: string): Reply {
   return { status: 200, body: { runs: runs.map((r) => ({ run_id: r.run_id, commit: r.commit, branch: r.branch, started_at: r.started_at })), run: { run_id: run.run_id, commit: run.commit, branch: run.branch, started_at: run.started_at, trials: run.trials }, tasks } };
 }
 
-export function trial(app: App, runId: string, taskId: string, n: number): Reply {
-  const f = loadFiles(app.evalsDir);
+/** Everything known about one trial: the run entry, the stored transcript and grades, the task file, the end state. */
+export function loadTrial(evalsDir: string, runId: string, taskId: string, n: number, files?: ReturnType<typeof loadFiles>) {
+  const f = files ?? loadFiles(evalsDir);
   const run = f.runs.find((r) => r.run_id === runId); if (!run) throw new HttpError(404, `no run ${runId}`);
   const task = (run.tasks as Record<string, Obj>)[taskId]; if (!task) throw new HttpError(404, `no task ${taskId} in ${runId}`);
   const trials = (task.trials as Obj[]) ?? []; const t = trials[n - 1]; if (!t) throw new HttpError(404, `no trial ${n}`);
-  const dir = join(storeDir(app), safe(runId), safe(taskId), String(n));
+  const dir = join(storeDirFor(evalsDir), safe(runId), safe(taskId), String(n));
   const trialFile = join(dir, "trial.json"), gradesFile = join(dir, "grades.json");
   const trialData = existsSync(trialFile) ? (JSON.parse(readFileSync(trialFile, "utf8")) as Obj) : null;
   const grades = existsSync(gradesFile) ? (JSON.parse(readFileSync(gradesFile, "utf8")) as Obj) : null;
   const taskFile = f.tasks.find((x) => x.id === taskId) ?? null;
-  const refPath = taskFile ? join(app.evalsDir, String(taskFile.reference_solution)) : "";
+  const refPath = taskFile ? join(evalsDir, String(taskFile.reference_solution)) : "";
   const reference = refPath && existsSync(refPath) ? (JSON.parse(readFileSync(refPath, "utf8")) as Obj) : null;
   const view = trialData ? viewFromTrial(trialData, `trial_${runId}_${taskId}_${n}`) : null;
   // expected vs actual end state, for the outcome panel
-  const outcome = taskFile ? ((taskFile.checks as Obj[]) ?? []).filter((c) => c.type === "outcome").flatMap((c) => Object.entries(c.expect as Obj).map(([path, want]) => ({ check: c.id, path, expected: want, actual: trialData ? get(trialData.state, path) : undefined, reference: reference ? get(reference.state, path) : undefined }))) : [];
+  const outcome = taskFile ? ((taskFile.checks as Obj[]) ?? []).filter((c) => c.type === "outcome").flatMap((c) => Object.entries(c.expect as Obj).map(([path, want]) => ({ check: String(c.id), path, expected: want, actual: trialData ? get(trialData.state, path) : undefined, reference: reference ? get(reference.state, path) : undefined }))) : [];
   const stderr = existsSync(join(dir, "stderr.txt")) ? readFileSync(join(dir, "stderr.txt"), "utf8").slice(-4000) : "";
-  const judges = Object.fromEntries(f.judges.map((j) => [j.name, { failure_mode: j.judge?.failure_mode, status: j.calibration?.status ?? "untested" }]));
-  return { status: 200, body: { run: { run_id: run.run_id, commit: run.commit, branch: run.branch, trials: run.trials }, task: { id: taskId, suite: task.suite, strict_pass: task.strict_pass, weighted: task.weighted, flaky: Boolean(task.flaky), likely_broken: Boolean(task.likely_broken), description: taskFile?.description, input: taskFile?.input, checks: taskFile?.checks ?? [] }, n, summary: t, trials: trials.map((x, i) => ({ n: i + 1, pass: x.pass, infra_error: x.infra_error })), trial: trialData, view, grades: (grades?.grades as Obj[]) ?? [], triage_suggested: grades?.triage_suggested ?? (t.infra_error ? "infra" : "agent"), infra: t.infra_error ? { kind: t.infra_error_kind, message: grades?.infra_message, stderr } : null, outcome, reference_available: Boolean(reference), judges, trace_id: trialData?.trace_id ?? null } };
+  const gradeList = (grades?.grades as Grade[]) ?? [];
+  const suiteKind = String(f.suites.find((x) => x.name === task.suite)?.kind ?? task.suite ?? "");
+  const explainInput: ExplainInput = {
+    task: { id: taskId, suite: String(task.suite ?? ""), description: taskFile?.description as string | undefined, source: taskFile?.source as string | undefined, checks: (taskFile?.checks as Obj[]) ?? [] },
+    suiteKind, summary: t, grades: gradeList, view, outcome, modes: Object.fromEntries(f.modes.map((m) => [String(m.name), String(m.definition ?? "")])),
+    likelyBroken: Boolean(task.likely_broken), flaky: Boolean(task.flaky), stderr,
+  };
+  return { f, run, task, trials, t, trialData, grades, gradeList, taskFile, reference, view, outcome, stderr, explainInput };
 }
+
+export function trial(app: App, runId: string, taskId: string, n: number): Reply {
+  const { f, run, task, trials, t, trialData, grades, gradeList, taskFile, reference, view, outcome, stderr, explainInput } = loadTrial(app.evalsDir, runId, taskId, n);
+  const judges = Object.fromEntries(f.judges.map((j) => [j.name, { failure_mode: j.judge?.failure_mode, status: j.calibration?.status ?? "untested" }]));
+  const explain = { ...explainTemplate(explainInput), claude: (t.explanation as Obj | undefined) ?? null };
+  return { status: 200, body: { run: { run_id: run.run_id, commit: run.commit, branch: run.branch, trials: run.trials }, task: { id: taskId, suite: task.suite, suite_kind: explainInput.suiteKind, strict_pass: task.strict_pass, weighted: task.weighted, flaky: Boolean(task.flaky), likely_broken: Boolean(task.likely_broken), description: taskFile?.description, source: taskFile?.source, input: taskFile?.input, checks: taskFile?.checks ?? [] }, n, summary: t, trials: trials.map((x, i) => ({ n: i + 1, pass: x.pass, infra_error: x.infra_error })), trial: trialData, view, grades: gradeList, triage_suggested: grades?.triage_suggested ?? (t.infra_error ? "infra" : "agent"), infra: t.infra_error ? { kind: t.infra_error_kind, message: grades?.infra_message, stderr } : null, outcome, reference_available: Boolean(reference), judges, trace_id: trialData?.trace_id ?? null, explain } };
+}
+
+/** Ask Claude to explain a trial and store it as trials[n].explanation in the run summary, through the validated save. */
+export async function explainRoute(app: App, runId: string, taskId: string, n: number, ask?: Ask): Promise<Reply> {
+  const { t, explainInput } = loadTrial(app.evalsDir, runId, taskId, n);
+  if (t.pass) throw new HttpError(400, "this trial passed; there is nothing to explain");
+  let e: ClaudeExplanation;
+  try { e = await explainWithClaude(explainInput, { ask }); }
+  catch (err) {
+    const m = (err as Error).message;
+    const auth = /api.?key|auth|credential|401/i.test(m);
+    throw new HttpError(auth ? 503 : 502, auth ? "No model credentials: restart `litmustest serve` with ANTHROPIC_API_KEY (or ANTHROPIC_AUTH_TOKEN) set in its environment, or run `litmustest explain` from a terminal that has one." : `Claude could not explain this trial: ${m}`);
+  }
+  const path = `runs/${safe(runId)}.json`; const abs = join(app.evalsDir, path);
+  const run = JSON.parse(readFileSync(abs, "utf8")) as Obj;
+  const tr = ((run.tasks as Record<string, Obj>)[taskId]!.trials as Obj[])[n - 1]!;
+  tr.explanation = Object.fromEntries(Object.entries(e).filter(([, v]) => v !== ""));
+  const r = app.putFile(path, undefined, undefined, run);
+  if (r.status !== 200) return r;
+  return { status: 200, body: { ...(r.body as Obj), explanation: tr.explanation } };
+}
+
 function get(obj: unknown, path: string): unknown { let cur: unknown = obj; for (const p of path.split(".")) { if (cur === null || typeof cur !== "object") return undefined; cur = (cur as Obj)[p]; } return cur; }
 
 /** Confirm or override the triage: writes trials[n].triage into the run summary through the validated save path. */

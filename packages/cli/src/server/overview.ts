@@ -1,4 +1,6 @@
 // Read models for the Failure modes view and the Overview. Everything derives from the files; nothing is stored.
+import { loadTrial } from "./transcripts.ts";
+import { explainTemplate } from "../explain.ts";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { parse as parseYaml } from "yaml";
@@ -54,6 +56,15 @@ export function judgeStatus(j: { judge?: Obj; calibration?: Obj }, threshold: nu
   return { status, label: status === "dev" ? "Judge · dev" : "Judge · untested" };
 }
 
+/** One line on why a failed trial failed: Claude's summary if one was saved, else the template's headline. */
+export function failureLine(evalsDir: string, f: ReturnType<typeof loadFiles>, runId: string, taskId: string, n: number): { headline: string; kind: string; claude?: string } | undefined {
+  try {
+    const { explainInput, t } = loadTrial(evalsDir, runId, taskId, n, f);
+    const x = explainTemplate(explainInput);
+    return { headline: x.headline, kind: x.kind, ...((t.explanation as Obj | undefined)?.summary ? { claude: String((t.explanation as Obj).summary) } : {}) };
+  } catch { return undefined; }
+}
+
 export function modesView(evalsDir: string, f = loadFiles(evalsDir)): Obj[] {
   const cm = checkModes(f.tasks);
   const threshold = Number((f.config.judges as Obj | undefined)?.trust_threshold ?? 90);
@@ -67,14 +78,23 @@ export function modesView(evalsDir: string, f = loadFiles(evalsDir)): Obj[] {
     const raw = readFileSync(p, "utf8");
     const ls = f.labels.filter((l) => l.failure_mode === name);
     const fails = ls.filter((l) => l.label === "Fail");
-    const tasks = f.tasks.filter((t) => ((t.checks as Obj[]) ?? []).some((c) => c.failure_mode === name)).map((t) => ({ id: t.id, suite: t.suite, check: ((t.checks as Obj[]) ?? []).find((c) => c.failure_mode === name)!.id, type: ((t.checks as Obj[]) ?? []).find((c) => c.failure_mode === name)!.type }));
+    const lastRun = f.runs[f.runs.length - 1];
+    const tasks = f.tasks.flatMap((t) => ((t.checks as Obj[]) ?? []).filter((c) => c.failure_mode === name).map((c) => {
+      const trials = (((lastRun?.tasks as Record<string, Obj> | undefined)?.[String(t.id)]?.trials as Obj[] | undefined) ?? []).filter((x) => !x.infra_error);
+      const failed = trials.map((x, i) => ({ x, n: i + 1 })).filter(({ x }) => ((x.failed_checks as string[]) ?? []).includes(String(c.id)));
+      return {
+        id: t.id, suite: t.suite, check: c.id, type: c.type, description: t.description, source: t.source,
+        expect: c.type === "outcome" ? c.expect : undefined, fn: c.fn,
+        latest: lastRun && trials.length ? { run_id: lastRun.run_id, trials: trials.length, failed: failed.length, transcript: failed[0] ? `#/transcripts/${encodeURIComponent(String(lastRun.run_id))}/${encodeURIComponent(String(t.id))}/${failed[0].n}` : undefined, why: failed[0] ? failureLine(evalsDir, f, String(lastRun.run_id), String(t.id), failed[0].n) : undefined } : undefined,
+      };
+    }));
     const j = f.judges.find((x) => x.name === name);
     const codeCheck = tasks.find((t) => t.type === "code");
     const outcome = tasks.find((t) => t.type === "outcome" || t.type === "transcript");
     let grader: { kind: string; label: string; status: string; href?: string; tpr?: number; tnr?: number; labels_needed?: number };
     if (j?.judge) { const s = judgeStatus(j, threshold); grader = { kind: "judge", label: s.label, status: s.status, href: `#/judges/${name}`, tpr: s.tpr, tnr: s.tnr }; }
-    else if (codeCheck) grader = { kind: "code", label: "Code check", status: "trusted", href: `#/tasks/${codeCheck.id}` };
-    else if (outcome) grader = { kind: outcome.type === "outcome" ? "outcome" : "transcript", label: outcome.type === "outcome" ? "Outcome check" : "Transcript check", status: "trusted", href: `#/tasks/${outcome.id}` };
+    else if (codeCheck) grader = { kind: "code", label: "Code check", status: "trusted", href: `#/tasks/${codeCheck.suite}/${codeCheck.id}` };
+    else if (outcome) grader = { kind: outcome.type === "outcome" ? "outcome" : "transcript", label: outcome.type === "outcome" ? "Outcome check" : "Transcript check", status: "trusted", href: `#/tasks/${outcome.suite}/${outcome.id}` };
     else { const need = Math.max(0, 60 - ls.length); grader = { kind: "none", label: need > 0 ? `Needs ${need} labels` : "No grader", status: "none", labels_needed: need }; }
     const note = fails.find((l) => l.note)?.note;
     return {
@@ -113,8 +133,8 @@ export function overview(evalsDir: string): Obj {
     else if (s.status === "untested" && f.tasks.some((t) => ((t.checks as Obj[]) ?? []).some((c) => c.type === "judge" && (c.judge ?? c.failure_mode) === j.name))) alerts.push({ kind: "Untested judge", level: "neutral", title: `${j.name} is used by tasks but has never been calibrated.`, body: "Its verdicts do not count until it is trusted.", action: "Open judge", href: `#/judges/${j.name}` });
   }
   if (latest) for (const [tid, t] of Object.entries((latest.tasks as Record<string, Obj>) ?? {})) {
-    if (t.likely_broken) alerts.push({ kind: "Broken task", level: "bad", title: `${tid} failed every trial${prev ? " in the last runs" : ""}.`, body: "Its reference solution passes, so the task's premise or environment is wrong, not the agent.", action: "Open task", href: `#/tasks/${tid}` });
-    else if (t.flaky) alerts.push({ kind: "Flaky task", level: "warn", title: `${tid} passes some trials and fails others with nothing changed.`, body: "Read its trials before trusting its pass rate.", action: "Open task", href: `#/tasks/${tid}` });
+    if (t.likely_broken) alerts.push({ kind: "Broken task", level: "bad", title: `${tid} failed every trial${prev ? " in the last runs" : ""}.`, body: "Its reference solution passes, so the task's premise or environment is wrong, not the agent.", action: "Open task", href: `#/tasks/${encodeURIComponent(String(t.suite ?? f.tasks.find((x) => x.id === tid)?.suite ?? ""))}/${encodeURIComponent(tid)}` });
+    else if (t.flaky) alerts.push({ kind: "Flaky task", level: "warn", title: `${tid} passes some trials and fails others with nothing changed.`, body: "Read its trials before trusting its pass rate.", action: "Open task", href: `#/tasks/${encodeURIComponent(String(t.suite ?? f.tasks.find((x) => x.id === tid)?.suite ?? ""))}/${encodeURIComponent(tid)}` });
   }
   for (const s of suites) if (s.kind === "capability" && s.current && Number((s.current as Obj).pass_rate) > 90) alerts.push({ kind: "Saturating", level: "neutral", title: `${s.name} is at ${(s.current as Obj).pass_rate}%.`, body: "Capability tasks that pass every trial are ready to graduate to regression.", action: "Open suite", href: `#/tasks` });
   // graduation: capability tasks that passed every trial in the last three runs
@@ -138,8 +158,10 @@ export function overview(evalsDir: string): Obj {
     const now = Number(t.strict_pass), was = Number(b.strict_pass);
     const trials = (t.trials as Obj[]) ?? []; const passed = trials.filter((x) => x.pass).length;
     const check = trials.flatMap((x) => (x.failed_checks as string[]) ?? [])[0] ?? null;
-    if (t.flaky) flips.push({ task: tid, suite: t.suite, change: "Flaky", trials: `${passed} / ${trials.length}`, check });
-    else if (was >= 100 && now < 100) flips.push({ task: tid, suite: t.suite, change: "Broke", trials: `${passed} / ${trials.length}`, check });
+    const firstFail = trials.findIndex((x) => !x.pass && !x.infra_error);
+    const why = firstFail >= 0 ? failureLine(evalsDir, f, String(latest.run_id), tid, firstFail + 1) : undefined;
+    if (t.flaky) flips.push({ task: tid, suite: t.suite, change: "Flaky", trials: `${passed} / ${trials.length}`, check, why });
+    else if (was >= 100 && now < 100) flips.push({ task: tid, suite: t.suite, change: "Broke", trials: `${passed} / ${trials.length}`, check, why, transcript: `#/transcripts/${encodeURIComponent(String(latest.run_id))}/${encodeURIComponent(tid)}/${firstFail + 1}` });
     else if (was < 100 && now >= 100) flips.push({ task: tid, suite: t.suite, change: "Fixed", trials: `${passed} / ${trials.length}`, check: null });
   }
   // coverage

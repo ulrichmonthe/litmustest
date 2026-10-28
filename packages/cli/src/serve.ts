@@ -9,9 +9,9 @@ import { discoverRoute } from "./server/discover_route.ts";
 import type { Ask } from "./discover.ts";
 import type { JudgeAsk } from "./judge_run.ts";
 import { checkDraft, judgeCalibrate, judgeDetail, judgeDraft, judgesList, trainExcerpts } from "./server/judges.ts";
-import { dispute, setTriage, transcriptsIndex, trial } from "./server/transcripts.ts";
+import { dispute, explainRoute, setTriage, transcriptsIndex, trial } from "./server/transcripts.ts";
 
-export interface ServeOptions { evalsDir: string; port?: number; host?: string; watch?: boolean; ask?: Ask; judgeAsk?: JudgeAsk; draftAsk?: Ask }
+export interface ServeOptions { evalsDir: string; port?: number; host?: string; watch?: boolean; ask?: Ask; judgeAsk?: JudgeAsk; draftAsk?: Ask; explainAsk?: Ask }
 export interface Running { server: Server; app: App; url: string; close: () => Promise<void> }
 
 export async function serve(o: ServeOptions): Promise<Running> {
@@ -29,14 +29,14 @@ export async function serve(o: ServeOptions): Promise<Running> {
       });
     } catch { /* recursive watch unsupported: validation still happens on every request */ }
   }
-  const server = createServer((req, res) => void handle(app, req, res, o.ask, { judgeAsk: o.judgeAsk, draftAsk: o.draftAsk ?? o.ask }));
+  const server = createServer((req, res) => void handle(app, req, res, o.ask, { judgeAsk: o.judgeAsk, draftAsk: o.draftAsk ?? o.ask, explainAsk: o.explainAsk }));
   await new Promise<void>((r) => server.listen(o.port ?? 4242, o.host ?? "127.0.0.1", r));
   const addr = server.address() as { address: string; port: number };
   const url = `http://${addr.address}:${addr.port}`;
   return { server, app, url, close: () => new Promise((r) => { watcher?.close(); server.close(() => r()); }) };
 }
 
-async function handle(app: App, req: IncomingMessage, res: ServerResponse, ask?: Ask, hooks: { judgeAsk?: JudgeAsk; draftAsk?: Ask } = {}): Promise<void> {
+async function handle(app: App, req: IncomingMessage, res: ServerResponse, ask?: Ask, hooks: { judgeAsk?: JudgeAsk; draftAsk?: Ask; explainAsk?: Ask } = {}): Promise<void> {
   const url = new URL(req.url ?? "/", "http://localhost");
   const path = url.pathname; const q = (k: string) => url.searchParams.get(k) ?? undefined;
   const send = (r: Reply) => { res.writeHead(r.status, { "content-type": "application/json", "cache-control": "no-store", ...(r.headers ?? {}) }); res.end(JSON.stringify(r.body)); };
@@ -61,6 +61,7 @@ async function handle(app: App, req: IncomingMessage, res: ServerResponse, ask?:
     let tm: RegExpExecArray | null;
     if ((tm = /^\/api\/transcripts\/([^/]+)\/([^/]+)\/(\d+)$/.exec(path)) && req.method === "GET") return send(trial(app, decodeURIComponent(tm[1]!), decodeURIComponent(tm[2]!), Number(tm[3])));
     if ((tm = /^\/api\/transcripts\/([^/]+)\/([^/]+)\/(\d+)\/triage$/.exec(path)) && req.method === "POST") return send(setTriage(app, decodeURIComponent(tm[1]!), decodeURIComponent(tm[2]!), Number(tm[3]), body));
+    if ((tm = /^\/api\/transcripts\/([^/]+)\/([^/]+)\/(\d+)\/explain$/.exec(path)) && req.method === "POST") return send(await explainRoute(app, decodeURIComponent(tm[1]!), decodeURIComponent(tm[2]!), Number(tm[3]), hooks.explainAsk ?? ask));
     if ((tm = /^\/api\/transcripts\/([^/]+)\/([^/]+)\/(\d+)\/dispute$/.exec(path)) && req.method === "POST") return send(dispute(app, decodeURIComponent(tm[1]!), decodeURIComponent(tm[2]!), Number(tm[3]), body));
     if (path === "/api/compare" && req.method === "GET") return send(app.compare(need(q("a"), "a"), need(q("b"), "b")));
     if (path === "/api/discover" && req.method === "POST") return send(await discoverRoute(app, body, ask));

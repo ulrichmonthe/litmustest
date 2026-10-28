@@ -257,6 +257,48 @@
                   },
                   "uniqueItems": true,
                   "description": "Judge checks that did not count because the judge was not trusted."
+                },
+                "explanation": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "summary",
+                    "model",
+                    "at"
+                  ],
+                  "description": "Claude's plain-language reading of why this trial failed, written by `litmustest explain` or the Transcript view. Advice for the reader, never a verdict: it does not change pass, checks or gates.",
+                  "properties": {
+                    "summary": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 1200,
+                      "description": "Two or three sentences: what the test tried, what happened, what it means."
+                    },
+                    "cause": {
+                      "type": "string",
+                      "maxLength": 500,
+                      "description": "The most likely reason, naming the step."
+                    },
+                    "fix": {
+                      "type": "string",
+                      "maxLength": 500,
+                      "description": "The concrete change that would make it pass."
+                    },
+                    "confidence": {
+                      "type": "string",
+                      "enum": [
+                        "high",
+                        "medium",
+                        "low"
+                      ]
+                    },
+                    "model": {
+                      "$ref": "common.json#/$defs/model_id"
+                    },
+                    "at": {
+                      "$ref": "common.json#/$defs/timestamp"
+                    }
+                  }
                 }
               }
             }

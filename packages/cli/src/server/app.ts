@@ -12,6 +12,7 @@ import { modesView, overview, loadFiles } from "./overview.ts";
 import { compareRuns, evaluateGates, comparisonMarkdown } from "../compare.ts";
 import { applyGraduations, doctor, graduationProposals } from "../graduate.ts";
 import { Pending } from "./pending.ts";
+import { serialize } from "./serialize.ts";
 
 type Obj = Record<string, unknown>;
 export interface Reply { status: number; body: unknown; headers?: Record<string, string> }
@@ -72,7 +73,7 @@ export class App {
     let annotator = "";
     try { annotator = this.git.run(["config", "user.name"]).trim(); } catch { /* unset */ }
     const project = (() => { try { return String((parseYaml(readFileSync(join(this.evalsDir, "litmustest.yaml"), "utf8")) as Obj).project ?? ""); } catch { return ""; } })();
-    return { status: 200, body: { evals: this.evalsDir, repo: this.git.root, project, branch: this.git.branch(), head: this.git.head(), annotator, errors: v.errors, warnings: v.warnings, pending: this.pending.paths().length } };
+    return { status: 200, body: { evals: this.evalsDir, repo: this.git.root, project, branch: this.git.branch(), head: this.git.head(), annotator, errors: v.errors, warnings: v.warnings, pending: this.pending.count() } };
   }
   modes(): Reply { return { status: 200, body: { failure_modes: modesView(this.evalsDir) } }; }
   graduate(): Reply { return { status: 200, body: graduationProposals(this.evalsDir) }; }
@@ -141,7 +142,7 @@ export class App {
     const kind = kindOf(rel);
     if (content === undefined) {
       if (data === undefined) throw new HttpError(400, "content or data is required");
-      content = rel.endsWith(".json") ? JSON.stringify(data, null, 2) + "\n" : yaml(data);
+      content = serialize(rel, data, existsSync(abs) ? readFileSync(abs, "utf8") : undefined);
     }
     if (!kind) throw new HttpError(400, `${rel} is not a file type litmustest knows; see docs/SCHEMAS.md`);
     if (kind === "calibration") throw new HttpError(403, "calibration.json is written by litmustest calibrate only; edit the judge and re-run calibration");
@@ -184,7 +185,7 @@ export class App {
       const { abs, rel } = this.abs(it.path); const kind = kindOf(rel);
       if (!kind) throw new HttpError(400, `${rel} is not a file type litmustest knows`);
       if (kind === "calibration" || kind === "trace") throw new HttpError(403, `${rel} cannot be written through the API`);
-      const content = it.content ?? (rel.endsWith(".json") ? JSON.stringify(it.data, null, 2) + "\n" : yaml(it.data));
+      const content = it.content ?? serialize(rel, it.data, existsSync(abs) ? readFileSync(abs, "utf8") : undefined);
       const shape = this.checkShape(kind, rel, content);
       if (shape.length) return { status: 422, body: { error: "invalid", message: `${rel} does not validate`, problems: shape.map((m) => ({ level: "error", file: rel, message: m, rule: "schema" })) } };
       prepared.push({ abs, rel, content, before: existsSync(abs) ? readFileSync(abs, "utf8") : undefined });
