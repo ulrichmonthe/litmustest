@@ -60,7 +60,7 @@ kbd { font-family: var(--font-mono); font-size: 12px; border: 1px solid var(--li
 
 .two-col { display: flex; flex-wrap: wrap; align-items: flex-start; gap: var(--space-3); }
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-3); }
-.card.main { flex: 999 1 560px; min-width: 0; }
+.card.main, .two-col > .main { flex: 999 1 560px; min-width: 0; }
 .side { flex: 1 1 300px; display: flex; flex-direction: column; gap: var(--space-3); }
 .card-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 8px; }
 .card-head .caption { font-size: 12px; color: var(--ink-muted); }
@@ -301,3 +301,51 @@ table.plain td .desc { display: block; font-size: 12px; color: var(--ink-muted);
 .dot.bad { background: var(--bad); }
 @media (max-width: 640px) { .explain-row { grid-template-columns: 1fr; gap: 4px; } }
 .why { font-size: 13px; line-height: 1.5; margin: 0; }
+
+/* coverage: one hue, light to dark = planned, checked, guarded */
+:root { --cov-guarded: var(--blue); --cov-checked: color-mix(in oklab, var(--blue) 58%, var(--surface)); --cov-planned: color-mix(in oklab, var(--blue) 28%, var(--surface)); --cov-none: var(--line); }
+.scope summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; }
+.scope-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: var(--space-4); margin-top: var(--space-2); }
+.scope-cols ul { margin: 6px 0 0; padding-left: 18px; line-height: 1.5; font-size: 13px; }
+.cov-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--space-3); }
+.cov-tile { display: flex; flex-direction: column; gap: 6px; align-items: stretch; text-align: left; padding: var(--space-4); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); cursor: pointer; color: var(--ink); min-height: 44px; }
+.cov-tile[aria-pressed="true"] { border: 1.5px solid var(--blue); }
+.cov-tile .n { font-size: 30px; font-weight: 600; letter-spacing: -0.02em; line-height: 1; font-variant-numeric: tabular-nums; }
+.cov-tile .job { font-size: 12px; color: var(--ink-muted); }
+.depth-bar { display: flex; gap: 2px; height: 8px; border-radius: var(--radius-pill); overflow: hidden; background: var(--surface); }
+.depth-bar .seg.guarded, .sw.guarded { background: var(--cov-guarded); }
+.depth-bar .seg.checked, .sw.checked { background: var(--cov-checked); }
+.depth-bar .seg.planned, .sw.planned { background: var(--cov-planned); }
+.depth-bar .seg.none, .sw.none { background: var(--cov-none); }
+.radar-wrap { position: relative; max-width: 640px; margin: 0 auto; width: 100%; }
+.radar { width: 100%; height: auto; display: block; }
+.radar .grid { fill: none; stroke: var(--line-soft); stroke-width: 1; }
+.radar .spoke { stroke: var(--line-soft); stroke-width: 1; }
+.radar .ring { stroke-width: 2; stroke-linejoin: round; }
+.radar .ring.planned { fill: var(--cov-planned); stroke: var(--cov-planned); fill-opacity: 0.6; }
+.radar .ring.checked { fill: var(--cov-checked); stroke: var(--cov-checked); fill-opacity: 0.55; }
+.radar .ring.guarded { fill: var(--cov-guarded); stroke: var(--cov-guarded); fill-opacity: 0.45; }
+.radar .vertex { fill: var(--cov-guarded); stroke: var(--surface); stroke-width: 2; }
+.radar .tick { font-size: 10px; fill: var(--ink-faint); }
+.radar .axis-label { font-size: 11px; fill: var(--ink-muted); font-family: var(--font-mono); }
+.radar .axis-hit { cursor: pointer; outline: none; }
+.radar .axis-hit .hit { fill: transparent; }
+.radar .axis-hit:hover .axis-label, .radar .axis-hit:focus .axis-label, .radar .axis-hit.on .axis-label { fill: var(--ink); font-weight: 700; }
+.radar .axis-hit:focus .hit, .radar .axis-hit.on .hit { stroke: var(--blue); stroke-width: 2; }
+.radar-tip { position: absolute; transform: translate(-50%, calc(-100% - 10px)); background: var(--slate); color: var(--slate-ink); padding: 8px 10px; border-radius: var(--radius-md); font-size: 12px; display: flex; flex-direction: column; gap: 2px; pointer-events: none; white-space: nowrap; z-index: 2; }
+.cov-legend { display: flex; flex-wrap: wrap; gap: 16px; justify-content: center; font-size: 12px; color: var(--ink-muted); }
+.cov-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.sw { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+.pill.depth.guarded { background: var(--cov-guarded); color: var(--surface); }
+.pill.depth.checked { background: var(--cov-checked); color: var(--ink); }
+.pill.depth.planned { background: var(--cov-planned); color: var(--ink); }
+.pill.depth.none { background: var(--surface-sunken); color: var(--ink-muted); }
+.item-id { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.cov-items .desc, .gaps .desc { display: block; font-size: 12px; color: var(--ink-muted); line-height: 1.45; margin-top: 2px; }
+.cov-tasks { list-style: none; margin: 0; padding: 0; font-size: 12px; display: flex; flex-direction: column; gap: 4px; }
+.gaps { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 10px; }
+.warn-card { border-color: var(--warn); }
+.table-scroll { overflow-x: auto; max-width: 100%; }
+.cov-row { display: grid; grid-template-columns: 80px 56px minmax(80px, 1fr) minmax(0, 1.4fr); gap: 12px; align-items: center; color: inherit; min-height: 44px; border-top: 1px solid var(--line-soft); padding-top: 8px; }
+.cov-row .n { font-weight: 600; font-variant-numeric: tabular-nums; font-size: 18px; }
+@media (max-width: 640px) { .cov-row { grid-template-columns: 70px 50px 1fr; } .cov-row .caption { grid-column: 1 / -1; } }

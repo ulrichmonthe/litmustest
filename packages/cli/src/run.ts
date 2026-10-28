@@ -1,5 +1,6 @@
 // litmustest run: k trials per task in a clean trial directory, graded by the task's checks, scored with error bars,
 // written as a run summary under evals/runs/ with raw transcripts in the configured store.
+import { computeCoverage, coverageSnapshot } from "./coverage.ts";
 import { execFileSync, spawn } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
@@ -192,6 +193,8 @@ export async function run(o: RunOptions): Promise<RunResult> {
     suites, tasks: taskSummaries, infra_error_rate: results.length ? +((100 * infraCount) / results.length).toFixed(1) : 0, cost_usd: +results.reduce((a, r) => a + (r.cost_usd ?? 0), 0).toFixed(4),
     judge_corrections: [...judgeFiles.entries()].filter(([, j]) => j.matrix).map(([name, j]) => ({ judge: name, tpr: j.tpr, tnr: j.tnr, prompt_hash: String(j.files.judge.prompt_hash) })),
   };
+  try { const snap = coverageSnapshot(computeCoverage(evalsDir, { run: summary })); if (Object.keys(snap).length) summary.coverage = snap; }
+  catch (e) { warnings.push(`coverage not recorded: ${(e as Error).message}`); }
   const errs = schemas.check("run_summary", summary);
   if (errs.length) throw new Error(`run summary would not validate: ${errs.join("; ")}`);
   const path = join(evalsDir, "runs", `${runId}.json`); mkdirSync(dirname(path), { recursive: true });

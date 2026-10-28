@@ -8,7 +8,8 @@ import { loadFiles } from "./server/overview.ts";
 type Obj = Record<string, unknown>;
 export interface SuiteDelta { name: string; kind: string; n_tasks: number; a: number; b: number; delta: number; ci: { low: number; high: number }; significant: boolean; note: string; flips: number; a_ci: Obj; b_ci: Obj; gate: Obj | null; gate_result?: { passed: boolean; reasons: string[] } }
 export interface Flip { task: string; suite: string; change: "Broke" | "Fixed" | "Flaky"; a: string; b: string; check: string | null; transcript_ref?: string }
-export interface Comparison { a: Obj; b: Obj; suites: SuiteDelta[]; flips: Flip[]; modes: { name: string; severity?: string; a: number; b: number; delta: number }[]; cost: { a: number; b: number; delta: number; tokens_a: number; tokens_b: number; latency_a: number; latency_b: number; infra_a: number; infra_b: number }; verdict: { tone: "good" | "bad" | "neutral"; text: string }; common_tasks: number }
+export interface CoverageDelta { map: string; a: number; b: number; delta: number; total_a: number; total_b: number; newly_uncovered: string[] }
+export interface Comparison { coverage?: CoverageDelta[]; a: Obj; b: Obj; suites: SuiteDelta[]; flips: Flip[]; modes: { name: string; severity?: string; a: number; b: number; delta: number }[]; cost: { a: number; b: number; delta: number; tokens_a: number; tokens_b: number; latency_a: number; latency_b: number; infra_a: number; infra_b: number }; verdict: { tone: "good" | "bad" | "neutral"; text: string }; common_tasks: number }
 
 export function loadRun(evalsDir: string, id: string): Obj {
   const p = join(evalsDir, "runs", `${id}.json`);
@@ -60,7 +61,14 @@ export function compareRuns(evalsDir: string, aId: string, bId: string, opts: { 
   if (regBroke.length || worse.length) verdict = { tone: "bad", text: `B ${better.length ? `is better on ${better.map((s) => s.name).join(", ")} and ` : ""}${worse.length ? `worse on ${worse.map((s) => s.name).join(", ")}` : `breaks ${regBroke.length} regression task${regBroke.length > 1 ? "s" : ""}`}. Fix ${regBroke.length ? `the ${regBroke.length} broken task${regBroke.length > 1 ? "s" : ""}` : "that"} before merging.` };
   else if (better.length) verdict = { tone: "good", text: `B is better on ${better.map((s) => `${s.name} (+${s.delta} pts)`).join(", ")}; nothing else moved outside the noise.` };
   else verdict = { tone: "neutral", text: `No significant change between ${aId} and ${bId}: every suite delta is within noise${flips.length ? `, ${flips.length} task${flips.length > 1 ? "s" : ""} flipped` : ""}.` };
-  return { a: meta(a), b: meta(b), suites, flips, modes, cost, verdict, common_tasks: common.length };
+  // Coverage each run recorded (report only: it never fails a gate).
+  const cova = (a.coverage ?? {}) as Record<string, Obj>, covb = (b.coverage ?? {}) as Record<string, Obj>;
+  const share = (x: Obj) => (Number(x.total) ? Math.round((100 * (Number(x.checked) + Number(x.guarded))) / Number(x.total)) : 0);
+  const coverage: CoverageDelta[] = Object.keys(covb).filter((k) => cova[k]).map((k) => {
+    const before = new Set((cova[k]!.uncovered as string[]) ?? []);
+    return { map: k, a: share(cova[k]!), b: share(covb[k]!), delta: share(covb[k]!) - share(cova[k]!), total_a: Number(cova[k]!.total), total_b: Number(covb[k]!.total), newly_uncovered: ((covb[k]!.uncovered as string[]) ?? []).filter((x) => !before.has(x)) };
+  });
+  return { a: meta(a), b: meta(b), suites, flips, modes, cost, verdict, common_tasks: common.length, ...(coverage.length ? { coverage } : {}) };
 }
 const meta = (r: Obj) => ({ run_id: r.run_id, commit: r.commit, branch: r.branch, started_at: r.started_at, trials: r.trials });
 
@@ -85,6 +93,12 @@ export function comparisonMarkdown(c: Comparison, opts: { title?: string; gates?
   for (const s of c.suites) lines.push(`| ${s.name} | ${s.a}% | ${s.b}% | ${sign(s.delta)} (${sign(s.ci.low)}…${sign(s.ci.high)}) | ${s.note} | ${s.gate_result ? (s.gate_result.passed ? (s.gate?.report_only ? "report only" : "✅") : `❌ ${s.gate_result.reasons.join("; ")}`) : s.gate ? "" : "none"} |`);
   if (c.flips.length) { lines.push("", `**${c.flips.length} task${c.flips.length > 1 ? "s" : ""} flipped** (majority verdict across trials)`, "", "| Task | Suite | A → B | Change | Failing check in B |", "| --- | --- | --- | --- | --- |"); for (const x of c.flips.slice(0, 25)) lines.push(`| \`${x.task}\` | ${x.suite} | ${x.a} → ${x.b} | ${x.change} | ${x.check ? `\`${x.check}\`` : "—"} |`); if (c.flips.length > 25) lines.push(`| … | | | ${c.flips.length - 25} more | |`); }
   if (c.modes.length) { lines.push("", "**Failed checks by failure mode**", "", "| Mode | A | B | Δ |", "| --- | ---: | ---: | ---: |"); for (const m of c.modes.slice(0, 10)) lines.push(`| \`${m.name}\` | ${m.a} | ${m.b} | ${sign(m.delta)} |`); }
+  if (c.coverage?.length) {
+    lines.push("", "**Coverage** (checked or guarded; report only)", "", "| Map | A | B | Δ | Items |", "| --- | ---: | ---: | ---: | ---: |");
+    for (const x of c.coverage) lines.push(`| ${x.map} | ${x.a}% | ${x.b}% | ${sign(x.delta)} | ${x.total_a} → ${x.total_b} |`);
+    const lost = c.coverage.flatMap((x) => x.newly_uncovered.map((id) => `${x.map}: \`${id}\``));
+    if (lost.length) lines.push("", `**${lost.length} item${lost.length > 1 ? "s" : ""} with no eval since ${String(c.a.run_id)}** (new, or lost their task): ${lost.slice(0, 15).join(", ")}${lost.length > 15 ? "…" : ""}`);
+  }
   lines.push("", `Cost $${c.cost.a} → $${c.cost.b} (${sign(c.cost.delta)}) · tokens ${c.cost.tokens_a} → ${c.cost.tokens_b} · mean latency ${c.cost.latency_a} → ${c.cost.latency_b} ms · infra errors ${c.cost.infra_a}% → ${c.cost.infra_b}%`, "", `<sub>${c.common_tasks} common tasks · B ran ${String(c.b.trials)} trials per task on \`${String(c.b.commit)}\` · judge-corrected pass rates with bootstrap intervals · litmustest</sub>`);
   return lines.join("\n");
 }

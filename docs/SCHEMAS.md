@@ -40,6 +40,7 @@ evals/litmustest.yaml. Where traces come from, how runs execute, how judges are 
 | `storage` | object |  |  | Where run output goes. Summaries are small and go in git; transcripts are evidence and get a stable address. |
 | `ci` | object |  |  |  |
 | `agent` | object |  |  | How the runner starts the agent for one trial. The command runs once per trial in a fresh trial directory and must leave <trial_dir>/trial.json in the reference_solution shape (output, state, tool_calls, transcript, optional usage and latency_ms). Placeholders: {task}, {task_file}, {trial_dir}, {trial}, {evals}; the same values arrive as LITMUSTEST_TASK, LITMUSTEST_TASK_FILE, LITMUSTEST_TRIAL_DIR, LITMUSTEST_TRIAL, LITMUSTEST_INPUT (JSON) and LITMUSTEST_EVALS. |
+| `coverage` | object |  |  | Maps of the application that `litmustest coverage` measures the eval suite against. v1 measures three maps: spec (test-case ids in your docs), surface (API routes or tool names the trials actually call) and risk (failure modes by severity, always on). It does not measure production traffic, code lines or the frontend. |
 
 #### `sources`
 
@@ -121,6 +122,31 @@ evals/litmustest.yaml. Where traces come from, how runs execute, how judges are 
 | `env` | map of string |  |  | Extra environment variables for the agent. |
 | `reset` | string |  |  | Optional command run before each trial to reset external state (a database, a sandbox). Same placeholders. |
 
+#### `coverage`
+
+| Field | Type | Required | Constraints | Description |
+| --- | --- | --- | --- | --- |
+| `spec` | object |  |  | Requirements: every match of id_pattern in these files is one item. A task covers an item through `covers:` or a `source: spec:<id>` (case-insensitive). |
+| `surface` | object |  |  | What the product exposes. Items come from an OpenAPI file, a scan of route decorators, or an explicit list (tool names, for an agent). A route counts as exercised when a trial in the latest run calls it; `covers:` can also claim one. |
+
+##### `spec`
+
+| Field | Type | Required | Constraints | Description |
+| --- | --- | --- | --- | --- |
+| `files` | array of string | yes | min 1 items | Paths or globs relative to the repository root. |
+| `id_pattern` | string | yes | min length 1 | A regular expression for one spec id, e.g. SYS-[A-Z]+-\\d+. |
+| `area_pattern` | string |  | min length 1 | A regular expression with one capture group that picks the area from an id. Default: the id without its trailing number. |
+
+##### `surface`
+
+| Field | Type | Required | Constraints | Description |
+| --- | --- | --- | --- | --- |
+| `openapi` | string |  | min length 1 | Path to an OpenAPI JSON or YAML file, relative to the repository root. |
+| `scan` | array of string |  | min 1 items | Globs of source files to scan for route decorators such as @app.get("/path") or router.post('/path'). |
+| `items` | array of string |  | min 1 items, unique | An explicit list: "METHOD /path" or tool names. |
+| `ignore` | array of string |  |  | Items to leave out, matched exactly or by a trailing *. |
+| `group_depth` | integer |  | ≥ 1, ≤ 6 | How many path segments make an area for the chart. Default 2 (/api/play). |
+
 ## failure_mode
 
 evals/failure_modes/<name>.yaml. One named way the product goes wrong, found by reading traces. Failure modes are tags on the checks inside tasks.
@@ -153,6 +179,7 @@ evals/tasks/**/<id>.yaml. The unit of work: an input, a reference solution, and 
 | `report` | array of `strict_pass` · `weighted_score` · `pass_at_k` · `pass_hat_k` |  | unique, default `["strict_pass","weighted_score","pass_at_k","pass_hat_k"]` |  |
 | `tags` | array of [name](#name) |  | unique |  |
 | `graduated_from` | [name](#name) |  |  | Set when a saturated capability task moved to regression. |
+| `covers` | array of string |  | unique | Parts of the application this task covers, for `litmustest coverage`: spec ids (SYS-LOOP-03), routes ("POST /api/play/join") or tool names. Adds to what `source: spec:<id>` and the trials' own calls already count. |
 
 ## check.code
 
