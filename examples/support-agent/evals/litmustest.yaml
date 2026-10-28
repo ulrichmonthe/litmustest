@@ -42,3 +42,7 @@ storage:
     path: .litmustest/transcripts
 ci:
   pr_comment: true
+coverage:
+  # The agent's surface is its five tools; a tool counts as exercised when a trial in the latest run calls it.
+  surface:
+    items: [verify_identity, fetch_invoices, fetch_policy, process_refund, send_confirmation]

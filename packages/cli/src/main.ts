@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 import { readFileSync } from "node:fs";
 import { explainRun, explainText } from "./explain_run.ts";
+import { computeCoverage } from "./coverage.ts";
+import { coverageText, underThresholds } from "./coverage_cli.ts";
 import { dirname, join, resolve } from "node:path";
 import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
@@ -49,6 +51,15 @@ Usage:
       configured store. --dry-run grades the reference solutions instead
       of running the agent.
       --explain asks Claude to explain each failed task afterwards.
+
+  litmustest coverage [--dir evals] [--gaps N] [--fail-under map=pct]... [--json]
+      How much of the application the evals cover. v1 measures three maps:
+      spec (test-case ids in your docs, from coverage.spec), surface (API
+      routes or tools, from coverage.surface, matched against the calls the
+      latest run's trials made) and risk (failure modes by severity). Each
+      item is guarded, checked, planned or none. It does not measure
+      production traffic, code lines or the frontend. --fail-under spec=20
+      exits 1 when less than 20% of spec items are checked or guarded.
 
   litmustest explain [--dir evals] [--run id] [--task id]... [--all] [--force] [--no-model] [--json]
       Explain the failed trials of a run (the latest by default) in plain
@@ -136,6 +147,7 @@ function main(argv: string[]): number {
   if (cmd === "draft-judge" || cmd === "draft-check") { runDraft(cmd, rest); return 0; }
   if (cmd === "run") { runRun(rest); return 0; }
   if (cmd === "explain") { runExplain(rest); return 0; }
+  if (cmd === "coverage") return runCoverage(rest);
   if (cmd === "sample") { runSample(rest); return 0; }
   if (cmd === "graduate") return runGraduate(rest);
   if (cmd === "doctor") return runDoctor(rest);
@@ -290,6 +302,17 @@ function runRun(rest: string[]): void {
       if (flags.has("--explain") && !flags.has("--dry-run")) return explainRun({ evalsDir: resolve(values.get("--dir") ?? "evals"), runId: r.run_id }).then((x) => { process.stdout.write("\n"); for (const i of x.items) process.stdout.write(explainText(i) + "\n\n"); if (x.written) process.stdout.write(`wrote ${x.written} explanation${x.written > 1 ? "s" : ""} to ${x.path}\n`); });
     })
     .catch((e: Error) => { process.stderr.write(`run: ${e.message}\n`); process.exitCode = 1; });
+}
+
+function runCoverage(rest: string[]): number {
+  const values = new Map<string, string>(); const flags = new Set<string>(); const thresholds: string[] = [];
+  for (let i = 0; i < rest.length; i++) { const a = rest[i]!; if (a === "--json") flags.add(a); else if (a === "--fail-under") thresholds.push(rest[++i]!); else if (["--dir", "--gaps"].includes(a)) values.set(a, rest[++i]!); else { process.stderr.write(`unknown argument ${a}\n`); return 2; } }
+  const c = computeCoverage(resolve(values.get("--dir") ?? "evals"));
+  if (flags.has("--json")) process.stdout.write(JSON.stringify(c, null, 2) + "\n");
+  else process.stdout.write(coverageText(c, { gaps: values.has("--gaps") ? Number(values.get("--gaps")) : undefined }) + "\n");
+  const under = underThresholds(c, thresholds);
+  for (const u of under) process.stderr.write(`coverage: ${u}\n`);
+  return under.length ? 1 : 0;
 }
 
 function runExplain(rest: string[]): void {

@@ -42,6 +42,8 @@ describe("litmustest run", () => {
     const flaky = Object.entries(s.tasks).filter(([, t]: any) => t.flaky).map(([id]) => id);
     expect(flaky.some((id) => id.endsWith("_first_time") && (id.startsWith("duplicate_charge") || id.startsWith("pro_refund")))).toBe(true);
     expect(s.tasks.duplicate_charge_business.strict_pass).toBe(100);
+    // coverage is recorded with the run: the example's surface is its five tools, and the fake agent calls some of them
+    expect(s.coverage.surface.total).toBe(5); expect(s.coverage.surface.none).toBeLessThan(5); expect(s.coverage.risk.total).toBe(7);
     expect(s.tasks.duplicate_charge_business.trials[0].tokens).toBe(1101); expect(s.tasks.duplicate_charge_business.trials[0].transcript_ref).toBe("local:run_t1/duplicate_charge_business/1");
     expect(existsSync(join(repo, ".litmustest", "transcripts", "run_t1", "duplicate_charge_business", "1", "grades.json"))).toBe(true);
     const grades = JSON.parse(readFileSync(join(repo, ".litmustest", "transcripts", "run_t1", "refund_ghost_account_frustrated", "1", "grades.json"), "utf8"));

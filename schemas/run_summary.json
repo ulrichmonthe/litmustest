@@ -356,6 +356,136 @@
     },
     "agent_command": {
       "type": "string"
+    },
+    "coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Coverage when this run finished, from `litmustest coverage` (v1: spec, surface and risk maps). Items by depth: none, planned (only capability or unpassed tasks), checked (a passing task), guarded (a passing regression task).",
+      "properties": {
+        "spec": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "total",
+            "none",
+            "planned",
+            "checked",
+            "guarded"
+          ],
+          "properties": {
+            "total": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "none": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "planned": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "checked": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "guarded": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "uncovered": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 1000,
+              "description": "Item ids with no task, for diffs between runs."
+            }
+          }
+        },
+        "surface": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "total",
+            "none",
+            "planned",
+            "checked",
+            "guarded"
+          ],
+          "properties": {
+            "total": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "none": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "planned": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "checked": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "guarded": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "uncovered": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 1000,
+              "description": "Item ids with no task, for diffs between runs."
+            }
+          }
+        },
+        "risk": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "total",
+            "none",
+            "planned",
+            "checked",
+            "guarded"
+          ],
+          "properties": {
+            "total": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "none": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "planned": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "checked": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "guarded": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "uncovered": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 1000,
+              "description": "Item ids with no task, for diffs between runs."
+            }
+          }
+        }
+      }
     }
   }
 }

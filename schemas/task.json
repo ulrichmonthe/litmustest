@@ -4,39 +4,107 @@
   "title": "Task",
   "description": "evals/tasks/**/<id>.yaml. The unit of work: an input, a reference solution, and binary checks. A task reports both strict pass (all checks) and a weighted score.",
   "type": "object",
-  "required": ["id", "suite", "source", "input", "reference_solution", "checks"],
+  "required": [
+    "id",
+    "suite",
+    "source",
+    "input",
+    "reference_solution",
+    "checks"
+  ],
   "additionalProperties": false,
   "properties": {
-    "id": { "$ref": "common.json#/$defs/name", "description": "Must equal the file name without extension." },
-    "suite": { "$ref": "common.json#/$defs/name", "description": "The suite this task belongs to. Must exist under evals/suites/." },
+    "id": {
+      "$ref": "common.json#/$defs/name",
+      "description": "Must equal the file name without extension."
+    },
+    "suite": {
+      "$ref": "common.json#/$defs/name",
+      "description": "The suite this task belongs to. Must exist under evals/suites/."
+    },
     "source": {
       "type": "string",
       "pattern": "^(trace:[^\\s]+|spec:[a-z0-9][a-z0-9-]*|synthetic:[a-z0-9][a-z0-9-]*)$",
       "description": "Where the task came from: trace:<trace id> for a promoted trace, spec:<slug> for a capability task written from the spec, synthetic:<slug> for generated input."
     },
-    "description": { "type": "string", "maxLength": 1000, "description": "One or two sentences on what this task tests." },
-    "input": { "type": "object", "description": "What the agent receives. Free shape; the sample repo uses { persona, message }." },
-    "reference_solution": { "$ref": "common.json#/$defs/relative_path", "description": "Path to a reference_solution JSON that must pass every check before the task can join a suite." },
-    "trials": { "type": "integer", "minimum": 1, "maximum": 100, "description": "Overrides runs.trials in the config." },
+    "description": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "One or two sentences on what this task tests."
+    },
+    "input": {
+      "type": "object",
+      "description": "What the agent receives. Free shape; the sample repo uses { persona, message }."
+    },
+    "reference_solution": {
+      "$ref": "common.json#/$defs/relative_path",
+      "description": "Path to a reference_solution JSON that must pass every check before the task can join a suite."
+    },
+    "trials": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100,
+      "description": "Overrides runs.trials in the config."
+    },
     "checks": {
       "type": "array",
       "minItems": 1,
       "items": {
         "oneOf": [
-          { "$ref": "check.code.json" },
-          { "$ref": "check.judge.json" },
-          { "$ref": "check.outcome.json" },
-          { "$ref": "check.transcript.json" }
+          {
+            "$ref": "check.code.json"
+          },
+          {
+            "$ref": "check.judge.json"
+          },
+          {
+            "$ref": "check.outcome.json"
+          },
+          {
+            "$ref": "check.transcript.json"
+          }
         ]
       }
     },
     "report": {
       "type": "array",
-      "items": { "type": "string", "enum": ["strict_pass", "weighted_score", "pass_at_k", "pass_hat_k"] },
+      "items": {
+        "type": "string",
+        "enum": [
+          "strict_pass",
+          "weighted_score",
+          "pass_at_k",
+          "pass_hat_k"
+        ]
+      },
       "uniqueItems": true,
-      "default": ["strict_pass", "weighted_score", "pass_at_k", "pass_hat_k"]
+      "default": [
+        "strict_pass",
+        "weighted_score",
+        "pass_at_k",
+        "pass_hat_k"
+      ]
     },
-    "tags": { "type": "array", "items": { "$ref": "common.json#/$defs/name" }, "uniqueItems": true },
-    "graduated_from": { "$ref": "common.json#/$defs/name", "description": "Set when a saturated capability task moved to regression." }
+    "tags": {
+      "type": "array",
+      "items": {
+        "$ref": "common.json#/$defs/name"
+      },
+      "uniqueItems": true
+    },
+    "graduated_from": {
+      "$ref": "common.json#/$defs/name",
+      "description": "Set when a saturated capability task moved to regression."
+    },
+    "covers": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 200
+      },
+      "uniqueItems": true,
+      "description": "Parts of the application this task covers, for `litmustest coverage`: spec ids (SYS-LOOP-03), routes (\"POST /api/play/join\") or tool names. Adds to what `source: spec:<id>` and the trials' own calls already count."
+    }
   }
 }
