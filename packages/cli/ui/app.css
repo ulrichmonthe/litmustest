@@ -276,3 +276,28 @@ table.plain td .desc { display: block; font-size: 12px; color: var(--ink-muted);
 @media (max-width: 640px) { .gate-row { grid-template-columns: 1fr 1fr; } }
 .checkline { display: flex; align-items: center; gap: 10px; min-height: 44px; font-size: 13px; }
 .checkline input { width: 20px; height: 20px; }
+
+/* failure modes: where it shows up */
+.where { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.where li { border: 1px solid var(--line); border-radius: var(--radius-md); padding: 10px 12px; display: flex; flex-direction: column; gap: 4px; }
+.where li.fail { border-color: var(--bad); }
+.where-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+.where .desc { margin: 0; font-size: 13px; color: var(--ink); }
+.where .caption { margin: 0; }
+.where .expect { display: block; font-size: 12px; color: var(--ink-muted); margin-top: 2px; }
+
+/* transcript: what happened */
+.explain { display: flex; flex-direction: column; gap: 12px; }
+.explain-head { display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; }
+.explain-head .t-section-title { margin: 0; font-size: 17px; line-height: 1.4; flex: 1 1 320px; }
+.explain-row { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 12px; align-items: baseline; padding-top: 10px; border-top: 1px solid var(--line-soft); }
+.explain-row p { margin: 0 0 4px; line-height: 1.5; }
+.explain-row ul { margin: 0; padding-left: 18px; line-height: 1.5; }
+.explain-claude { border: 1px solid var(--line); border-radius: var(--radius-md); padding: 12px 14px; background: var(--surface); display: flex; flex-direction: column; gap: 6px; }
+.explain-claude p { margin: 0; line-height: 1.5; }
+.explain-claude.empty-claude { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 12px; justify-content: space-between; }
+.step.problem .step-body { outline: 2px solid var(--bad); outline-offset: 6px; border-radius: var(--radius-md); }
+.problem-flag { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--bad); }
+.dot.bad { background: var(--bad); }
+@media (max-width: 640px) { .explain-row { grid-template-columns: 1fr; gap: 4px; } }
+.why { font-size: 13px; line-height: 1.5; margin: 0; }

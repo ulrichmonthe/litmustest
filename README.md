@@ -45,6 +45,7 @@ The skills call the `litmustest` CLI, installed separately: `npm install -g litm
 | `litmustest draft-judge` / `draft-check` | Drafts a judge or a code check from labels |
 | `litmustest calibrate <judge>` | Dev runs, then the held-out test once; TPR/TNR with intervals |
 | `litmustest run` | k trials per task, graded, with error bars; infra failures excluded |
+| `litmustest explain` | Plain-language reasons for failed trials: what was tested, which step went wrong, what kind of failure, what would make it pass; Claude's reading is saved in the run summary |
 | `litmustest compare A B` | Paired deltas, flips, failure-mode and cost deltas |
 | `litmustest ci` | Gated suites, PR comment, non-zero on a crossed gate |
 | `litmustest sample` | The production sampler: new traces since the last batch, on a schedule |
