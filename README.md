@@ -23,7 +23,7 @@ Pre-release. Phases 1 to 3 are complete and Phase 4 is in progress (hosted mode 
 | `docs/BRAND.md`, `brand/` | Brand book, design tokens, logos |
 | `schemas/` | JSON Schema (draft 2020-12) for every file under `evals/` |
 | `packages/cli/` | The `litmustest` CLI, server and dashboard |
-| `plugin/` | The Claude Code plugin: manifest and skills (`error-discovery` so far) |
+| `plugin/` | The Claude Code plugin: manifest and 14 skills. Start with `evals-start`, which routes to the rest. |
 
 ## Install the plugin
 
@@ -32,7 +32,7 @@ claude plugin marketplace add ulrichmonthe/litmustest
 claude plugin install litmustest
 ```
 
-The skills call the `litmustest` CLI, installed separately: `npm install -g litmustest` once it is published. Codex manifests ship but are untested until Phase 2.
+The skills call the `litmustest` CLI, installed separately: `npm install -g litmustest` once it is published. Codex manifests ship but are untested.
 
 ## Commands
 

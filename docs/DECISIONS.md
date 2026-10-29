@@ -1,15 +1,15 @@
 # Decision Memos
 
-As of 2026-10-27. Six decisions block the build. Target: all decided by 2026-11-03. Record the outcome at the bottom of each memo.
+As of 2026-10-29. All six are recorded. #2, #3, #5 and #6 were decided by what v0.1 ships, not by the evidence their checklists ask for; each outcome says what is still owed. Record the outcome at the bottom of each memo.
 
 | # | Decision | Recommendation | Blocks | Status |
 | --- | --- | --- | --- | --- |
 | 1 | The name | **Renamed to `litmustest`.** | Package/repo names, wordmark, CLAUDE.md | Decided 2026-10-27 |
-| 2 | The runner | **Wrap, don't build.** Harbor for containers; pluggable storage. | Phase 3 architecture | Open |
-| 3 | Trace format | **OpenTelemetry GenAI conventions** internally; JSONL adapter. | Phase 1 ingest | Open |
+| 2 | The runner | **Wrap, don't build.** Harbor for containers; pluggable storage. | Phase 3 architecture | Interim 2026-10-29: in-process only |
+| 3 | Trace format | **OpenTelemetry GenAI conventions** internally; JSONL adapter. | Phase 1 ingest | Decided 2026-10-29 |
 | 4 | License and credit | **Keep Apache 2.0**; credit the course. | Phase 1 release | Decided 2026-10-27 |
-| 5 | Target agents | **Claude Code first**; Codex untested until Phase 2. | Test matrix | Open |
-| 6 | Run storage | **Summaries in git, transcripts local**, optional object store. | Phase 3 runner, CI | Open |
+| 5 | Target agents | **Claude Code first**; Codex untested until Phase 2. | Test matrix | Decided 2026-10-29 |
+| 6 | Run storage | **Summaries in git, transcripts local**, optional object store. | Phase 3 runner, CI | Interim 2026-10-29: local only |
 
 ## 1. The name
 
@@ -53,7 +53,7 @@ Confirm before committing: Harbor's task format can carry our checks (or map at 
 - [ ] Lead engineer runs one sample task through Harbor (half a day)
 - [ ] Decide on that evidence
 
-**Outcome:** _pending_
+**Outcome:** Interim, 2026-10-29. v0.1 ships one environment, `inprocess`: `agent.command` runs once per trial in a fresh directory on the same machine. `runs.environment: harbor` or `docker` fails with "not implemented yet (decision #2)". The Harbor spike has not been run, so "wrap, don't build" is still the plan but not yet confirmed. Owed: the half-day Harbor spike, then either a Harbor environment or a recorded reason to build a container runner.
 
 ## 3. Trace format
 
@@ -72,7 +72,7 @@ JSONL adapter (Phase 1): each line has at least `id`, `input`, `output`; optiona
 - [ ] Confirm the conventions cover tool results and multi-turn user simulation
 - [ ] Write the JSONL adapter spec with the schemas
 
-**Outcome:** _pending_
+**Outcome:** Decided 2026-10-29, as the recommendation. `ingest` reads OpenTelemetry GenAI spans (`gen_ai.*` attributes) and plain JSONL (`id`, `input`, `output`, optional `messages`, `tool_calls`); Langfuse and Braintrust pulls map to the JSONL shape first. The review queue, the transcript page and the judges read the derived turn view (`trace_view.ts`), and labels reference trace ids. Owed: the first checkbox. Tool results are carried, but multi-turn user simulation has not been tried against the conventions.
 
 ## 4. License and credit
 
@@ -89,7 +89,7 @@ Positioning: "Built on the evals-skills course method and Anthropic's agent-eval
 If the organization prefers a different license for the dashboard, the bundled skills stay Apache 2.0 and the README states the mix.
 
 - [x] Confirm Apache 2.0 with whoever owns licensing
-- [ ] Add headers to modified skills in Phase 1
+- [x] Add headers to modified skills
 
 **Outcome:** Apache 2.0 confirmed 2026-10-27. LICENSE file at the repo root.
 
@@ -102,7 +102,7 @@ The fork carries `.claude-plugin`, `.codex-plugin` and `.agents/plugins`. The sk
 - [ ] Decide
 - [ ] Add "Codex: untested" to the README until Phase 2
 
-**Outcome:** _pending_
+**Outcome:** Decided 2026-10-29, as the recommendation. The plugin targets Claude Code. `plugin/.codex-plugin/plugin.json` ships and is untested. Codex was not tested in Phase 2 as planned; it moves to after the first public release. The README says "untested" without a phase.
 
 ## 6. Where run transcripts are stored
 
@@ -120,4 +120,4 @@ Summaries are small and diffable: git. Transcripts are evidence, not code: a sta
 - [ ] Confirm the storage interface (write run, read trial, list runs) supports three backends
 - [ ] Decide the CI default (local is useless there)
 
-**Outcome:** _pending_
+**Outcome:** Interim, 2026-10-29. Summaries go in git under `evals/runs/`. Transcripts and grades go to a local, git-ignored store (`.litmustest/transcripts/` beside `evals/`, or `storage.transcripts.path`). Only `storage.transcripts.backend: local` is implemented; the schema lists `s3`, `gcs`, `braintrust`, `langfuse` and `langsmith`, but they are not wired. In CI the transcripts stay on the runner, so PR comments link to tasks, not transcripts. Owed: one object-store backend and the CI default.

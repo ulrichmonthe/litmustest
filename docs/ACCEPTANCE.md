@@ -31,7 +31,7 @@ As of 2026-10-27. Derived from the 25-chapter "litmustest Master Class" guide, w
 
 - [x] `litmustest run --suite regression --trials 5` runs each task in a clean environment per trial, grades, and writes a run summary to `evals/runs/`; raw transcripts go to the configured store. (A fresh trial directory per trial; `agent.command` in the config is the contract; `runs.environment` other than inprocess waits on decision #2.)
 - [x] Infra failures (timeouts, OOM, harness errors) are tagged and excluded from the agent's score; their rate is reported.
-- [x] Outcome checks read real end state (SQL, filesystem, HTTP) and the Transcript view shows an expected-vs-actual diff. (The agent harness snapshots the end state into `trial.state`; the example reads its SQLite database. Direct SQL/HTTP readers from the runner are a later step.)
+- [x] Outcome checks read real end state (SQL, filesystem, HTTP) and the Transcript view shows an expected-vs-actual diff. (The agent's trial script writes the end state into `trial.state`; the runner does not snapshot it itself; the example reads its SQLite database. Direct SQL/HTTP readers from the runner are a later step.)
 - [x] pass@1 and pass^k are reported per task and per suite; a flaky-task detector flags inconsistent tasks.
 - [x] `litmustest compare A B` produces paired deltas with CIs per suite, a flip list, failure-mode deltas and cost deltas; Run compare renders them.
 - [x] Transcript view shows the timeline with each check pinned to its step, a triage verdict (agent / grader / task / infra) to confirm or override, and the trial strip. (Triage is written into the run summary through the validated save path.)
@@ -50,6 +50,7 @@ As of 2026-10-27. Derived from the 25-chapter "litmustest Master Class" guide, w
 
 - [ ] Every number in the dashboard links to the tasks behind it; every task to its transcript.
 - [ ] No number is shown without its margin of error.
-- [ ] Every control is a real button/link/input, ≥ 44px, keyboard reachable, with a visible focus ring.
+- [x] Every control is a real button/link/input, ≥ 44px, keyboard reachable, with a visible focus ring. (`tests/ui_smoke.test.ts` measures every control on every route in Chrome and fails under 44px; links in running text are exempt. Focus rings come from one `:focus-visible` rule.)
 - [ ] Text contrast ≥ 4.5:1 on its ground in both themes.
 - [ ] The same action works from the CLI and the dashboard; the dashboard is a client of the files.
+- [x] The plugin ships the 14 skills of the spec, each writing into the schema and stopping before a commit. (`tests/skills.test.ts` checks names, the Apache header on the nine course ports, and every `litmustest` command and flag against `--help`. No skill has yet been run end to end in a real session.)
