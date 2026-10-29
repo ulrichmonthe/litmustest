@@ -4,6 +4,8 @@ html { background: var(--ground); }
 body { margin: 0; background: var(--ground); color: var(--ink); font-family: var(--font-sans); font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased; font-feature-settings: "ss01" on; }
 a { color: var(--blue-ink); font-weight: 500; text-decoration: none; }
 a:hover { color: var(--blue); }
+/* Links outside running text get a 44px target from padding; the negative margin keeps the line height. */
+#page a:not(.btn):not(p a):not(.banner a) { display: inline-block; padding-block: calc((44px - 1lh) / 2); margin-block: calc((1lh - 44px) / 2); }
 button, input, textarea, select { font: inherit; color: inherit; }
 button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 [hidden] { display: none !important; }
@@ -182,6 +184,8 @@ button.linklike:disabled { color: var(--ink-faint); cursor: default; }
 .stats span:last-child { font-family: var(--font-mono); font-size: 13px; font-variant-numeric: tabular-nums; }
 .alert { display: grid; grid-template-columns: 120px minmax(0, 1fr) auto; gap: 12px; align-items: center; min-height: 44px; padding: 10px 0; border-top: 1px solid var(--line-soft); }
 .alert:first-of-type { border-top: 0; }
+.alert.named { grid-template-columns: minmax(120px, min(var(--name-ch, 16ch), 40%)) minmax(0, 1fr) auto; }
+.alert.named > .mono { overflow-wrap: anywhere; }
 .alert .body { font-size: 13px; }
 .alert .body strong { font-weight: 600; }
 .alert .body span { color: var(--ink-muted); }

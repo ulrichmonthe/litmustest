@@ -7,3 +7,5 @@ packages/cli/schemas/
 *.tsbuildinfo
 examples/support-agent/environments/seed.sqlite
 examples/support-agent/.litmustest/
+__pycache__/
+*.pyc
