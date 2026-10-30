@@ -1,4 +1,4 @@
-# explain allows only learn_more_url here; open_on_load is not a setting
+# plain_language_default is true or false, not a word
 version: 1
 project: support_agent
 sources:
@@ -14,4 +14,4 @@ storage: { summaries: evals/runs, transcripts: { backend: local, path: .litmuste
 ci: { pr_comment: true }
 explain:
   learn_more_url: https://example.com/guide
-  open_on_load: true
+  plain_language_default: "off"
