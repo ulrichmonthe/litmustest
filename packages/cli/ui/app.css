@@ -357,20 +357,9 @@ table.plain td .desc { display: block; font-size: 12px; color: var(--ink-muted);
 /* Explainer (docs/EXPLAINER.md, docs/stories/explainer.md). A term is never blue (blue is navigation); its underline is dotted line-strong. No shadows: depth from the border. */
 .term { text-decoration: underline dotted var(--line-strong); text-decoration-thickness: 1px; text-underline-offset: 3px; cursor: help; border-radius: var(--radius-sm); }
 .term:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
-.popover { position: fixed; z-index: 50; width: min(340px, calc(100vw - 16px)); padding: 12px 14px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-md); font-size: 13px; line-height: 20px; color: var(--ink); }
-.popover p { margin: 6px 0 0; }
-.popover .pop-term { font-weight: 600; }
-.popover .here { color: var(--ink); }
-.popover .next, .popover .more { color: var(--ink-muted); }
-.popover .example { color: var(--ink-muted); }
 .plain-line { margin: 10px 0 0; font-size: 13px; line-height: 20px; color: var(--ink-muted); }
 .plain-line:empty { display: none; }
 .plain-line a { margin-left: 2px; }
-.drawer { position: fixed; z-index: 40; top: 0; right: 0; bottom: 0; width: min(420px, 100vw); overflow-y: auto; padding: var(--space-5); background: var(--surface); border-left: 1px solid var(--line); display: flex; flex-direction: column; gap: var(--space-3); }
-.drawer:focus { outline: none; }
-.drawer-list { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 12px; font-size: 13px; line-height: 20px; }
-.drawer-list p { margin: 4px 0 0; }
-.verdict-strip .explain-page { margin-left: auto; }
 .plain-link { color: inherit; }
 .verdict-strip .explain-page { color: inherit; text-decoration: underline; text-underline-offset: 3px; }
 
@@ -378,3 +367,23 @@ table.plain td .desc { display: block; font-size: 12px; color: var(--ink-muted);
 .peek { position: fixed; z-index: 60; max-width: min(520px, calc(100vw - 16px)); padding: 3px 8px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-sm); font-size: 12px; line-height: 16px; color: var(--ink); pointer-events: none; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
 .peek .hint { color: var(--ink-muted); }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+/* Explain panel (tier 2): a 320px column docked on the right; the page reflows beside it and is never covered. */
+.explain-panel { flex: 0 0 320px; width: 320px; position: sticky; top: 0; align-self: flex-start; height: 100vh; overflow-y: auto; padding: var(--space-5); background: var(--surface); border-left: 1px solid var(--line-soft); display: flex; flex-direction: column; gap: var(--space-3); font-size: 13px; line-height: 20px; }
+.explain-panel[hidden] { display: none; }
+body.panel-open .page { flex-basis: 360px; }
+.panel-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.panel-head h2 { margin: 10px 0 0; }
+.panel-body p, .panel-list p { margin: 0; }
+.panel-body { display: flex; flex-direction: column; gap: 8px; }
+.panel-body .eyebrow { margin: 8px 0 0; }
+.panel-body .more { color: var(--ink-muted); margin-top: 8px; }
+.panel-actions { display: flex; flex-direction: column; gap: 8px; }
+.panel-actions .row { display: flex; flex-wrap: wrap; gap: 8px; }
+.panel-list { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 12px; }
+.verdict-strip .explain-page { margin-left: auto; color: inherit; text-decoration: underline; text-underline-offset: 3px; }
+/* Below 900px the panel is a bottom sheet, at most 60% of the screen; the page gains room underneath so nothing stays hidden. */
+@media (max-width: 899px) {
+  .explain-panel { position: fixed; z-index: 40; left: 0; right: 0; bottom: 0; top: auto; width: auto; height: auto; max-height: 60vh; border-left: 0; border-top: 1px solid var(--line); border-radius: var(--radius-lg) var(--radius-lg) 0 0; }
+  body.panel-open .page { padding-bottom: 60vh; }
+}

@@ -1,7 +1,10 @@
 // GET /api/glossary: every term (layer 1). POST /api/glossary/here: rendered "here" sentences (layer 2) for [{id, source, ctx}].
 import { explain } from "../explain/index.ts";
 import type { Ctx } from "../glossary_facts.ts";
-import { loadGlossary } from "../glossary.ts";
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+import { parse as parseYaml } from "yaml";
+import { loadGlossary, loadPages } from "../glossary.ts";
 import { labelsFor } from "../calibrate.ts";
 import { loadFiles } from "./overview.ts";
 import { HttpError, type App, type Reply } from "./app.ts";
@@ -11,7 +14,8 @@ const MAX_ITEMS = 200;
 
 export function glossaryRoute(app: App): Reply {
   const terms = loadGlossary(app.evalsDir).map(({ here, ...e }) => ({ ...e, sources: [...new Set((here ?? []).map((v) => v.source))] }));
-  return { status: 200, body: { terms } };
+  const cfg = existsSync(join(app.evalsDir, "litmustest.yaml")) ? (parseYaml(readFileSync(join(app.evalsDir, "litmustest.yaml"), "utf8")) as Obj) : {};
+  return { status: 200, body: { terms, pages: loadPages(), learn_more_url: (cfg?.explain as Obj | undefined)?.learn_more_url ?? null } };
 }
 
 /** One glossary and file load per request: a page asks for many sentences over the same few sources. */

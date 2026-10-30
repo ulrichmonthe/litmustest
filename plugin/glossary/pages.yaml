@@ -1,0 +1,15 @@
+# "Explain this page" (docs/stories/explainer.md E3-S2): for each screen, the terms the panel lists in page mode,
+# most important first. The panel shows the first three that appear on the screen, each with its own "here" sentence.
+overview: [gate, stale, likely_broken, flaky, corrected_rate, confidence_interval]
+review: [label, failure_mode, cluster]
+modes: [failure_mode, severity, label]
+tasks: [likely_broken, flaky, graduation, task_status, pass_hat_k]
+task: [task, check, reference_solution, outcome_check]
+compare: [gate, confidence_interval, flip, corrected_rate]
+transcripts: [likely_broken, flaky, strict_pass, trial]
+trial: [trial, triage, flaky, likely_broken]
+judges: [stale, trusted, calibration, tpr]
+judge: [tpr, tnr, test_set, unknown, calibration]
+coverage: [coverage, coverage_depth, coverage_map]
+settings: [gate, report_only, regression_suite, capability_suite]
+pending: [pending_changes, branch, diff_hunk]

@@ -1043,21 +1043,24 @@
 - id: pending_changes
   term: Pending changes
   aliases: [pending, pending tray]
-  short: Edits made in the dashboard, waiting to be committed to a branch.
+  short: Edits made in the dashboard, waiting to be committed to a [[branch]].
   why: Nothing changes a grader, label, task or gate without a diff a person reviews.
   here:
     - source: pending
       when: count > 0
-      template: "{count} files under evals have uncommitted changes on {branch}."
+      template: "Uncommitted files under evals: {count}. Committing puts them on {commit_branch}."
       next:
-        - say: Read each diff, then commit them to {branch}.
-          action: pending.commit
+        - say: Read each diff, then commit them; open a pull request once they are on an evals branch.
+          action: [pending.commit, pending.openPr]
           link: "#/pending"
     - source: pending
       template: Nothing is waiting to be committed on {branch}.
       next:
-        - say: Nothing to do.
-  related: [label]
+        - when: on_evals_branch
+          say: Open a pull request for what you committed here.
+          action: pending.openPr
+        - say: Nothing to do. Edits you save in the dashboard will show up here.
+  related: [branch, label]
   learn_more: master-class#ch-21
 
 - id: coverage
@@ -1194,3 +1197,44 @@
   why: One run can be luck; the status looks across runs before calling a task fixed or broken.
   related: [flaky, likely_broken, graduation]
   learn_more: master-class#ch-8
+
+# ---------------- the Pending changes page
+
+- id: branch
+  term: Branch
+  aliases: [evals branch, git branch]
+  short: The line of git history your dashboard edits are committed to, kept apart from main until reviewed.
+  why: Nothing reaches main without a pull request a person reviews.
+  here:
+    - source: pending
+      when: on_evals_branch
+      template: You are on {branch}. Commits from the dashboard go here, and reach main only through a pull request.
+      next:
+        - say: To use a different branch, switch to it with git before you commit; any evals branch is used as it is.
+    - source: pending
+      template: >-
+        You are on {branch}. A commit from the dashboard goes to a separate branch, {commit_branch}, so your
+        work on {branch} stays as it is and the eval edits reach main by pull request.
+      next:
+        - say: To commit to a branch of your choice, switch to an evals branch with git first; it is used as it is.
+  related: [pending_changes]
+  learn_more: master-class#ch-21
+
+- id: diff_old
+  term: "---"
+  short: In a diff, the line starting --- names the file as it was before the change.
+  related: [diff_new, diff_hunk]
+  learn_more: master-class#ch-21
+
+- id: diff_new
+  term: "+++"
+  short: In a diff, the line starting +++ names the file as it is after the change.
+  related: [diff_old, diff_hunk]
+  learn_more: master-class#ch-21
+
+- id: diff_hunk
+  term: "@@"
+  short: "In a diff, @@ starts a changed block: the line numbers it covers before and after."
+  why: Lines below it starting with + were added, lines starting with - were removed.
+  related: [diff_old, diff_new]
+  learn_more: master-class#ch-21
