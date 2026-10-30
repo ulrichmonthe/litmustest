@@ -70,46 +70,111 @@ describe("dashboard smoke", () => {
   }, 60_000);
 });
 
-// The explainer (docs/EXPLAINER.md): popovers open on click and focus, close on Escape with focus returned,
-// and every header, stat label and pill on the screens is either a glossary term or a plain word on this list.
-const PLAIN = new Set(["a", "b", "a → b", "actual", "agent", "change", "customer", "expected", "fail", "failed", "failing", "passing", "pass", "high", "med", "low", "human", "item", "last runs", "model", "mode", "none", "path", "source", "status", "suite health", "tool", "trend", "used by", "why", "what happened", "what it tests", "what this means", "to make it pass", "judge's critique", "covered by", "has check", "measured", "not measured in v1", "needs labels", "failing check in b", "no grader", "only a judge failed it", "mixed", "high severity", "review queue", "dev tpr / tnr", "test tpr / tnr", "change", "checks"]);
+// The explainer (docs/EXPLAINER.md): every header, stat label and pill on the screens is either a glossary term or a plain word on this list.
+const PLAIN = new Set(["a", "b", "a → b", "actual", "agent", "change", "customer", "expected", "fail", "failed", "failing", "passing", "pass", "high", "med", "low", "human", "item", "last runs", "model", "mode", "none", "path", "source", "status", "suite health", "tool", "trend", "used by", "why", "what happened", "what it tests", "what this means", "to make it pass", "judge's critique", "covered by", "has check", "measured", "not measured in v1", "needs labels", "failing check in b", "no grader", "only a judge failed it", "mixed", "high severity", "review queue", "dev tpr / tnr", "test tpr / tnr", "checks"]);
 const ALSO: Record<string, string> = { broke: "flip", fixed: "flip", significant: "confidence_interval", "within noise": "confidence_interval" };
+const ROUTES_ALL = ["overview", "review", "modes", "tasks", "compare", "transcripts", "judges", "judges/tone_mismatch", "coverage", "settings", "pending"];
+/** Pills that are not status words: the explain card's own kind label and the AI pill. */
+const NOT_STATUS = /^(AI|Claude|Sample data)/i;
 
-describe("explainer in the browser", () => {
-  it("opens on click and focus, closes on Escape, and every label on the screens is defined", async (ctx) => {
-    if (!browser) return ctx.skip();
+describe("explainer, Epic 2 (docs/stories/explainer.md)", () => {
+  let s: Running; let names: Set<string>; let shorts: Map<string, string>;
+  beforeAll(async () => {
+    if (!browser) return;
     const cwd = repo((c) => cpSync(EXAMPLE, join(c, "evals"), { recursive: true }));
-    const s = await serve({ evalsDir: join(cwd, "evals"), port: 0, watch: false }); servers.push(s);
-    const names = new Set(((await (await fetch(`${s.url}/api/glossary`)).json()) as { terms: { id: string; term: string; aliases?: string[] }[] }).terms.flatMap((t) => [t.id, t.term, ...(t.aliases ?? [])].map((x) => x.toLowerCase())));
-    const page = await browser!.newPage();
+    s = await serve({ evalsDir: join(cwd, "evals"), port: 0, watch: false }); servers.push(s);
+    const g = (await (await fetch(`${s.url}/api/glossary`)).json()) as { terms: { id: string; term: string; short: string; aliases?: string[] }[] };
+    names = new Set(g.terms.flatMap((t) => [t.id, t.term, ...(t.aliases ?? [])].map((x) => x.toLowerCase())));
+    shorts = new Map(g.terms.map((t) => [t.id, t.short.replace(/\[\[(\w+)\]\]/g, (_, id) => g.terms.find((x) => x.id === id)!.term.toLowerCase())]));
+  });
+  const open = async (route: string, opts: Parameters<Browser["newPage"]>[0] = {}) => {
+    const page = await browser!.newPage(opts); await page.goto(`${s.url}/#/${route}`);
+    await page.waitForFunction(() => !/Loading…/.test(document.querySelector("#page")?.textContent ?? "") && document.querySelector("#page h1"));
+    await page.waitForTimeout(200); return page;
+  };
 
-    await page.goto(`${s.url}/#/judges/tone_mismatch`); await page.waitForSelector("button.qhelp");
-    const label = await page.getAttribute("button.qhelp", "aria-label");
-    await page.click("button.qhelp");
-    await page.waitForSelector("#gloss-pop .here:not(.muted)");
-    expect(await page.textContent("#gloss-pop")).toMatch(/tone_mismatch/);
-    await page.keyboard.press("Escape");
-    expect(await page.$("#gloss-pop")).toBeNull();
-    expect(await page.evaluate(() => document.activeElement?.getAttribute("aria-label"))).toBe(label);
-    await page.focus(".term"); await page.waitForSelector("#gloss-pop");
+  it("E2-S1: terms are dotted line-strong, words underline once per screen, values and pills are triggers, no ? icons", async (ctx) => {
+    if (!browser) return ctx.skip();
+    const problems: string[] = [];
+    for (const r of ROUTES_ALL) {
+      const page = await open(r);
+      const res = await page.evaluate((notStatus) => {
+        const out: string[] = [];
+        const lineStrong = getComputedStyle(document.documentElement).getPropertyValue("--line-strong").trim();
+        for (const t of document.querySelectorAll("#page .term")) {
+          const cs = getComputedStyle(t); if (!cs.textDecorationStyle.includes("dotted")) out.push(`not dotted: ${t.textContent}`);
+          const probe = document.createElement("span"); probe.style.color = lineStrong; document.body.append(probe); const want = getComputedStyle(probe).color; probe.remove();
+          if (cs.textDecorationColor !== want) out.push(`underline is ${cs.textDecorationColor}, not line-strong: ${t.textContent}`);
+        }
+        const words = [...document.querySelectorAll('#page .term[data-kind="word"]')].map((t) => (t as HTMLElement).dataset.term);
+        for (const w of new Set(words)) if (words.filter((x) => x === w).length > 1) out.push(`word "${w}" underlined more than once`);
+        for (const p of document.querySelectorAll("#page .pill")) if (!p.closest(".term, button, a") && !new RegExp(notStatus, "i").test(p.textContent ?? "")) out.push(`pill is not a trigger: ${p.textContent}`);
+        for (const v of document.querySelectorAll("#page .big .n, #page .stats > div > span:last-child, #page .kpis > div > span:nth-child(2)")) if (/\d/.test(v.textContent ?? "") && !v.querySelector(".term") && !v.closest(".term")) out.push(`number is not a trigger: ${v.textContent}`);
+        if (document.querySelector(".qhelp")) out.push("a ? button is still there");
+        for (const el of document.querySelectorAll("#page button, #page span")) if (el.textContent?.trim() === "?") out.push("a ? icon is still there");
+        return out;
+      }, NOT_STATUS.source);
+      problems.push(...res.map((x) => `${r}: ${x}`)); await page.close();
+    }
+    expect([...new Set(problems)]).toEqual([]);
+  }, 120_000);
 
-    await page.goto(`${s.url}/#/overview`); await page.waitForSelector(".plain-line:not(:empty)");
-    for (const t of await page.$$eval(".plain-line", (els) => els.map((e) => e.textContent ?? ""))) expect(t).not.toMatch(/\[object|undefined|null|NaN/);
+  it("E2-S2: hover 400ms or focus peeks the short definition, one or two lines, no controls, described by", async (ctx) => {
+    if (!browser) return ctx.skip();
+    const page = await open("judges/tone_mismatch", { viewport: { width: 1280, height: 900 } });
+    const t = page.locator('#page .term[data-term="tpr"]').first();
+    await t.hover(); await page.waitForTimeout(250);
+    expect(await page.$("#gloss-peek")).toBeNull(); // not before 400ms
+    await page.waitForTimeout(300);
+    const peek = page.locator("#gloss-peek");
+    expect(await peek.textContent()).toBe(`${shorts.get("tpr")} Click for more`);
+    expect(await peek.locator("a, button").count()).toBe(0);
+    const [pb, tb] = [await peek.boundingBox(), await t.boundingBox()];
+    expect(pb!.height).toBeLessThanOrEqual(2 * 16 + 8); // two lines at most
+    expect(pb!.y).toBeGreaterThanOrEqual(tb!.y + tb!.height); // under the term, never over it
+    await page.mouse.move(5, 5); await page.waitForTimeout(50);
+    expect(await page.$("#gloss-peek")).toBeNull(); // closes when the pointer leaves
+    const id = await t.getAttribute("aria-describedby");
+    expect(await page.textContent(`#${id}`)).toBe(shorts.get("tpr"));
+    // keyboard focus peeks; moving focus closes it
+    await page.keyboard.press("Tab"); for (let i = 0; i < 80 && !(await page.evaluate(() => document.activeElement?.classList.contains("term"))); i++) await page.keyboard.press("Tab");
+    await page.waitForSelector("#gloss-peek");
+    await page.keyboard.press("Tab"); await page.waitForTimeout(50);
+    if (!(await page.evaluate(() => document.activeElement?.classList.contains("term")))) expect(await page.$("#gloss-peek")).toBeNull();
+    // click opens the full explanation; Escape closes it and returns focus
+    const v = page.locator('#page .term[data-term="tpr"][data-kind="value"]').first();
+    await v.click(); await page.waitForSelector("#gloss-pop .here:not(.muted)");
+    expect(await page.textContent("#gloss-pop .here")).toMatch(/tone_mismatch judge caught \d+ of \d+/);
+    expect(await page.$("#gloss-peek")).toBeNull();
+    await page.keyboard.press("Escape"); expect(await page.$("#gloss-pop")).toBeNull();
+    expect(await page.evaluate(() => (document.activeElement as HTMLElement)?.dataset.term)).toBe("tpr");
+    await page.close();
+  }, 60_000);
 
+  it("E2-S2: on touch there is no peek; a tap opens the explanation", async (ctx) => {
+    if (!browser) return ctx.skip();
+    const page = await open("judges/tone_mismatch", { hasTouch: true, isMobile: true, viewport: { width: 390, height: 844 } });
+    await page.locator('#page .term[data-term="tpr"]').first().tap(); await page.waitForTimeout(600);
+    expect(await page.$("#gloss-peek")).toBeNull();
+    expect(await page.$("#gloss-pop")).not.toBeNull();
+    await page.close();
+  }, 60_000);
+
+  it("every header, stat label and pill is a glossary term or a plain word", async (ctx) => {
+    if (!browser) return ctx.skip();
     const undefinedWords = new Set<string>();
-    for (const r of ["overview", "review", "modes", "tasks", "compare", "transcripts", "judges", "judges/tone_mismatch", "coverage", "settings", "pending"]) {
-      await page.goto(`${s.url}/#/${r}`); await page.waitForFunction(() => !/Loading…/.test(document.querySelector("#page")?.textContent ?? ""));
-      await page.waitForTimeout(150);
+    for (const r of ROUTES_ALL) {
+      const page = await open(r);
       for (const raw of await page.$$eval("#page th, #page .stats > div > span:first-child, #page .pareto-head span, #page .pill, #page .kpis > div > span:first-child, #page .eyebrow", (els) => els.map((e) => e.textContent ?? ""))) {
-        const first = raw.replace(/\?/g, "").split(" · ")[0]!.trim();
+        const first = raw.split(" · ")[0]!.trim();
         if (!first || /^[\w-]+:/.test(first) || /^vs /.test(first)) continue;
         const w = first.replace(/pass\^\d+/i, "pass^k").replace(/(^|\s)\d+(?=\s|$)/g, " ").replace(/\s+/g, " ").trim().toLowerCase();
         const one = w.replace(/s$/, "");
         if (!w || PLAIN.has(w) || PLAIN.has(one) || ALSO[w] || names.has(w) || names.has(one)) continue;
         undefinedWords.add(`${r}: "${first}"`);
       }
+      await page.close();
     }
     expect([...undefinedWords]).toEqual([]);
-    await page.close();
-  }, 90_000);
+  }, 120_000);
 });
