@@ -1,5 +1,5 @@
 // The one resolver every surface uses (docs/stories/explainer.md E1-S2): a term plus the current repo state in,
-// an explanation out. The server's panel, `litmustest explain`, --plain rows and the PR comment all call this.
+// an explanation out. The server's panel, `litmustest explain`, --explain rows and the PR comment all call this.
 import { factsFor, type Ctx } from "../glossary_facts.ts";
 import { findEntry, loadGlossary, renderHere, unlink, type Entry } from "../glossary.ts";
 import { loadFiles, type Files } from "../server/overview.ts";

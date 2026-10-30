@@ -1,0 +1,70 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`E5-S1 litmustest explain > prints term, short, why, good, and here with next inside a repo 1`] = `
+"True positive rate (TPR, recall, sensitivity)
+
+Of the real failures, how many the judge caught.
+
+Why it matters: A judge that misses failures lets bad changes ship.
+What good looks like: 90% or higher on the dev set before the test set runs.
+
+In this repo:
+  Your missed_refund judge caught 9 of 10 real failures (90%, could be 60–98%). Next: It changed since it was measured. Rerun the dev set, then the test set once.
+  Your tone_mismatch judge caught 10 of 11 real failures (90.9%, could be 62–98%). Next: Nothing to do; the dev set is above the bar.
+
+Related: tnr, calibration, judge
+Learn more: Master Class, chapter 12
+"
+`;
+
+exports[`E5-S2 --explain > compare: one indented sentence under rows with the flag; without it, output is unchanged 1`] = `
+"### litmustest: run_0041 vs run_0040
+
+**B worse on quality. Fix that before merging.**
+
+| Suite | A | B | Δ (95% CI) | | Gate |
+| --- | ---: | ---: | ---: | --- | --- |
+| regression | 85.1% | 85.1% | -0.8 (-7.4…+5.5) | within noise | ❌ pass rate 85.1% is below the 95% gate |
+| capability | 52.7% | 60.8% | +9.4 (-6.6…+24.7) | within noise | report only |
+| quality | 87.5% | 64% | -24 (-44…-4) | significant | ❌ pass rate 64% is below the 80% gate |
+
+**10 tasks flipped** (majority verdict across trials)
+
+| Task | Suite | A → B | Change | Failing check in B |
+| --- | --- | --- | --- | --- |
+| \`cancel_monthly_frustrated\` | capability | 2 / 4 → 1 / 5 | Broke | \`tone\` |
+| \`cancel_monthly_business\` | capability | 1 / 4 → 3 / 5 | Fixed | — |
+| \`vat_invoice_frustrated\` | capability | 1 / 5 → 3 / 5 | Fixed | — |
+| \`vat_invoice_business\` | capability | 3 / 4 → 2 / 5 | Broke | \`tone\` |
+| \`vat_invoice_first_time\` | capability | 2 / 5 → 4 / 4 | Fixed | — |
+| \`pause_plan_first_time\` | capability | 2 / 5 → 4 / 5 | Fixed | — |
+| \`vat_self_serve_first_time\` | capability | 3 / 5 → 2 / 5 | Broke | \`tone\` |
+| \`retry_now_business\` | capability | 1 / 4 → 4 / 5 | Fixed | — |
+| \`invoice_history_first_time\` | capability | 1 / 4 → 4 / 5 | Fixed | — |
+| \`tone_only_business\` | quality | 4 / 5 → 1 / 5 | Broke | \`tone\` |
+
+**Failed checks by failure mode**
+
+| Mode | A | B | Δ |
+| --- | ---: | ---: | ---: |
+| \`tone_mismatch\` | 44 | 48 | +4 |
+
+Cost $N → $N (+0.18) · tokens 454733 → 443663 · mean latency 6438 → 6545 ms · infra errors 4% → 1%
+
+<sub>40 common tasks · B ran 5 trials per task on \`b7e04d5\` · judge-corrected pass rates with bootstrap intervals · litmustest</sub>
+"
+`;
+
+exports[`E5-S2 --explain > doctor: one indented sentence under rows with the flag; without it, output is unchanged 1`] = `
+"Judge stale      missed_refund was edited after its test pass. Its verdicts are excluded from scores and gates until it is re-calibrated.
+                 -> Open judge (#/judges/missed_refund)
+Flaky task       invoice_copy_frustrated passes some trials and fails others with nothing changed. Read its trials before trusting its pass rate.
+                 -> Open task (#/tasks/regression/invoice_copy_frustrated)
+Broken task      refund_ghost_account_frustrated failed every trial in the last runs. Its reference solution passes, so the task's premise or environment is wrong, not the agent.
+                 -> Open task (#/tasks/regression/refund_ghost_account_frustrated)
+Review queue     42 traces in the review queue have no label yet. Labels feed failure modes and judge calibration.
+                 -> Open queue (#/review)
+
+next: missed_refund was edited after its test pass. Open judge: #/judges/missed_refund
+"
+`;

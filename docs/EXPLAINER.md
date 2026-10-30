@@ -120,9 +120,9 @@ pass@1 and pass^k are stored without an interval. The `suite` and `task` facts a
 | Next steps as actions | A next step's `action` names dashboard commands. Screens register their own buttons' handlers as commands (`command(id, …)` in `app.js`), and the panel renders available ones as buttons that call the same handler; a step on another screen is a link, never a link to the screen you are on. Every disabled button has a trigger beside it whose next step says what unblocks it |
 | Plain language | Each person's choice, in Settings and in the panel header. On, the "here" sentence sits under each card's number; off, it is only in the panel. Saved in `$XDG_CONFIG_HOME/litmustest/prefs.json` (else `~/.config/…`) through `/api/prefs`, falling back to browser storage where the server keeps none; never in `evals/`. A repo sets the default for newcomers with `explain.plain_language_default` (on when unset). The first panel a newcomer opens offers, once, "Turn off Plain language" |
 | API | `GET /api/glossary` (layer 1, merged); `POST /api/glossary/here` with `[{id, source, ctx}]` returns the rendered sentences |
-| CLI | `litmustest explain <term>` prints layer 1 and, when an `evals/` exists, the "here" sentence for every matching context. `explain` with no term keeps its old job (explaining failed trials). |
-| CLI rows | `--plain` on `run`, `compare`, `calibrate` and `doctor` prints the "here" sentence under each row. Not `--explain`: on `run` that already means "ask Claude about the failed trials". |
-| CI | The PR comment gains a collapsed "What these numbers mean" block when a gated suite's delta is significant or its gate failed, and has none otherwise |
+| CLI | `litmustest explain <term>` prints layer 1 and, when an `evals/` exists, the "here" sentence for every matching context; an unknown term exits 2 with the three closest; `explain --list` lists every term. `explain` with no term keeps its old job (explaining failed trials). |
+| CLI rows | `--explain` on `run`, `compare`, `calibrate` and `doctor` prints the "here" sentence under each row, indented and dim (colour only on a terminal, or with `FORCE_COLOR`; `NO_COLOR` turns it off). Without the flag the output is unchanged. Claude's reading of failed trials, formerly `run --explain`, is now `run --explain-failures` |
+| CI | The PR comment gains a collapsed "What these numbers mean" block when a gated suite's value changed or its gate failed, and has none otherwise |
 
 ## Decisions on the PRD's open questions
 
