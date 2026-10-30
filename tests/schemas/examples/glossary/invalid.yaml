@@ -1,0 +1,7 @@
+# id is not snake_case, and here uses a source that does not exist
+- id: Refund-Window
+  term: Refund window
+  short: The days after a charge in which a customer can get money back.
+  here:
+    - source: invoices
+      template: Something.

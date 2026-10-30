@@ -47,6 +47,7 @@ The skills call the `litmustest` CLI, installed separately: `npm install -g litm
 | `litmustest run` | k trials per task, graded, with error bars; infra failures excluded |
 | `litmustest coverage` | How much of the application the evals cover: spec cases, API routes or tools, and failure modes, each guarded, checked, planned or none (v1 scope in docs/COVERAGE.md) |
 | `litmustest explain` | Plain-language reasons for failed trials: what was tested, which step went wrong, what kind of failure, what would make it pass; Claude's reading is saved in the run summary |
+| `litmustest explain <term>` | What a term means, why it matters, what good looks like, and what it means in this repo with the next step; the dashboard's ? popovers and the PR comment use the same glossary (`docs/EXPLAINER.md`) |
 | `litmustest compare A B` | Paired deltas, flips, failure-mode and cost deltas |
 | `litmustest ci` | Gated suites, PR comment, non-zero on a crossed gate |
 | `litmustest sample` | The production sampler: new traces since the last batch, on a schedule |
