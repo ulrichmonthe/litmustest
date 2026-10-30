@@ -387,3 +387,11 @@ body.panel-open .page { flex-basis: 360px; }
   .explain-panel { position: fixed; z-index: 40; left: 0; right: 0; bottom: 0; top: auto; width: auto; height: auto; max-height: 60vh; border-left: 0; border-top: 1px solid var(--line); border-radius: var(--radius-lg) var(--radius-lg) 0 0; }
   body.panel-open .page { padding-bottom: 60vh; }
 }
+.panel-tools { display: flex; align-items: center; gap: 8px; }
+.panel-plain { font-size: 12px; white-space: nowrap; }
+.panel-prompt { display: flex; flex-direction: column; gap: 8px; padding: 12px; border: 1px dashed var(--line); border-radius: var(--radius-md); }
+.panel-prompt p { margin: 0; }
+.panel-head { flex-wrap: wrap-reverse; }
+.panel-head h2 { flex: 1 1 100%; }
+.panel-tools { margin-left: auto; }
+.explain-panel .chip { font-family: var(--font-sans); }

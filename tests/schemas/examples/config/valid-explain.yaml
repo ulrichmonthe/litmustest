@@ -13,3 +13,4 @@ storage: { summaries: evals/runs, transcripts: { backend: local, path: .litmuste
 ci: { pr_comment: true }
 explain:
   learn_more_url: https://example.com/litmustest-master-class
+  plain_language_default: false

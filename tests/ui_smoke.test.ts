@@ -21,6 +21,9 @@ function repo(fill: (cwd: string) => void): string {
   return cwd;
 }
 
+// Preferences go to $XDG_CONFIG_HOME/litmustest/prefs.json; tests must never touch the person's real one.
+process.env.XDG_CONFIG_HOME = mkdtempSync(join(tmpdir(), "litmustest-xdg-"));
+
 let browser: Browser | undefined;
 const servers: Running[] = [];
 beforeAll(async () => {
@@ -301,4 +304,60 @@ describe("explainer, Epic 3 (docs/stories/explainer.md)", () => {
     }
     expect(missing).toEqual([]);
   }, 180_000);
+});
+
+describe("explainer, Epic 4 (docs/stories/explainer.md)", () => {
+  const fresh = () => { process.env.XDG_CONFIG_HOME = mkdtempSync(join(tmpdir(), "litmustest-xdg-")); return join(process.env.XDG_CONFIG_HOME, "litmustest", "prefs.json"); };
+  const start = async (extraConfig = "") => {
+    const cwd = repo((c) => { cpSync(EXAMPLE, join(c, "evals"), { recursive: true }); if (extraConfig) writeFileSync(join(c, "evals", "litmustest.yaml"), readFileSync(join(c, "evals", "litmustest.yaml"), "utf8") + extraConfig); });
+    const s = await serve({ evalsDir: join(cwd, "evals"), port: 0, watch: false }); servers.push(s); return { s, cwd };
+  };
+  const open = async (url: string) => { const page = await browser!.newPage({ viewport: { width: 1440, height: 900 } }); await page.goto(url); await page.waitForFunction(() => !/Loading…/.test(document.querySelector("#page")?.textContent ?? "") && document.querySelector("#page h1")); await page.waitForTimeout(400); return page; };
+  const plainLines = (page: import("playwright-core").Page) => page.locator("#page .plain-line:not(:empty)").count();
+
+  it("E4-S1: toggles in Settings and the panel header; on shows sentences inline, off only in the panel; stored per person, not in evals/", async (ctx) => {
+    if (!browser) return ctx.skip();
+    const file = fresh(); const { s, cwd } = await start();
+    const page = await open(`${s.url}/#/overview`);
+    expect(await plainLines(page)).toBeGreaterThan(0); // default when unset: on
+    await page.goto(`${s.url}/#/settings`); await page.waitForSelector("#plain-setting");
+    await page.uncheck("#plain-setting"); await page.waitForTimeout(300);
+    expect(JSON.parse(readFileSync(file, "utf8")).plain_language).toBe(false);
+    await page.goto(`${s.url}/#/overview`); await page.waitForTimeout(600);
+    expect(await plainLines(page)).toBe(0);
+    await page.locator('#page .term[data-term="corrected_rate"]').first().click();
+    await page.waitForFunction(() => /What it means here/.test(document.querySelector("#explain-panel")?.textContent ?? "")); // still in the panel
+    await page.check("#plain-panel"); await page.waitForFunction(() => document.querySelectorAll("#page .plain-line:not(:empty)").length > 0);
+    expect(JSON.parse(readFileSync(file, "utf8")).plain_language).toBe(true);
+    expect(execFileSync("git", ["status", "--porcelain"], { cwd, encoding: "utf8" }).trim()).toBe(""); // nothing written to the repo
+    await page.close();
+  }, 90_000);
+
+  it("E4-S1: a repo sets the default for newcomers; a person's own choice wins", async (ctx) => {
+    if (!browser) return ctx.skip();
+    fresh(); const { s } = await start("explain:\n  plain_language_default: false\n");
+    const p = (await (await fetch(`${s.url}/api/prefs`)).json()) as { plain_language_default: boolean; plain_language_effective: boolean };
+    expect(p).toMatchObject({ plain_language_default: false, plain_language_effective: false });
+    const page = await open(`${s.url}/#/overview`); expect(await plainLines(page)).toBe(0);
+    await fetch(`${s.url}/api/prefs`, { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ plain_language: true }) });
+    await page.reload(); await page.waitForFunction(() => document.querySelectorAll("#page .plain-line:not(:empty)").length > 0);
+    expect((await fetch(`${s.url}/api/prefs`, { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ colour: "blue" }) })).status).toBe(400);
+    await page.close();
+  }, 90_000);
+
+  it("E4-S1: the first panel a newcomer opens offers, once, to turn Plain language off", async (ctx) => {
+    if (!browser) return ctx.skip();
+    const file = fresh(); const { s } = await start();
+    const page = await open(`${s.url}/#/overview`);
+    const t = page.locator('#page .term[data-term="corrected_rate"]').first();
+    await t.click(); await page.waitForSelector("#plain-off-once");
+    await page.keyboard.press("Escape"); await t.click(); await page.waitForTimeout(300);
+    expect(await page.$("#plain-off-once")).toBeNull(); // once only
+    // a second newcomer uses it
+    fresh(); const page2 = await open(`${s.url}/#/overview`);
+    await page2.locator('#page .term[data-term="corrected_rate"]').first().click(); await page2.click("#plain-off-once");
+    await page2.waitForFunction(() => document.querySelectorAll("#page .plain-line:not(:empty)").length === 0);
+    expect(JSON.parse(readFileSync(join(process.env.XDG_CONFIG_HOME!, "litmustest", "prefs.json"), "utf8"))).toMatchObject({ plain_language: false, plain_prompt_seen: true });
+    void file; await page.close(); await page2.close();
+  }, 90_000);
 });

@@ -28,9 +28,20 @@ const stale = (seq) => seq !== state.seq;
 // ---------------- explainer (docs/EXPLAINER.md): what a term means, what it means here, what to do next.
 // Words come from the glossary via the API; every number in a "here" sentence was computed by the server from the files.
 const gloss = { terms: new Map(), names: new Map(), pages: {}, learnMoreUrl: null, seen: new Set(), peek: null, peekFor: null, peekTimer: 0 };
+// Plain language is a per-person preference: ~/.config/litmustest/prefs.json through /api/prefs, falling back to this
+// browser's storage where the server keeps none (hosted mode). The repo only sets the default for newcomers.
 const PLAIN_KEY = "litmustest.plain";
-const plainOn = () => { try { return localStorage.getItem(PLAIN_KEY) !== "off"; } catch { return true; } };
-const setPlain = (on) => { try { localStorage.setItem(PLAIN_KEY, on ? "on" : "off"); } catch { /* private mode: the default stays */ } };
+const prefs = { plain: true, promptSeen: true, local: false };
+async function loadPrefs() {
+  try { const p = await api("/api/prefs"); Object.assign(prefs, { plain: p.plain_language_effective, promptSeen: Boolean(p.plain_prompt_seen), local: false }); }
+  catch { let v = null; try { v = localStorage.getItem(PLAIN_KEY); } catch { /* storage blocked */ } Object.assign(prefs, { plain: v !== "off", promptSeen: v !== null, local: true }); }
+}
+async function savePrefs(patch) {
+  if (!prefs.local) { try { await api("/api/prefs", { method: "PUT", body: JSON.stringify(patch) }); return; } catch { prefs.local = true; } }
+  try { if ("plain_language" in patch) localStorage.setItem(PLAIN_KEY, patch.plain_language ? "on" : "off"); } catch { /* the choice lasts this visit */ }
+}
+const plainOn = () => prefs.plain;
+async function setPlain(on) { prefs.plain = on; prefs.promptSeen = true; await savePrefs({ plain_language: on, plain_prompt_seen: true }); render(); }
 async function loadGlossary() {
   try { const g = await api("/api/glossary"); gloss.terms = new Map(g.terms.map((t) => [t.id, t])); gloss.pages = g.pages ?? {}; gloss.learnMoreUrl = g.learn_more_url; gloss.names = new Map(); for (const t of g.terms) for (const k of [t.id, t.term, ...(t.aliases ?? [])]) gloss.names.set(k.toLowerCase(), t.id); renderShorts(); }
   catch { /* the dashboard still works without explanations */ }
@@ -118,7 +129,7 @@ function openPageMode(opener) {
   document.body.classList.add("panel-open"); renderPanel();
 }
 function closePanel() {
-  const opener = panel.opener; Object.assign(panel, { open: false, spec: null }); setOpener(null);
+  panel.prompt = false; const opener = panel.opener; Object.assign(panel, { open: false, spec: null }); setOpener(null);
   document.body.classList.remove("panel-open"); const el = $("#explain-panel"); el.hidden = true; el.replaceChildren();
   if (opener?.isConnected) opener.focus();
 }
@@ -143,18 +154,21 @@ function nextStep(next) {
 async function renderPanel() {
   const el = $("#explain-panel"); if (!panel.open) return; el.hidden = false;
   const seq = ++panel.seq;
-  const close = h("button", { type: "button", class: "btn panel-close", "aria-label": "Close explanation", onclick: closePanel }, "Close");
+  const close = h("div", { class: "panel-tools" }, h("label", { class: "checkline panel-plain" }, h("input", { type: "checkbox", id: "plain-panel", checked: plainOn(), onchange: (e) => setPlain(e.target.checked) }), h("span", {}, "Plain language")), h("button", { type: "button", class: "btn panel-close", "aria-label": "Close explanation", onclick: closePanel }, "Close"));
+  // The first panel a newcomer opens offers, once, to turn Plain language off.
+  if (!prefs.promptSeen && prefs.plain) { prefs.promptSeen = true; panel.prompt = true; savePrefs({ plain_prompt_seen: true }); }
+  const prompt = panel.prompt && prefs.plain ? h("div", { class: "panel-prompt" }, h("p", { class: "muted" }, "Plain language puts these sentences under every number. If you know the numbers already:"), h("button", { type: "button", class: "btn", id: "plain-off-once", onclick: () => { panel.prompt = false; setPlain(false); } }, "Turn off Plain language")) : null;
   if (panel.mode === "page") {
     const ids = gloss.pages[screenKey()] ?? [];
     const found = []; for (const id of ids) { const t = [...document.querySelectorAll("#page .term")].find((x) => x._spec?.id === id && x._spec.source) ?? [...document.querySelectorAll("#page .term")].find((x) => x._spec?.id === id); if (t && !found.some((f) => f.el === t)) found.push({ el: t, spec: t._spec }); if (found.length === 3) break; }
-    el.replaceChildren(h("div", { class: "panel-head" }, h("h2", { class: "t-section-title" }, "This page"), close), found.length ? h("ol", { class: "panel-list" }, ...found.map((f) => h("li", {}, h("button", { type: "button", class: "linklike", onclick: () => { f.el.scrollIntoView({ block: "nearest" }); openPanel(f.spec, f.el); } }, gloss.terms.get(f.spec.id)?.term ?? f.spec.id), h("p", { class: "muted" }, unlinkTerms(gloss.terms.get(f.spec.id)?.short ?? ""))))) : h("p", { class: "muted" }, "Nothing on this screen to explain yet."));
+    el.replaceChildren(h("div", { class: "panel-head" }, h("h2", { class: "t-section-title" }, "This page"), close), prompt, found.length ? h("ol", { class: "panel-list" }, ...found.map((f) => h("li", {}, h("button", { type: "button", class: "linklike", onclick: () => { f.el.scrollIntoView({ block: "nearest" }); openPanel(f.spec, f.el); } }, gloss.terms.get(f.spec.id)?.term ?? f.spec.id), h("p", { class: "muted" }, unlinkTerms(gloss.terms.get(f.spec.id)?.short ?? ""))))) : h("p", { class: "muted" }, "Nothing on this screen to explain yet."));
     const items = await Promise.all(found.map((f) => explainOne(f.spec).catch(() => null))); if (seq !== panel.seq) return;
     items.forEach((it, i) => { if (it?.here) el.querySelectorAll(".panel-list li p")[i].replaceChildren(it.here); });
     return;
   }
   const t = gloss.terms.get(panel.spec.id); if (!t) return closePanel();
   const body = h("div", { class: "panel-body" }, h("p", {}, unlinkTerms(t.short)));
-  el.replaceChildren(h("div", { class: "panel-head" }, h("h2", { class: "t-section-title" }, t.term), close), body);
+  el.replaceChildren(h("div", { class: "panel-head" }, h("h2", { class: "t-section-title" }, t.term), close), prompt, body);
   let x = null; try { x = await explainOne(panel.spec); } catch { /* layer 1 stays */ } if (seq !== panel.seq) return;
   if (x?.here) body.append(h("h3", { class: "eyebrow" }, "What it means here"), h("p", {}, x.here));
   if (x?.next) body.append(h("h3", { class: "eyebrow" }, "Next step"), nextStep(x.next));
@@ -841,8 +855,8 @@ async function renderSettings() {
   const save = async () => { try { const clean = (o) => { for (const k of Object.keys(o)) { if (o[k] && typeof o[k] === "object" && !Array.isArray(o[k])) { clean(o[k]); if (!Object.keys(o[k]).length) delete o[k]; } else if (o[k] === "" || o[k] === undefined) delete o[k]; } return o; }; const body = settingsPage.mode === "form" ? { path: "litmustest.yaml", data: clean(JSON.parse(JSON.stringify(cfg))), base_hash: file.hash } : { path: "litmustest.yaml", content: yamlText, base_hash: file.hash }; await api("/api/file", { method: "PUT", body: JSON.stringify(body) }); stateEl.textContent = `Checked and saved to branch · ${new Date().toLocaleTimeString()}`; stateEl.className = "save-state good"; await refreshHealth(); renderSettings(); } catch (e) { stateEl.textContent = e.status === 409 ? "Not saved · conflict (reload to see the disk version)" : `Not saved · ${e.body?.problems?.[0]?.message ?? e.message}`; stateEl.className = "save-state bad"; } };
   page.replaceChildren(h("div", { class: "column" },
     h("header", { class: "page-header" }, h("div", { class: "titles" }, h("h1", { class: "t-page-title" }, "Settings"), h("p", { class: "subtitle" }, "Everything here is ", h("span", { class: "mono" }, "evals/litmustest.yaml"), ". Edit the form or the file; they stay in step.")), h("div", { class: "toggle", role: "group", "aria-label": "Editor mode" }, h("button", { type: "button", "aria-pressed": settingsPage.mode === "form" ? "true" : "false", onclick: () => { settingsPage.mode = "form"; renderSettings(); } }, "Form"), h("button", { type: "button", "aria-pressed": settingsPage.mode === "yaml" ? "true" : "false", onclick: () => { settingsPage.mode = "yaml"; renderSettings(); } }, "litmustest.yaml"))),
-    h("section", { class: "card", "aria-label": "Explanations" }, h("div", { class: "card-head" }, h("h2", { class: "t-section-title" }, "Explanations"), h("span", { class: "caption" }, "Saved in this browser, not in the repo")),
-      h("label", { class: "checkline" }, h("input", { type: "checkbox", checked: plainOn(), onchange: (e) => { setPlain(e.target.checked); } }), h("span", {}, "Plain language: show what each number means under it, with the next step. The ? beside a number works either way."))),
+    h("section", { class: "card", "aria-label": "Explanations" }, h("div", { class: "card-head" }, h("h2", { class: "t-section-title" }, "Explanations"), h("span", { class: "caption" }, "Your choice, saved on this computer, not in the repo")),
+      h("label", { class: "checkline" }, h("input", { type: "checkbox", id: "plain-setting", checked: plainOn(), onchange: (e) => { setPlain(e.target.checked); } }), h("span", {}, "Plain language: show what each number means under it, with the next step. Off, the same sentence is in the panel when you click a number."))),
     settingsPage.mode === "form" ? form : h("section", { class: "card", "aria-label": "File" }, yamlEl),
     h("div", { class: "save-row" }, h("button", { type: "button", class: "btn primary", onclick: save }, "Save"), h("span", { class: "caption muted" }, "Changes save to litmustest.yaml on your branch after validation."), stateEl)));
 }
@@ -884,4 +898,4 @@ window.addEventListener("hashchange", render);
 const events = new EventSource("/api/events");
 for (const t of ["saved", "label", "committed", "discarded", "changed"]) events.addEventListener(t, () => { refreshHealth().catch(() => {}); if (t !== "label" && ["pending", "overview"].includes(state.route[0])) render(); });
 events.addEventListener("calibrate", (e) => { const ev = JSON.parse(e.data); if (state.route[0] !== "judges" || state.route[1] !== ev.judge) return; const p = $(".progress-inline"); if (ev.state === "running" && p) p.textContent = `Running ${ev.split}: ${ev.done}/${ev.total}`; if (ev.state === "done" || ev.state === "failed") { if (p) p.textContent = ev.state === "failed" ? ev.message : `${ev.split} done · TPR ${ev.tpr ?? "—"} / TNR ${ev.tnr ?? "—"}`; judgePage.hashes = null; render(); } });
-refreshHealth().then(loadGlossary).then(render).catch((e) => { $("#page").replaceChildren(h("div", { class: "column" }, header("Cannot reach the server"), h("div", { class: "empty" }, e.message))); });
+refreshHealth().then(() => Promise.all([loadGlossary(), loadPrefs()])).then(render).catch((e) => { $("#page").replaceChildren(h("div", { class: "column" }, header("Cannot reach the server"), h("div", { class: "empty" }, e.message))); });

@@ -1,5 +1,6 @@
 // litmustest serve: the local HTTP server over evals/, with a file watcher and server-sent events.
 import { glossaryHereRoute, glossaryRoute } from "./server/glossary_route.ts";
+import { prefsRoute, putPrefsRoute } from "./server/prefs.ts";
 import { coverageRoute } from "./server/coverage_route.ts";
 import { createServer, type IncomingMessage, type ServerResponse, type Server } from "node:http";
 import { watch, type FSWatcher } from "node:fs";
@@ -56,6 +57,8 @@ async function handle(app: App, req: IncomingMessage, res: ServerResponse, ask?:
     if (path === "/api/overview" && req.method === "GET") return send(app.overview());
     if (path === "/api/coverage" && req.method === "GET") return send(coverageRoute(app));
     if (path === "/api/glossary" && req.method === "GET") return send(glossaryRoute(app));
+    if (path === "/api/prefs" && req.method === "GET") return send(prefsRoute(app));
+    if (path === "/api/prefs" && req.method === "PUT") return send(putPrefsRoute(app, body));
     if (path === "/api/glossary/here" && req.method === "POST") return send(glossaryHereRoute(app, body));
     if (path === "/api/runs" && req.method === "GET") return send(app.runs());
     if (path === "/api/tasks" && req.method === "GET") return send(app.tasks());
