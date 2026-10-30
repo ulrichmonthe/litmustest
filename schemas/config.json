@@ -352,6 +352,18 @@
           }
         }
       }
+    },
+    "explain": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "The explainer (docs/EXPLAINER.md).",
+      "properties": {
+        "learn_more_url": {
+          "type": "string",
+          "format": "uri",
+          "description": "Base URL of the Master Class guide. Learn more links go to <url>#ch-<n>; without it the chapter is named but not linked."
+        }
+      }
     }
   }
 }

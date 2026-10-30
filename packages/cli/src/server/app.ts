@@ -7,7 +7,7 @@ import { parse as parseYaml, stringify as yaml } from "yaml";
 import { SchemaSet } from "../schemas.ts";
 import { validateEvals, sha256, type Problem, type ValidateResult } from "../validate.ts";
 import { traceView } from "../trace_view.ts";
-import { Git } from "./git.ts";
+import { Git, commitBranch, defaultSlug } from "./git.ts";
 import { modesView, overview, loadFiles } from "./overview.ts";
 import { compareRuns, evaluateGates, comparisonMarkdown } from "../compare.ts";
 import { applyGraduations, doctor, graduationProposals } from "../graduate.ts";
@@ -254,7 +254,8 @@ export class App {
   }
 
   // ---- pending changes tray
-  pendingState(): Reply { return { status: 200, body: this.pending.state() }; }
+  /** The tray, plus the branch a commit will land on: the current one if it is an evals/ branch, else a new evals/<slug>. */
+  pendingState(): Reply { const st = this.pending.state(); return { status: 200, body: { ...st, commit_branch: commitBranch(st.branch, st.files.map((f) => f.path)) } }; }
   commit(message?: string, slug?: string): Reply {
     const st = this.pending.state();
     if (!st.files.length) throw new HttpError(400, "nothing pending");
@@ -331,10 +332,6 @@ function findPath(evalsDir: string, id: string): string | undefined {
 
 export class HttpError extends Error { status: number; constructor(status: number, message: string) { super(message); this.status = status; } }
 
-function defaultSlug(paths: string[]): string {
-  const day = new Date().toISOString().slice(0, 10);
-  const first = paths[0]?.replace(/^.*evals\//, "").replace(/\.[a-z]+$/, "").split("/").slice(-1)[0] ?? "edit";
-  return `${day}-${first.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}`;
-}
+
 
 export { createHash };

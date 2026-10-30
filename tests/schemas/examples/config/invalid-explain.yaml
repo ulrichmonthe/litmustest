@@ -1,0 +1,17 @@
+# explain allows only learn_more_url here; open_on_load is not a setting
+version: 1
+project: support_agent
+sources:
+  traces: { format: jsonl, path: logs/traces/*.jsonl }
+  sampler: { every: weekly, size: 60, clusters: 8 }
+runs: { trials: 5, concurrency: 8, budget_usd: 20, environment: inprocess, resources: { timeout_s: 300 } }
+judges: { default_model: claude-sonnet-4-5-20250929, trust_threshold: 90, stale_on_change: true, correct_for_judge_error: true }
+gates:
+  regression: { min_pass_rate: 95, max_drop_pts: 2, trusted_judges_only: true }
+  capability: { report_only: true }
+  quality: { min_pass_rate: 80 }
+storage: { summaries: evals/runs, transcripts: { backend: local, path: .litmustest/transcripts } }
+ci: { pr_comment: true }
+explain:
+  learn_more_url: https://example.com/guide
+  open_on_load: true

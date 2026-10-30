@@ -19,7 +19,7 @@ const api = async (path, init) => {
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 const short = (v, n = 160) => { const s = typeof v === "string" ? v : JSON.stringify(v); return s.length > n ? s.slice(0, n - 1) + "…" : s; };
 const fmtArgs = (a) => a && typeof a === "object" ? Object.entries(a).filter(([k]) => !k.startsWith("_")).map(([k, v]) => `${k}=${JSON.stringify(v)}`).join(", ") : "";
-const ago = (iso) => { const s = Math.max(0, (Date.now() - Date.parse(iso)) / 1000); return s < 60 ? `${Math.round(s)}s ago` : s < 3600 ? `${Math.round(s / 60)}m ago` : `${Math.round(s / 3600)}h ago`; };
+const ago = (iso) => { if (!iso || Number.isNaN(Date.parse(iso))) return "edited outside the dashboard"; const s = Math.max(0, (Date.now() - Date.parse(iso)) / 1000); return s < 60 ? `${Math.round(s)}s ago` : s < 3600 ? `${Math.round(s / 60)}m ago` : `${Math.round(s / 3600)}h ago`; };
 
 const state = { health: null, modes: [], batches: [], route: [], seq: 0 };
 /** A render that started before a later navigation must not replace the page. */
@@ -27,12 +27,12 @@ const stale = (seq) => seq !== state.seq;
 
 // ---------------- explainer (docs/EXPLAINER.md): what a term means, what it means here, what to do next.
 // Words come from the glossary via the API; every number in a "here" sentence was computed by the server from the files.
-const gloss = { terms: new Map(), names: new Map(), seen: new Set(), pop: null, trigger: null, peek: null, peekFor: null, peekTimer: 0 };
+const gloss = { terms: new Map(), names: new Map(), pages: {}, learnMoreUrl: null, seen: new Set(), peek: null, peekFor: null, peekTimer: 0 };
 const PLAIN_KEY = "litmustest.plain";
 const plainOn = () => { try { return localStorage.getItem(PLAIN_KEY) !== "off"; } catch { return true; } };
 const setPlain = (on) => { try { localStorage.setItem(PLAIN_KEY, on ? "on" : "off"); } catch { /* private mode: the default stays */ } };
 async function loadGlossary() {
-  try { const g = await api("/api/glossary"); gloss.terms = new Map(g.terms.map((t) => [t.id, t])); gloss.names = new Map(); for (const t of g.terms) for (const k of [t.id, t.term, ...(t.aliases ?? [])]) gloss.names.set(k.toLowerCase(), t.id); renderShorts(); }
+  try { const g = await api("/api/glossary"); gloss.terms = new Map(g.terms.map((t) => [t.id, t])); gloss.pages = g.pages ?? {}; gloss.learnMoreUrl = g.learn_more_url; gloss.names = new Map(); for (const t of g.terms) for (const k of [t.id, t.term, ...(t.aliases ?? [])]) gloss.names.set(k.toLowerCase(), t.id); renderShorts(); }
   catch { /* the dashboard still works without explanations */ }
 }
 const termOf = (q) => gloss.terms.get(gloss.names.get(String(q).toLowerCase()) ?? q);
@@ -53,7 +53,7 @@ function trigger(el, spec) {
   el.classList.add("term"); el.setAttribute("tabindex", "0"); el.setAttribute("role", "button"); el.dataset.term = spec.id;
   el.setAttribute("aria-haspopup", "dialog"); el.setAttribute("aria-expanded", "false");
   el.setAttribute("aria-describedby", `gloss-short-${spec.id}`);
-  wireTrigger(el, spec); return el;
+  el._spec = spec; wireTrigger(el, spec); return el;
 }
 /** Status words in pills that are not the glossary term's own name. */
 const PILL_TERM = { pass: "label", fail: "label", skip: "label", broke: "flip", fixed: "flip", significant: "confidence_interval", "within noise": "confidence_interval", high: "severity", med: "severity", low: "severity", "high severity": "severity", passing: "task_status", failing: "task_status", mixed: "task_status", "no runs": "task_status", "ready to graduate": "graduation", "judge · stale": "stale", "judge · trusted": "trusted", untested: "calibration", dev: "calibration", "has check": "check", "no grader": "grader", none: "coverage_depth", checked: "coverage_depth" };
@@ -79,7 +79,7 @@ const hoverCapable = () => matchMedia("(hover: hover)").matches;
 let lastPointer = "mouse";
 addEventListener("pointerdown", (e) => { lastPointer = e.pointerType || "mouse"; }, true);
 function showPeek(el, id) {
-  hidePeek(); if (gloss.trigger === el) return;
+  hidePeek(); if (panel.open && panel.opener === el) return;
   const t = gloss.terms.get(id); if (!t) return;
   const peek = h("div", { class: "peek", id: "gloss-peek", role: "tooltip" }, h("span", {}, unlinkTerms(t.short)), " ", h("span", { class: "hint" }, "Click for more"));
   document.body.append(peek); gloss.peek = peek; gloss.peekFor = el;
@@ -92,43 +92,84 @@ function wireTrigger(el, spec) {
   el.addEventListener("pointerleave", () => { if (gloss.peekFor === el || gloss.peekTimer) hidePeek(); });
   el.addEventListener("focus", () => { if (lastPointer !== "touch" && el.matches(":focus-visible")) showPeek(el, spec.id); });
   el.addEventListener("blur", () => { if (gloss.peekFor === el) hidePeek(); });
-  // Tier 2 opens on click, tap or Enter. Until the docked panel (Epic 3) lands, that is the popover.
-  const open = (e) => { e.preventDefault(); e.stopPropagation(); hidePeek(); if (gloss.trigger === el) closePop(false); else openPop(el, spec); };
+  // Tier 2: click, tap or Enter opens the panel, or updates it in place when it is already open.
+  const open = (e) => { e.preventDefault(); e.stopPropagation(); hidePeek(); openPanel(spec, el); };
   el.addEventListener("click", open);
   el.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") open(e); });
 }
-function closePop(refocus) {
-  clearTimeout(gloss.timer);
-  const t = gloss.trigger; gloss.pop?.remove(); gloss.pop = null; gloss.trigger = null;
-  if (t) { t.setAttribute("aria-expanded", "false"); if (refocus && t.isConnected) t.focus(); }
+// ---------------- explain panel (tier 2): docked on the right, pushing the page aside; a bottom sheet below 900px.
+// Opened by click, tap or Enter on a term, by ? or "Explain this page" (page mode). It stays open across screens.
+const panel = { open: false, mode: "term", spec: null, opener: null, seq: 0 };
+/** Commands a page offers. Its own buttons call these handlers, and so do the panel's next-step buttons. Cleared per render. */
+const commands = new Map();
+function command(id, def) { commands.set(id, def); return def; }
+const screenKey = () => { const [r0, r1, , r3] = state.route; return r0 === "judges" && r1 ? "judge" : r0 === "tasks" && state.route[2] ? "task" : r0 === "transcripts" && r3 ? "trial" : r0 ?? "overview"; };
+function setOpener(el) {
+  panel.opener?.setAttribute("aria-expanded", "false");
+  panel.opener = el ?? null;
+  if (el) { el.setAttribute("aria-expanded", "true"); el.setAttribute("aria-controls", "explain-panel"); }
 }
-function openPop(trigger, spec) {
-  closePop(false);
-  const t = gloss.terms.get(spec.id); if (!t) return;
-  const here = spec.source ? h("p", { class: "here muted" }, "Reading your files…") : null;
-  const pop = h("div", { class: "popover", role: "dialog", "aria-label": t.term, id: "gloss-pop" },
-    h("strong", { class: "pop-term" }, t.term),
-    h("p", {}, unlinkTerms(t.short)),
-    here,
-    t.learn_more ? h("p", { class: "more" }, `Learn more: Master Class, chapter ${t.learn_more.split("ch-")[1]}`) : null);
-  document.body.append(pop); gloss.pop = pop; gloss.trigger = trigger;
-  trigger.setAttribute("aria-expanded", "true"); trigger.setAttribute("aria-controls", "gloss-pop");
-  place(pop, trigger);
-  if (spec.source) api("/api/glossary/here", { method: "POST", body: JSON.stringify({ items: [{ id: spec.id, source: spec.source, ctx: spec.ctx }] }) }).then((r) => {
-    if (gloss.pop !== pop) return; const it = r.items[0];
-    if (!it?.here) { here.remove(); place(pop, trigger); return; }
-    here.className = "here"; here.replaceChildren(it.here);
-    if (it.next) here.after(h("p", { class: "next" }, it.next.link ? h("a", { href: it.next.link, onclick: () => closePop(false) }, it.next.say) : it.next.say));
-    if (it.examples) here.after(...[["Fail", it.examples.fail], ["Pass", it.examples.pass]].filter(([, x]) => x).map(([l, x]) => h("p", { class: "example" }, h("span", { class: `pill ${l === "Fail" ? "bad" : "good"}` }, l), " ", h("a", { class: "mono", href: `#/review/${encodeURIComponent(state.batches[0]?.name ?? "")}/${encodeURIComponent(x.trace_id)}` }, x.trace_id), x.note ? ` ${short(x.note, 90)}` : "")));
-    place(pop, trigger);
-  }).catch(() => here?.remove());
+function openPanel(spec, opener) {
+  Object.assign(panel, { open: true, mode: "term", spec }); setOpener(opener);
+  document.body.classList.add("panel-open"); renderPanel();
 }
-/** Below the trigger, or above when there is no room; never off the screen. */
-function place(pop, trigger) {
-  const r = trigger.getBoundingClientRect(); const w = pop.offsetWidth, ph = pop.offsetHeight; const gap = 6;
-  const top = r.bottom + gap + ph > innerHeight && r.top - gap - ph > 0 ? r.top - gap - ph : r.bottom + gap;
-  pop.style.top = `${Math.max(8, top)}px`; pop.style.left = `${Math.min(Math.max(8, r.left), innerWidth - w - 8)}px`;
+function openPageMode(opener) {
+  Object.assign(panel, { open: true, mode: "page", spec: null }); setOpener(opener ?? (document.activeElement instanceof HTMLElement ? document.activeElement : null));
+  document.body.classList.add("panel-open"); renderPanel();
 }
+function closePanel() {
+  const opener = panel.opener; Object.assign(panel, { open: false, spec: null }); setOpener(null);
+  document.body.classList.remove("panel-open"); const el = $("#explain-panel"); el.hidden = true; el.replaceChildren();
+  if (opener?.isConnected) opener.focus();
+}
+const sameCtx = (a, b) => JSON.stringify(a ?? {}) === JSON.stringify(b ?? {});
+/** After a screen renders: keep the panel on the same term if this screen shows it; otherwise it clears to page mode. */
+function syncPanel() {
+  if (!panel.open) return;
+  if (panel.mode === "term") {
+    const match = [...document.querySelectorAll("#page .term")].find((t) => t._spec?.id === panel.spec.id && (t._spec.source ?? null) === (panel.spec.source ?? null) && sameCtx(t._spec.ctx, panel.spec.ctx)) ?? [...document.querySelectorAll("#page .term")].find((t) => t._spec?.id === panel.spec.id);
+    if (!match) { panel.mode = "page"; panel.spec = null; setOpener(null); } else { panel.spec = match._spec; setOpener(match); }
+  }
+  renderPanel();
+}
+const explainOne = async (spec) => (await api("/api/glossary/here", { method: "POST", body: JSON.stringify({ items: [{ id: spec.id, source: spec.source ?? undefined, ctx: spec.ctx ?? {} }] }) })).items[0];
+function nextStep(next) {
+  if (!next) return null;
+  const cmds = (next.action ?? []).map((id) => [id, commands.get(id)]).filter(([, c]) => c);
+  if (cmds.length) return h("div", { class: "panel-actions" }, h("p", {}, next.say), h("div", { class: "row" }, ...cmds.map(([id, c], i) => { const ok = c.enabled ? c.enabled() : true; return h("button", { type: "button", class: `btn${i === 0 ? " primary" : ""}`, "data-action": id, disabled: !ok, title: !ok ? c.reason?.() ?? "" : "", onclick: async () => { await c.run(); } }, c.label()); })), ...cmds.filter(([, c]) => c.enabled && !c.enabled() && c.reason).map(([, c]) => h("p", { class: "caption muted" }, c.reason())));
+  const here = next.link && next.link !== location.hash;
+  return h("p", {}, here ? h("a", { href: next.link }, next.say) : next.say);
+}
+async function renderPanel() {
+  const el = $("#explain-panel"); if (!panel.open) return; el.hidden = false;
+  const seq = ++panel.seq;
+  const close = h("button", { type: "button", class: "btn panel-close", "aria-label": "Close explanation", onclick: closePanel }, "Close");
+  if (panel.mode === "page") {
+    const ids = gloss.pages[screenKey()] ?? [];
+    const found = []; for (const id of ids) { const t = [...document.querySelectorAll("#page .term")].find((x) => x._spec?.id === id && x._spec.source) ?? [...document.querySelectorAll("#page .term")].find((x) => x._spec?.id === id); if (t && !found.some((f) => f.el === t)) found.push({ el: t, spec: t._spec }); if (found.length === 3) break; }
+    el.replaceChildren(h("div", { class: "panel-head" }, h("h2", { class: "t-section-title" }, "This page"), close), found.length ? h("ol", { class: "panel-list" }, ...found.map((f) => h("li", {}, h("button", { type: "button", class: "linklike", onclick: () => { f.el.scrollIntoView({ block: "nearest" }); openPanel(f.spec, f.el); } }, gloss.terms.get(f.spec.id)?.term ?? f.spec.id), h("p", { class: "muted" }, unlinkTerms(gloss.terms.get(f.spec.id)?.short ?? ""))))) : h("p", { class: "muted" }, "Nothing on this screen to explain yet."));
+    const items = await Promise.all(found.map((f) => explainOne(f.spec).catch(() => null))); if (seq !== panel.seq) return;
+    items.forEach((it, i) => { if (it?.here) el.querySelectorAll(".panel-list li p")[i].replaceChildren(it.here); });
+    return;
+  }
+  const t = gloss.terms.get(panel.spec.id); if (!t) return closePanel();
+  const body = h("div", { class: "panel-body" }, h("p", {}, unlinkTerms(t.short)));
+  el.replaceChildren(h("div", { class: "panel-head" }, h("h2", { class: "t-section-title" }, t.term), close), body);
+  let x = null; try { x = await explainOne(panel.spec); } catch { /* layer 1 stays */ } if (seq !== panel.seq) return;
+  if (x?.here) body.append(h("h3", { class: "eyebrow" }, "What it means here"), h("p", {}, x.here));
+  if (x?.next) body.append(h("h3", { class: "eyebrow" }, "Next step"), nextStep(x.next));
+  if (x?.examples && (x.examples.pass || x.examples.fail)) body.append(h("h3", { class: "eyebrow" }, "From your labels"), ...[["Fail", x.examples.fail], ["Pass", x.examples.pass]].filter(([, e]) => e).map(([l, e]) => h("p", { class: "example" }, h("span", { class: `pill ${l === "Fail" ? "bad" : "good"}` }, l), " ", h("a", { class: "mono", href: `#/review/${encodeURIComponent(state.batches[0]?.name ?? "")}/${encodeURIComponent(e.trace_id)}` }, e.trace_id), e.note ? ` ${short(e.note, 90)}` : "")));
+  if (t.why) body.append(h("h3", { class: "eyebrow" }, "Why it matters"), h("p", {}, t.why));
+  const related = (x?.related ?? (t.related ?? []).map((id) => ({ id, term: gloss.terms.get(id)?.term ?? id }))).filter((r) => gloss.terms.has(r.id));
+  if (related.length) body.append(h("h3", { class: "eyebrow" }, "Related"), h("div", { class: "chips" }, ...related.map((r) => h("button", { type: "button", class: "chip", onclick: () => openPanel({ id: r.id, source: panel.spec.source, ctx: panel.spec.ctx }, panel.opener) }, r.term))));
+  if (t.learn_more) { const ch = t.learn_more.split("ch-")[1]; body.append(h("p", { class: "more" }, gloss.learnMoreUrl ? h("a", { href: `${gloss.learnMoreUrl}#ch-${ch}`, target: "_blank", rel: "noopener" }, `Learn more: Master Class, chapter ${ch}`) : `Learn more: Master Class, chapter ${ch}`)); }
+}
+// Escape closes the panel and returns focus; ? (outside a text field) opens page mode or closes the panel.
+document.addEventListener("keydown", (e) => {
+  const typing = e.target instanceof HTMLElement && (e.target.matches("input, textarea, select, [contenteditable]"));
+  if (e.key === "Escape" && panel.open) { e.stopPropagation(); e.preventDefault(); closePanel(); return; }
+  if (e.key === "?" && !typing && !e.metaKey && !e.ctrlKey) { e.preventDefault(); e.stopPropagation(); if (panel.open) closePanel(); else openPageMode(); }
+}, true);
 /** doctor's alert kinds as the term and source that explain them; the same mapping as alertTerm in glossary_cli.ts. */
 function alertTerm(kind, href) {
   const p = String(href ?? "").replace(/^#\//, "").split("/").map(decodeURIComponent);
@@ -139,27 +180,8 @@ function alertTerm(kind, href) {
   if (/graduat/i.test(kind)) return { id: "graduation" };
   return null;
 }
-/** "Explain this page": a drawer with the three things on the page that matter most, in plain sentences. Callers list them in order. */
-function explainPageLink(items) {
-  const list = items.filter((x) => x && termOf(x.id)).slice(0, 3); if (!list.length) return null;
-  const btn = h("button", { type: "button", class: "linklike explain-page", "aria-haspopup": "dialog" }, "Explain this page");
-  btn.addEventListener("click", async () => {
-    $("#explain-drawer")?.remove();
-    const body = h("ol", { class: "drawer-list" }, ...list.map((x) => h("li", {}, h("strong", {}, x.label ?? termOf(x.id).term), h("p", { class: "muted" }, "Reading your files…"))));
-    const close = () => { drawer.remove(); btn.focus(); };
-    const drawer = h("aside", { class: "drawer", id: "explain-drawer", role: "dialog", "aria-label": "What this page says", tabindex: "-1", onkeydown: (e) => { if (e.key === "Escape") { e.stopPropagation(); close(); } } },
-      h("div", { class: "card-head" }, h("h2", { class: "t-section-title" }, "What this page says"), h("button", { type: "button", class: "btn", onclick: close }, "Close")), body);
-    document.body.append(drawer); drawer.focus();
-    try {
-      const r = await api("/api/glossary/here", { method: "POST", body: JSON.stringify({ items: list.map((x) => ({ id: x.id, source: x.source, ctx: x.ctx ?? {} })) }) });
-      r.items.forEach((it, i) => { const p = body.children[i].querySelector("p"); if (!it.here) { p.textContent = unlinkTerms(termOf(list[i].id).short); p.className = ""; return; } p.className = ""; p.replaceChildren(...[it.here, ...(it.next ? [" ", it.next.link ? h("a", { href: it.next.link, onclick: close }, it.next.say) : it.next.say] : [])]); });
-    } catch { /* the drawer keeps the terms */ }
-  });
-  return btn;
-}
-document.addEventListener("keydown", (e) => { if (e.key === "Escape" && gloss.pop) { e.stopPropagation(); closePop(true); } }, true);
-document.addEventListener("click", (e) => { if (gloss.pop && !gloss.pop.contains(e.target) && !gloss.trigger?.contains(e.target)) closePop(false); });
-addEventListener("scroll", () => { if (gloss.pop) place(gloss.pop, gloss.trigger); }, true);
+/** "Explain this page" in the verdict strip: the panel in page mode (the same as pressing ?). */
+function explainPageLink() { const b = h("button", { type: "button", class: "linklike explain-page", "aria-haspopup": "dialog", "aria-controls": "explain-panel" }, "Explain this page"); b.addEventListener("click", () => openPageMode(b)); return b; }
 
 const NAV = [
   ["Overview", "#/overview"], ["Review queue", "#/review"], ["Failure modes", "#/modes"], ["Tasks & suites", "#/tasks"],
@@ -287,18 +309,27 @@ function step(time, dotClass, body) { return h("li", { class: "step" }, h("span"
 function header(title, sub) { return h("header", { class: "page-header" }, h("div", { class: "titles" }, h("h1", { class: "t-page-title" }, title), sub && h("p", { class: "subtitle" }, sub))); }
 
 // ---------------- pending changes
+const pendingFlash = { text: "", ok: false };
 async function renderPending() {
   const seq = state.seq;
   const p = await api("/api/pending");
   if (stale(seq)) return;
   const page = $("#page");
-  const file = (f) => h("div", { class: "pending-file" }, h("div", { class: "row" }, h("span", { class: "mono" }, f.path.replace(/^.*?evals\//, "")), h("span", { class: `pill ${f.status === "added" ? "good" : f.status === "deleted" ? "bad" : "blue"}` }, f.status), h("span", { class: "caption muted" }, f.affected_views.join(", ") || "", ` · ${ago(f.written_at)}`)), h("pre", { class: "code-block", html: f.diff.split("\n").map((l) => `<span class="${l.startsWith("+") && !l.startsWith("+++") ? "diff-add" : l.startsWith("-") && !l.startsWith("---") ? "diff-del" : l.startsWith("@@") ? "diff-hunk" : ""}">${esc(l)}</span>`).join("\n") }));
+  const file = (f) => h("div", { class: "pending-file" }, h("div", { class: "row" }, h("span", { class: "mono" }, f.path.replace(/^.*?evals\//, "")), h("span", { class: `pill ${f.status === "added" ? "good" : f.status === "deleted" ? "bad" : "blue"}` }, f.status), h("span", { class: "caption muted" }, f.affected_views.join(", ") || "", ` · ${ago(f.written_at)}`)), h("pre", { class: "code-block" }, ...f.diff.split("\n").flatMap((l, i) => { const marker = ["---", "+++", "@@"].find((m) => l.startsWith(m)); const cls = l.startsWith("+") && !l.startsWith("+++") ? "diff-add" : l.startsWith("-") && !l.startsWith("---") ? "diff-del" : l.startsWith("@@") ? "diff-hunk" : ""; return [i ? "\n" : "", h("span", { class: cls }, marker ? [term({ "---": "diff_old", "+++": "diff_new", "@@": "diff_hunk" }[marker], marker), l.slice(marker.length)] : l)]; })));
   const msg = h("input", { class: "text", placeholder: "Commit message (optional)", "aria-label": "Commit message", style: "flex:1 1 260px" });
-  const status = h("span", { class: "status", "aria-live": "polite" });
-  const act = async (path, body, label) => { try { const r = await api(path, { method: "POST", body: JSON.stringify(body) }); status.textContent = label(r); await refreshHealth(); await renderPending(); } catch (e) { status.textContent = `${e.message}${e.body?.command ? ` · run: ${e.body.command}` : ""}`; status.className = "status bad"; } };
-  page.replaceChildren(h("div", { class: "column" }, header("Pending changes", h("span", {}, "On branch ", h("span", { class: "mono" }, p.branch), ". Every save from the dashboard lands here as a diff; nothing reaches git until you commit.")),
+  // What the last action did survives the re-render that follows it.
+  const status = h("span", { class: `status${pendingFlash.ok ? " good" : ""}`, "aria-live": "polite" }, pendingFlash.text); pendingFlash.text = ""; pendingFlash.ok = false;
+  const n = p.files.length; const target = p.commit_branch ?? p.branch;
+  const commit = { label: () => `Commit ${n} file${n === 1 ? "" : "s"} to ${target}`, enabled: () => n > 0, reason: () => "Nothing to commit.", run: () => act("/api/pending/commit", { message: msg.value || undefined }, (r) => `Committed ${r.commit} on ${r.branch}`) };
+  const openPr = { label: () => "Open PR", enabled: () => n === 0 && p.branch.startsWith("evals/"), reason: () => (n ? "Commit first; a pull request carries committed work." : `Open PR works from an evals branch; ${p.branch} is not one. Commit an edit to start one.`), run: () => act("/api/pending/pr", {}, (r) => `Opened ${r.url}`) };
+  const discard = { label: () => "Discard", enabled: () => n > 0, reason: () => "Nothing to discard.", run: () => { if (confirm("Discard every pending change? This reverts the files on disk.")) act("/api/pending/discard", {}, (r) => `Discarded ${r.discarded.length} files`); } };
+  command("pending.commit", commit); command("pending.openPr", openPr); command("pending.discard", discard);
+  const act = async (path, body, label) => { try { const r = await api(path, { method: "POST", body: JSON.stringify(body) }); Object.assign(pendingFlash, { text: label(r), ok: true }); await refreshHealth(); await renderPending(); } catch (e) { status.textContent = `${e.message}${e.body?.command ? ` · run: ${e.body.command}` : ""}`; status.className = "status bad"; } };
+  page.replaceChildren(h("div", { class: "column" }, header("Pending changes", h("span", {}, num("pending_changes", "pending", {}, `${n} changed file${n === 1 ? "" : "s"}`), " · on ", num("branch", "pending", {}, h("span", { class: "mono" }, p.branch)), ". Every save from the dashboard lands here as a diff; nothing reaches git until you commit.")),
     h("section", { class: "card", "aria-label": "Changes" }, ...(p.files.length ? p.files.map(file) : [h("p", { class: "muted", style: "margin:0" }, "Nothing pending.")])),
-    h("div", { class: "save-row" }, msg, h("button", { type: "button", class: "btn primary", disabled: !p.files.length, onclick: () => act("/api/pending/commit", { message: msg.value || undefined }, (r) => `Committed ${r.commit} on ${r.branch}`) }, "Commit to branch"), h("button", { type: "button", class: "btn", disabled: Boolean(p.files.length) || !p.branch.startsWith("evals/"), onclick: () => act("/api/pending/pr", {}, (r) => `Opened ${r.url}`) }, "Open PR"), h("button", { type: "button", class: "btn", style: "color:var(--bad)", disabled: !p.files.length, onclick: () => { if (confirm("Discard every pending change? This reverts the files on disk.")) act("/api/pending/discard", {}, (r) => `Discarded ${r.discarded.length} files`); } }, "Discard"), status)));
+    h("div", { class: "save-row" }, msg, h("button", { type: "button", class: "btn primary", disabled: !commit.enabled(), onclick: commit.run }, commit.label()), h("button", { type: "button", class: "btn", disabled: !openPr.enabled(), title: openPr.enabled() ? "" : openPr.reason(), onclick: openPr.run }, openPr.label()), h("button", { type: "button", class: "btn", style: "color:var(--bad)", disabled: !discard.enabled(), onclick: discard.run }, discard.label()), status,
+      // A disabled button says what unblocks it.
+      h("span", { class: "caption muted" }, n === 0 ? num("pending_changes", "pending", {}, "Nothing to commit yet.") : !openPr.enabled() ? num("branch", "pending", {}, openPr.reason()) : null))));
 }
 
 // ---------------- discover: proposed failure modes from notes
@@ -455,7 +486,7 @@ async function renderOverview() {
   const v = o.verdict;
   page.replaceChildren(h("div", { class: "column" },
     h("header", { class: "page-header" }, h("div", { class: "titles" }, h("h1", { class: "t-page-title" }, "Overview"), h("p", { class: "subtitle" }, o.run ? [h("span", { class: "mono" }, o.run.run_id), ` (${o.run.branch ?? "?"} @ ${o.run.commit})${o.previous ? ` vs ${o.previous.run_id}` : ""} · ${o.run.trials} trials per task · `, term("infra_error", "infra errors"), ` ${o.run.infra_error_rate}% · $${o.run.cost_usd}`] : "No run summaries under evals/runs/ yet.")), h("div", { class: "verdict" }, h("a", { href: "#/compare", class: "btn" }, "Compare runs"))),
-    h("section", { class: "verdict-strip", "aria-label": "Verdict" }, h("span", { class: "dot", "aria-hidden": "true", style: `background:${v.tone === "good" ? "#6fcf97" : v.tone === "bad" ? "#f08c84" : "#b3aea6"}` }), h("p", {}, h("strong", {}, v.lead), " ", v.rest), v.aside ? h("span", { class: "aside" }, v.aside, " · ", h("a", { href: "#/judges" }, "Fix judge")) : null, explainPageLink(o.alerts.map((a) => ({ a, t: alertTerm(a.kind, a.href) })).filter((x) => x.t?.source).map((x) => ({ ...x.t, label: x.a.title })).concat(o.suites.filter((s) => s.current).map((s) => ({ id: "corrected_rate", source: "suite", ctx: { suite: s.name }, label: `${s.name[0].toUpperCase()}${s.name.slice(1)} suite` }))))),
+    h("section", { class: "verdict-strip", "aria-label": "Verdict" }, h("span", { class: "dot", "aria-hidden": "true", style: `background:${v.tone === "good" ? "#6fcf97" : v.tone === "bad" ? "#f08c84" : "#b3aea6"}` }), h("p", {}, h("strong", {}, v.lead), " ", v.rest), v.aside ? h("span", { class: "aside" }, v.aside, " · ", h("a", { href: "#/judges" }, "Fix judge")) : null, explainPageLink()),
     h("div", { class: "suite-grid" }, ...o.suites.map(suiteCard)),
     cov ? coverageCard(cov) : null,
     alerts,
@@ -471,7 +502,7 @@ async function renderJudges() {
   const rows = d.judges.map((j) => h("tr", {}, h("td", {}, h("a", { class: "mono", href: `#/judges/${encodeURIComponent(j.name)}` }, j.name)), h("td", {}, num(j.status === "trusted" ? "trusted" : j.status === "stale" ? "stale" : "calibration", "judge", { judge: j.name }, pill(j.status))), h("td", { class: "num" }, j.dev ? `${j.dev.tpr} / ${j.dev.tnr}` : "—"), h("td", { class: "num" }, j.test ? `${j.test.tpr} / ${j.test.tnr}` : "—"), h("td", { class: "num" }, String(j.labels)), h("td", { class: "num" }, String(j.used_by)), h("td", { class: "mono", style: "font-weight:400;font-size:12px" }, `${j.model} · v${j.version}`)));
   const status = h("span", { class: "status", "aria-live": "polite" });
   const draft = async (mode, kind) => { status.textContent = `Drafting ${kind} for ${mode}…`; status.className = "status"; try { const r = await api(`/api/${kind === "judge" ? "judges" : "checks"}/${encodeURIComponent(mode)}/draft`, { method: "POST", body: "{}" }); status.textContent = `${r.files.length} files in the Pending changes tray${r.agreement ? ` · agreement ${r.agreement.agree}/${r.agreement.n}` : ""}`; status.className = "status good"; await refreshHealth(); if (kind === "judge") location.hash = `#/judges/${encodeURIComponent(mode)}`; else renderJudges(); } catch (e) { status.textContent = e.message; status.className = "status bad"; } };
-  const cands = d.candidates.map((c) => h("div", { class: "alert named" }, h("span", { class: "mono" }, c.name), h("span", { class: "body" }, h("span", {}, `${c.labels} labels${c.has_code_check ? " · has a code check" : ""}`)), h("div", { class: "verdict" }, h("button", { type: "button", class: "btn", disabled: c.labels < 6, title: c.labels < 6 ? "Needs at least 6 labels" : "", onclick: () => draft(c.name, "judge") }, "Draft judge from labels"), h("button", { type: "button", class: "btn", disabled: c.labels < 4, onclick: () => draft(c.name, "check") }, "Draft code check"))));
+  const cands = d.candidates.map((c) => h("div", { class: "alert named" }, h("span", { class: "mono" }, c.name), h("span", { class: "body" }, h("span", {}, num(c.name, "failure_mode", { mode: c.name }, `${c.labels} labels`), c.has_code_check ? " · has a code check" : "")), h("div", { class: "verdict" }, h("button", { type: "button", class: "btn", disabled: c.labels < 6, title: c.labels < 6 ? "Needs at least 6 labels" : "", onclick: () => draft(c.name, "judge") }, "Draft judge from labels"), h("button", { type: "button", class: "btn", disabled: c.labels < 4, onclick: () => draft(c.name, "check") }, "Draft code check"))));
   page.replaceChildren(h("div", { class: "column" },
     h("header", { class: "page-header" }, h("div", { class: "titles" }, h("h1", { class: "t-page-title" }, "Judges"), h("p", { class: "subtitle" }, `One failure mode each · trusted at TPR and TNR ≥ ${d.threshold}% on a held-out test set, run once · ${d.judges.filter((j) => j.status === "trusted").length} of ${d.judges.length} trusted`)), status),
     h("section", { class: "card", "aria-label": "Judges" }, d.judges.length ? h("table", { class: "plain" }, h("thead", {}, h("tr", {}, h("th", { scope: "col" }, "Judge"), h("th", { scope: "col" }, "Status"), h("th", { scope: "col", style: "text-align:right" }, term("dev_set", "Dev"), " ", term("tpr", "TPR"), " / ", term("tnr", "TNR")), h("th", { scope: "col", style: "text-align:right" }, term("test_set", "Test"), " TPR / TNR"), h("th", { scope: "col", style: "text-align:right" }, "Labels"), h("th", { scope: "col", style: "text-align:right" }, "Used by"), h("th", { scope: "col" }, "Model"))), h("tbody", {}, ...rows)) : h("p", { class: "muted", style: "margin:0" }, "No judges yet.")),
@@ -539,14 +570,16 @@ async function renderJudge(name) {
   const chart = runs.length ? (() => { const w = 400, hh = 100, x0 = 48, x1 = 380; const xs = runs.map((_, i) => runs.length > 1 ? x0 + 22 + ((x1 - x0 - 44) * i) / (runs.length - 1) : (x0 + x1) / 2); const y = (v) => 84 - (64 * v) / 100; const path = (k) => runs.map((r, i) => `${i ? "L" : "M"}${xs[i].toFixed(1)} ${y(r[k]).toFixed(1)}`).join(" "); return h("svg", { viewBox: `0 0 ${w} ${hh}`, width: "100%", height: hh, role: "img", "aria-label": `TPR and TNR across ${runs.length} dev runs against the ${d.threshold}% target`, html: `<line x1="${x0}" y1="${y(d.threshold)}" x2="${x1}" y2="${y(d.threshold)}" stroke="var(--good)" stroke-dasharray="4 4"/><text x="${x1}" y="${y(d.threshold) - 6}" text-anchor="end" font-size="11" fill="var(--good)">${d.threshold}% target</text><path d="${path("tpr")}" fill="none" stroke="var(--blue)" stroke-width="2"/><path d="${path("tnr")}" fill="none" stroke="var(--warn)" stroke-width="2" stroke-dasharray="5 3"/>${runs.map((r, i) => `<text x="${xs[i]}" y="96" text-anchor="middle" font-size="11" fill="var(--ink-muted)">v${r.version ?? "?"}</text>`).join("")}<text x="6" y="${y(runs[runs.length - 1].tpr)}" font-size="11" font-weight="600" fill="var(--blue)">TPR</text><text x="6" y="${y(runs[runs.length - 1].tnr) + 12}" font-size="11" font-weight="600" fill="var(--warn)">TNR</text>` }); })() : null;
   const prog = h("span", { class: "progress-inline", "aria-live": "polite" }, d.running ? `Running ${d.running.split}: ${d.running.done}/${d.running.total}` : "");
   const runSplit = async (split) => { try { await api(`/api/judges/${encodeURIComponent(name)}/calibrate`, { method: "POST", body: JSON.stringify({ split }) }); prog.textContent = `Running ${split}…`; } catch (e) { prog.textContent = e.body?.message ?? e.message; } };
+  const runDev = command("judges.runDev", { label: () => "Run on dev set", enabled: () => !d.running && d.splits.dev > 0, reason: () => (d.running ? "A run is in progress." : "No dev labels yet: label traces for this failure mode."), run: () => runSplit("dev") });
+  const runTest = command("judges.runTest", { label: () => (d.test_done ? "Test set ran" : "Run test set once"), enabled: () => d.can_run_test && !d.running, reason: () => (d.test_done ? "The test set already ran for this prompt and model." : `Unlocks when dev TPR and TNR both reach ${d.threshold}%.`), run: () => { if (confirm(`Run the held-out test set once (${d.splits.test} traces)? It cannot be re-run for this prompt.`)) runSplit("test"); } });
   const calibration = h("section", { class: "card side", "aria-label": "Calibration" },
-    h("div", { class: "card-head" }, h("div", {}, h("h2", { class: "t-section-title" }, term("calibration", "Calibration"), " · ", term("dev_set", "dev set")), h("div", { class: "caption muted" }, `${d.splits.dev} dev traces · ${d.labels} labels (${d.fail_labels} Fail) · train ${d.splits.train} / dev ${d.splits.dev} / test ${d.splits.test}`)), h("button", { type: "button", class: "btn", disabled: Boolean(d.running) || d.splits.dev === 0, onclick: () => runSplit("dev") }, "Run on dev set")),
+    h("div", { class: "card-head" }, h("div", {}, h("h2", { class: "t-section-title" }, term("calibration", "Calibration"), " · ", term("dev_set", "dev set")), h("div", { class: "caption muted" }, `${d.splits.dev} dev traces · ${d.labels} labels (${d.fail_labels} Fail) · train ${d.splits.train} / dev ${d.splits.dev} / test ${d.splits.test}`)), h("button", { type: "button", class: "btn", disabled: !runDev.enabled(), onclick: runDev.run }, runDev.label())),
     prog,
     matrix ?? h("p", { class: "muted", style: "margin:0" }, "Dev has not run yet."),
     dev?.tpr !== undefined ? h("div", { class: "kpis" }, kpi("TPR", dev.tpr, dev.tpr_ci), kpi("TNR", dev.tnr, dev.tnr_ci), h("div", {}, h("span", {}, term("unknown", "Unknown")), h("span", {}, num("unknown", "judge", { judge: name }, String(m?.unknown ?? 0))))) : null,
     dev?.tpr !== undefined ? plain("tpr", "judge", { judge: name }) : null,
     chart ? h("div", { class: "field" }, h("span", {}, "TPR and TNR by version (dev)"), chart) : null,
-    h("div", { class: "verdict", style: "align-items:center" }, h("button", { type: "button", class: "btn primary", disabled: !d.can_run_test || Boolean(d.running), onclick: () => { if (confirm(`Run the held-out test set once (${d.splits.test} traces)? It cannot be re-run for this prompt.`)) runSplit("test"); } }, d.test_done ? "Test set ran" : "Run test set once"), h("span", { class: "caption muted" }, num("test_set", "judge", { judge: name }, d.test_done ? `Test: TPR ${test.tpr} / TNR ${test.tnr} · ${ago(test.ran_at)}` : d.can_run_test ? `Unlocked. Test split: ${d.splits.test} traces the judge has never seen.` : `Unlocks at step 3. Test split: ${d.splits.test} traces.`))));
+    h("div", { class: "verdict", style: "align-items:center" }, h("button", { type: "button", class: "btn primary", disabled: !runTest.enabled(), onclick: runTest.run }, runTest.label()), h("span", { class: "caption muted" }, num("test_set", "judge", { judge: name }, d.test_done ? `Test: TPR ${test.tpr} / TNR ${test.tnr} · ${ago(test.ran_at)}` : d.can_run_test ? `Unlocked. Test split: ${d.splits.test} traces the judge has never seen.` : `Unlocks at step 3. Test split: ${d.splits.test} traces.`))));
   const dis = (cal?.disagreements ?? []);
   const disagreements = h("section", { class: "card", "aria-label": "Disagreements" }, h("div", { class: "card-head" }, h("div", {}, h("h2", { class: "t-section-title" }, "Disagreements on dev"), h("div", { class: "caption muted" }, `${dis.length} traces where judge and human differ · a disputed verdict becomes a label`)), h("a", { href: "#/review" }, "Open queue")),
     dis.length ? h("table", { class: "plain" }, h("thead", {}, h("tr", {}, h("th", { scope: "col" }, "Trace"), h("th", { scope: "col" }, "Human"), h("th", { scope: "col" }, "Judge"), h("th", { scope: "col" }, "Judge's critique"))), h("tbody", {}, ...dis.slice(0, 30).map((x) => h("tr", {}, h("td", {}, h("a", { class: "mono", href: `#/review/${encodeURIComponent(state.batches[0]?.name ?? "")}/${encodeURIComponent(x.trace_id)}` }, x.trace_id)), h("td", {}, h("span", { class: `pill ${x.human === "Fail" ? "bad" : "good"}` }, x.human)), h("td", {}, h("span", { class: `pill ${x.judge === "Fail" ? "bad" : x.judge === "Pass" ? "good" : ""}` }, x.judge)), h("td", { style: "font-size:13px;color:var(--ink-muted)" }, x.critique ?? ""))))) : h("p", { class: "muted", style: "margin:0" }, "None recorded."));
@@ -577,7 +610,7 @@ async function renderCompare(aId, bId) {
   const status = h("span", { class: "status", "aria-live": "polite" });
   page.replaceChildren(h("div", { class: "column" },
     h("header", { class: "page-header" }, h("div", { class: "titles" }, h("h1", { class: "t-page-title" }, "Run compare"), h("p", { class: "subtitle" }, `Paired comparison: the same ${c.common_tasks} tasks, ${c.b.trials} trials each, on two versions of the agent`)), h("div", { class: "two-col", style: "flex:1 1 420px" }, sel("A (baseline)", a, (e) => { location.hash = `#/compare/${encodeURIComponent(e.target.value)}/${encodeURIComponent(b)}`; }), sel("B (candidate)", b, (e) => { location.hash = `#/compare/${encodeURIComponent(a)}/${encodeURIComponent(e.target.value)}`; }))),
-    h("section", { class: "verdict-strip", "aria-label": "Verdict" }, h("span", { class: "dot", "aria-hidden": "true", style: `background:${c.verdict.tone === "good" ? "#6fcf97" : c.verdict.tone === "bad" ? "#f08c84" : "#b3aea6"}` }), h("p", {}, c.verdict.text), h("span", { class: "aside" }, c.gates_passed ? "Gates: pass" : "Gates: crossed"), explainPageLink([...c.suites].sort((x, y) => Number(x.gate_result?.passed ?? true) - Number(y.gate_result?.passed ?? true) || Number(y.significant) - Number(x.significant)).map((x) => ({ id: "gate", source: "delta", ctx: { a, b, suite: x.name }, label: `${x.name[0].toUpperCase()}${x.name.slice(1)} suite` })))),
+    h("section", { class: "verdict-strip", "aria-label": "Verdict" }, h("span", { class: "dot", "aria-hidden": "true", style: `background:${c.verdict.tone === "good" ? "#6fcf97" : c.verdict.tone === "bad" ? "#f08c84" : "#b3aea6"}` }), h("p", {}, c.verdict.text), h("span", { class: "aside" }, c.gates_passed ? "Gates: pass" : "Gates: crossed"), explainPageLink()),
     h("div", { class: "suite-grid" }, ...c.suites.map(suiteCard)),
     h("div", { class: "two-col" }, flipTable, modes),
     h("div", { class: "save-row" }, h("button", { type: "button", class: "btn", onclick: async () => { try { await navigator.clipboard.writeText(c.markdown); status.textContent = "Copied the markdown for a PR comment."; } catch { status.textContent = "Copy failed; use litmustest compare --markdown."; } } }, "Copy as PR comment"), status)));
@@ -669,11 +702,12 @@ async function renderTasks(suiteName, taskId) {
     h("table", { class: "plain" }, h("thead", {}, h("tr", {}, h("th", { scope: "col" }, term("task", "Task")), h("th", { scope: "col" }, "Source"), h("th", { scope: "col" }, term("check", "Checks")), h("th", { scope: "col", style: "text-align:right" }, term("pass_at_1", "pass@1")), h("th", { scope: "col", style: "text-align:right" }, term("pass_hat_k", "pass^k")), h("th", { scope: "col" }, "Last 5 runs"), h("th", { scope: "col" }, "Status"))), h("tbody", {}, ...rows.map((t) => h("tr", {}, h("td", {}, h("a", { class: "mono", href: `#/tasks/${encodeURIComponent(suite)}/${encodeURIComponent(t.id)}` }, t.id), t.description ? h("span", { class: "desc" }, t.description) : null), h("td", { class: "mono", style: "font-weight:400;font-size:12px" }, t.source), h("td", { style: "font-size:12px" }, t.checks.map((c) => c.type[0].toUpperCase()).join(" ") + ` · ${t.checks.length}`), h("td", { class: "num" }, t.pass_at_1 === null ? "—" : `${t.pass_at_1}%`), h("td", { class: "num" }, t.pass_hat_k === null ? "—" : `${t.pass_hat_k}%`), h("td", {}, hist(t)), h("td", {}, t.status === "flaky" || t.status === "broken" ? num(t.status === "broken" ? "likely_broken" : "flaky", "task", { task: t.id }, pill(t.status)) : pill(t.status)))))),
     h("span", { class: "caption muted" }, "Checks: O ", term("outcome_check", "outcome"), ", C ", term("code_check", "code"), ", J ", term("judge", "judge"), ", T transcript. A task at 0% across every trial in three runs is marked ", term("likely_broken", "broken"), ": check its spec and ", term("reference_solution", "reference solution"), " before blaming the agent."));
   const ready = d.proposals.filter((p) => !suite || p.from === suite);
+  const grad = command("tasks.graduate", { label: () => `Graduate ${ready.length} task${ready.length === 1 ? "" : "s"}`, enabled: () => ready.length > 0, reason: () => "No task has passed every trial in the last three runs yet.", run: () => graduate(ready.map((p) => p.task)) });
   page.replaceChildren(h("div", { class: "column" },
     h("header", { class: "page-header" }, h("div", { class: "titles" }, h("h1", { class: "t-page-title" }, "Tasks & suites"), h("p", { class: "subtitle" }, `${d.tasks.length} tasks in ${d.suites.length} suites · every task has a reference solution that passes its checks`)), h("div", { class: "verdict" }, h("a", { class: "btn", href: "#/review" }, "Promote from review queue"))),
     cards,
     sel ? plain(`${sel.kind ?? sel.name}_suite`, "suite", { suite: sel.name }) : null,
-    h("section", { class: "card", "aria-label": "Health" }, h("div", { class: "health" }, h("span", { class: "eyebrow" }, "Suite health"), h("span", {}, `${d.tasks.filter((t) => t.status === "broken").length} `, term("likely_broken", "likely broken")), h("span", {}, `${d.tasks.filter((t) => t.status === "flaky").length} `, term("flaky", "flaky")), h("span", {}, `${d.proposals.length} `, term("graduation", "ready to graduate")), h("span", {}, `Balance: ${d.balance_should_pct}% should / ${100 - d.balance_should_pct}% shouldn't`), ...d.saturation.map((s) => h("span", { class: "pill warn" }, `${s.suite} saturating at ${s.pass_rate}%`)), ready.length ? h("button", { type: "button", class: "linklike", onclick: () => graduate(ready.map((p) => p.task)) }, `Graduate ${ready.length} task${ready.length > 1 ? "s" : ""}`) : null, status)),
+    h("section", { class: "card", "aria-label": "Health" }, h("div", { class: "health" }, h("span", { class: "eyebrow" }, "Suite health"), h("span", {}, `${d.tasks.filter((t) => t.status === "broken").length} `, term("likely_broken", "likely broken")), h("span", {}, `${d.tasks.filter((t) => t.status === "flaky").length} `, term("flaky", "flaky")), h("span", {}, `${d.proposals.length} `, term("graduation", "ready to graduate")), h("span", {}, `Balance: ${d.balance_should_pct}% should / ${100 - d.balance_should_pct}% shouldn't`), ...d.saturation.map((s) => h("span", { class: "pill warn" }, `${s.suite} saturating at ${s.pass_rate}%`)), ready.length ? h("button", { type: "button", class: "linklike", onclick: grad.run }, grad.label()) : null, status)),
     table));
   void sel;
 }
@@ -820,7 +854,7 @@ async function render() {
   const parts = location.hash.replace(/^#\/?/, "").split("/").filter(Boolean).map(decodeURIComponent);
   state.route = parts.length ? parts : ["overview"];
   state.seq++;
-  gloss.seen.clear(); closePop(false); hidePeek();
+  gloss.seen.clear(); hidePeek(); commands.clear(); registerGlobalCommands();
   renderNav();
   document.removeEventListener("keydown", keyHandler); review.keys = null;
   try {
@@ -839,7 +873,11 @@ async function render() {
       default: renderSoon(NAV.find(([, href]) => href === "#/" + state.route[0])?.[0] ?? "Not found");
     }
   } catch (e) { $("#page").replaceChildren(h("div", { class: "column" }, header("Something went wrong"), h("div", { class: "empty" }, e.message))); }
-  wirePills(); fillPlain(state.seq);
+  wirePills(); fillPlain(state.seq); syncPanel();
+}
+/** Commands available on every screen. */
+function registerGlobalCommands() {
+  command("review.openBatch", { label: () => "Open the review queue", run: () => { location.hash = `#/review/${encodeURIComponent(state.batches[0]?.name ?? "")}`; }, enabled: () => state.batches.length > 0, reason: () => "No review batch yet: run litmustest ingest." });
 }
 function keyHandler(e) { if (e.metaKey && e.key !== "Enter") return; review.keys?.(e); }
 window.addEventListener("hashchange", render);

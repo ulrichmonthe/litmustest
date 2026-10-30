@@ -1,7 +1,7 @@
 // Loads every dashboard route in a real browser and fails on a script error, a page that never renders, or a control under 44px.
 // Uses the installed Chrome through playwright-core (no browser download); skipped where no Chrome is found.
 import { execFileSync } from "node:child_process";
-import { cpSync, mkdtempSync, writeFileSync } from "node:fs";
+import { cpSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { chromium, type Browser } from "playwright-core";
@@ -143,10 +143,10 @@ describe("explainer, Epic 2 (docs/stories/explainer.md)", () => {
     if (!(await page.evaluate(() => document.activeElement?.classList.contains("term")))) expect(await page.$("#gloss-peek")).toBeNull();
     // click opens the full explanation; Escape closes it and returns focus
     const v = page.locator('#page .term[data-term="tpr"][data-kind="value"]').first();
-    await v.click(); await page.waitForSelector("#gloss-pop .here:not(.muted)");
-    expect(await page.textContent("#gloss-pop .here")).toMatch(/tone_mismatch judge caught \d+ of \d+/);
+    await v.click(); await page.waitForFunction(() => /What it means here/.test(document.querySelector("#explain-panel")?.textContent ?? ""));
+    expect(await page.textContent("#explain-panel")).toMatch(/tone_mismatch judge caught \d+ of \d+/);
     expect(await page.$("#gloss-peek")).toBeNull();
-    await page.keyboard.press("Escape"); expect(await page.$("#gloss-pop")).toBeNull();
+    await page.keyboard.press("Escape"); expect(await page.isHidden("#explain-panel")).toBe(true);
     expect(await page.evaluate(() => (document.activeElement as HTMLElement)?.dataset.term)).toBe("tpr");
     await page.close();
   }, 60_000);
@@ -156,7 +156,7 @@ describe("explainer, Epic 2 (docs/stories/explainer.md)", () => {
     const page = await open("judges/tone_mismatch", { hasTouch: true, isMobile: true, viewport: { width: 390, height: 844 } });
     await page.locator('#page .term[data-term="tpr"]').first().tap(); await page.waitForTimeout(600);
     expect(await page.$("#gloss-peek")).toBeNull();
-    expect(await page.$("#gloss-pop")).not.toBeNull();
+    expect(await page.isVisible("#explain-panel")).toBe(true);
     await page.close();
   }, 60_000);
 
@@ -177,4 +177,128 @@ describe("explainer, Epic 2 (docs/stories/explainer.md)", () => {
     }
     expect([...undefinedWords]).toEqual([]);
   }, 120_000);
+});
+
+describe("explainer, Epic 3 (docs/stories/explainer.md)", () => {
+  let s: Running; let cwd: string;
+  beforeAll(async () => {
+    if (!browser) return;
+    cwd = repo((c) => cpSync(EXAMPLE, join(c, "evals"), { recursive: true }));
+    // A Learn more URL, and one edit waiting in the Pending changes tray.
+    const cfg = join(cwd, "evals", "litmustest.yaml"); writeFileSync(cfg, readFileSync(cfg, "utf8") + "explain:\n  learn_more_url: https://example.com/guide\n");
+    git(cwd, "commit", "-qam", "learn more url");
+    const fm = join(cwd, "evals", "failure_modes", "tone_mismatch.yaml"); writeFileSync(fm, readFileSync(fm, "utf8").replace("severity: med", "severity: high"));
+    s = await serve({ evalsDir: join(cwd, "evals"), port: 0, watch: false }); servers.push(s);
+  });
+  const open = async (route: string, opts: Parameters<Browser["newPage"]>[0] = { viewport: { width: 1440, height: 900 } }) => {
+    const page = await browser!.newPage(opts); await page.goto(`${s.url}/#/${route}`);
+    await page.waitForFunction(() => !/Loading…/.test(document.querySelector("#page")?.textContent ?? "") && document.querySelector("#page h1"));
+    await page.waitForTimeout(250); return page;
+  };
+  const panelText = (page: import("playwright-core").Page) => page.textContent("#explain-panel");
+  const waitPanel = (page: import("playwright-core").Page, re: RegExp) => page.waitForFunction((src) => new RegExp(src).test(document.querySelector("#explain-panel")?.textContent ?? ""), re.source);
+  const box = async (page: import("playwright-core").Page, sel: string) => (await page.locator(sel).first().boundingBox())!;
+
+  it("E3-S1: click, tap or Enter opens one 320px docked panel that reflows the page, with every section", async (ctx) => {
+    if (!browser) return ctx.skip();
+    const page = await open("judges/tone_mismatch");
+    const v = page.locator('#page .term[data-term="tpr"][data-kind="value"]').first();
+    await v.click(); await waitPanel(page, "Learn more");
+    const pb = await box(page, "#explain-panel"); const main = await box(page, "#page");
+    expect(Math.round(pb.width)).toBe(320);
+    expect(main.x + main.width).toBeLessThanOrEqual(pb.x + 1); // the page sits beside the panel, not under it
+    const t = await panelText(page);
+    for (const part of ["True positive rate", "What it means here", "Next step", "Related", "Learn more: Master Class, chapter"]) expect(t).toContain(part);
+    expect(await page.getAttribute("#explain-panel .more a", "href")).toMatch(/^https:\/\/example\.com\/guide#ch-\d+$/);
+    expect(await page.locator("#explain-panel .chips .chip").count()).toBeGreaterThan(0);
+    // another term updates the same panel
+    await page.locator('#page .term[data-term="tnr"][data-kind="value"]').first().click(); await waitPanel(page, "True negative rate");
+    expect(await page.locator(".explain-panel").count()).toBe(1);
+    // the close button, Escape and ? all close it and return focus to the term that opened it
+    await page.click(".panel-close"); expect(await page.isHidden("#explain-panel")).toBe(true);
+    expect(await page.evaluate(() => (document.activeElement as HTMLElement)?.dataset.term)).toBe("tnr");
+    await page.keyboard.press("Enter"); await waitPanel(page, "True negative rate");
+    await page.keyboard.press("Escape"); expect(await page.isHidden("#explain-panel")).toBe(true);
+    await page.keyboard.press("Enter"); await waitPanel(page, "True negative rate");
+    await page.keyboard.press("?"); expect(await page.isHidden("#explain-panel")).toBe(true);
+    expect(await page.evaluate(() => (document.activeElement as HTMLElement)?.dataset.term)).toBe("tnr");
+    // it survives navigation: the same term stays if the screen has it, else the panel clears to page mode
+    await page.locator('#page .term[data-term="tpr"][data-kind="value"]').first().click(); await waitPanel(page, "True positive rate");
+    await page.evaluate(() => { location.hash = "#/judges/missed_refund"; }); await waitPanel(page, "missed_refund judge");
+    await page.evaluate(() => { location.hash = "#/coverage"; }); await waitPanel(page, "This page");
+    expect(await page.isVisible("#explain-panel")).toBe(true);
+    await page.close();
+  }, 90_000);
+
+  it("E3-S1: below 900px it is a bottom sheet of at most 60% of the screen", async (ctx) => {
+    if (!browser) return ctx.skip();
+    const page = await open("judges/tone_mismatch", { viewport: { width: 800, height: 900 } });
+    await page.locator('#page .term[data-term="tpr"][data-kind="value"]').first().click(); await waitPanel(page, "Learn more");
+    const pb = await box(page, "#explain-panel");
+    expect(pb.height).toBeLessThanOrEqual(0.6 * 900 + 1); expect(Math.round(pb.y + pb.height)).toBe(900); expect(Math.round(pb.width)).toBe(800);
+    await page.close();
+  }, 60_000);
+
+  it("E3-S2: ? and the verdict strip open page mode with three terms from pages.yaml; one click switches to it", async (ctx) => {
+    if (!browser) return ctx.skip();
+    const page = await open("overview");
+    await page.keyboard.press("?"); await waitPanel(page, "This page");
+    const items = page.locator("#explain-panel .panel-list li"); expect(await items.count()).toBe(3);
+    await page.waitForFunction(() => [...document.querySelectorAll("#explain-panel .panel-list li p")].every((p) => /\d|\w{3}/.test(p.textContent ?? "")));
+    const pages = ((await (await fetch(`${s.url}/api/glossary`)).json()) as { pages: Record<string, string[]>; terms: { id: string; term: string }[] });
+    const names = (await items.locator("button").allTextContents()); const allowed = pages.pages.overview!.map((id) => pages.terms.find((t) => t.id === id)!.term);
+    for (const n of names) expect(allowed).toContain(n);
+    await items.first().locator("button").click(); await waitPanel(page, "What it means here");
+    await page.keyboard.press("Escape");
+    await page.click(".explain-page"); await waitPanel(page, "This page");
+    await page.keyboard.press("Escape");
+    // ? typed into a text field is a character, not a shortcut
+    await page.goto(`${s.url}/#/review`); await page.waitForSelector("textarea, input.text"); await page.focus("textarea"); await page.keyboard.press("?");
+    expect(await page.isHidden("#explain-panel")).toBe(true);
+    await page.close();
+  }, 90_000);
+
+  it("E3-S3 and E3-S4: Pending changes explains itself and its next step is the page's own Commit and Open PR", async (ctx) => {
+    if (!browser) return ctx.skip();
+    for (const width of [1280, 1440]) {
+      const page = await open("pending", { viewport: { width, height: 900 } });
+      for (const id of ["branch", "pending_changes", "diff_old", "diff_new", "diff_hunk"]) expect(await page.locator(`#page .term[data-term="${id}"]`).count(), id).toBeGreaterThan(0);
+      await page.locator('#page .term[data-term="pending_changes"]').first().click(); await waitPanel(page, "Next step");
+      const buttons = await page.locator("#explain-panel .panel-actions button").allTextContents();
+      expect(buttons[0]).toMatch(/^Commit 1 file to evals\//); expect(buttons).toContain("Open PR");
+      expect(await page.locator('#explain-panel a[href="#/pending"]').count()).toBe(0); // never a link to the page you are on
+      // the panel never covers the diff
+      const pb = await box(page, "#explain-panel"); const diff = await box(page, "pre.code-block");
+      expect(diff.x + diff.width, `width ${width}`).toBeLessThanOrEqual(pb.x + 1);
+      if (width === 1440) {
+        await page.locator('#page .term[data-term="branch"]').first().click(); await waitPanel(page, "What it means here");
+        expect(await panelText(page)).toMatch(/pull request/); expect(await panelText(page)).toMatch(/switch to an evals branch with git/);
+        await page.locator('#page .term[data-term="diff_hunk"]').first().click(); await waitPanel(page, "starts a changed block");
+        // the panel's Commit runs the same handler as the page's button: the tray empties
+        await page.locator('#page .term[data-term="pending_changes"]').first().click(); await waitPanel(page, "Next step");
+        page.once("dialog", (d) => d.accept());
+        await page.locator('#explain-panel .panel-actions button[data-action="pending.commit"]').click();
+        await page.waitForFunction(() => /Committed [0-9a-f]+ on evals\//.test(document.querySelector("#page")?.textContent ?? ""));
+        expect(execFileSync("git", ["status", "--porcelain", "--", "evals"], { cwd, encoding: "utf8" }).trim()).toBe("");
+        expect(execFileSync("git", ["rev-parse", "--abbrev-ref", "HEAD"], { cwd, encoding: "utf8" }).trim()).toMatch(/^evals\//);
+      }
+      await page.close();
+    }
+  }, 120_000);
+
+  it("E3-S3: every disabled button has an explanation beside it that says what unblocks it", async (ctx) => {
+    if (!browser) return ctx.skip();
+    const missing: string[] = [];
+    for (const r of [...ROUTES_ALL, "judges/missed_refund"]) {
+      const page = await open(r);
+      const groups = await page.$$eval("#page button:disabled", (els) => els.map((b) => { const box = b.closest(".alert") ?? b.closest(".save-row") ?? b.closest(".verdict") ?? b.closest(".card, section") ?? b.parentElement!; return { button: b.textContent?.trim(), triggers: [...box.querySelectorAll(".term")].map((t) => { const spec = (t as HTMLElement & { _spec?: { id: string; source?: string; ctx?: object } })._spec; return spec?.source ? spec : null; }).filter(Boolean) }; }));
+      for (const g of groups) {
+        let ok = false;
+        for (const spec of g.triggers as { id: string; source: string; ctx: object }[]) { const r2 = (await (await fetch(`${s.url}/api/glossary/here`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ items: [spec] }) })).json()) as { items: { next?: { say: string } }[] }; if (r2.items[0]?.next?.say) { ok = true; break; } }
+        if (!ok) missing.push(`${r}: "${g.button}"`);
+      }
+      await page.close();
+    }
+    expect(missing).toEqual([]);
+  }, 180_000);
 });
