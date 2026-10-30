@@ -9,3 +9,4 @@ examples/support-agent/environments/seed.sqlite
 examples/support-agent/.litmustest/
 __pycache__/
 *.pyc
+packages/cli/glossary/

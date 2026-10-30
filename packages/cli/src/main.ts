@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { alertTerm, meaningBlock, plainLines, termList, termText } from "./glossary_cli.ts";
 import { readFileSync } from "node:fs";
 import { explainRun, explainText } from "./explain_run.ts";
 import { computeCoverage } from "./coverage.ts";
@@ -42,7 +43,7 @@ Usage:
       unless --apply, which saves the files (validated) as pending changes
       on the branch for a person to commit. Needs ANTHROPIC_API_KEY.
 
-  litmustest run [--dir evals] [--suite s]... [--task id]... [--trials k] [--concurrency n] [--id run_id] [--dry-run] [--explain] [--json]
+  litmustest run [--dir evals] [--suite s]... [--task id]... [--trials k] [--concurrency n] [--id run_id] [--dry-run] [--explain] [--plain] [--json]
       Run each task k times in a fresh trial directory via agent.command
       from litmustest.yaml, grade every check (code, outcome, transcript,
       trusted judges), tag infra failures and exclude them, and write
@@ -51,6 +52,8 @@ Usage:
       configured store. --dry-run grades the reference solutions instead
       of running the agent.
       --explain asks Claude to explain each failed task afterwards.
+      --plain (also on compare, calibrate, doctor) prints what each number
+      means here, in one sentence from the glossary, under its row.
 
   litmustest coverage [--dir evals] [--gaps N] [--fail-under map=pct]... [--json]
       How much of the application the evals cover. v1 measures three maps:
@@ -61,6 +64,12 @@ Usage:
       production traffic, code lines or the frontend. --fail-under spec=20
       exits 1 when less than 20% of spec items are checked or guarded.
 
+  litmustest explain <term> [--dir evals] | explain --terms
+      What a term means, why it matters and what good looks like, then what
+      it means in this repo (every judge, suite or task it applies to) with
+      the next step. Aliases work: \`explain recall\` finds tpr. The same words
+      the dashboard's popovers and the PR comment show.
+
   litmustest explain [--dir evals] [--run id] [--task id]... [--all] [--force] [--no-model] [--json]
       Explain the failed trials of a run (the latest by default) in plain
       words: what was tested, what went wrong and at which step, what kind
@@ -69,7 +78,7 @@ Usage:
       change; --no-model prints the template only and writes nothing. One
       trial per task unless --all; --force re-explains. Needs a model token.
 
-  litmustest compare <A> <B> [--dir evals] [--json] [--markdown]
+  litmustest compare <A> <B> [--dir evals] [--json] [--markdown] [--plain]
       Paired comparison of two run summaries over their common tasks: per-suite
       delta with a bootstrap interval, significant or within noise; the flip
       list (Broke, Fixed, Flaky); failed checks by failure mode; cost, tokens,
@@ -94,7 +103,7 @@ Usage:
       proposed for the regression suite; --apply moves them (task file and
       suite lists) as pending changes. Reports capability saturation.
 
-  litmustest doctor [--dir evals] [--json]
+  litmustest doctor [--dir evals] [--json] [--plain]
       Eval health from the files: stale or untested judges, broken and
       flaky tasks, saturation, graduation candidates, unlabelled queue,
       and the next step.
@@ -110,7 +119,7 @@ Usage:
       fixture of labelled trials under graders/code/fixtures/, run the test
       and report agreement with the labels. Needs ANTHROPIC_API_KEY.
 
-  litmustest calibrate <judge> [--dir evals] [--split dev|test|none] [--force] [--json]
+  litmustest calibrate <judge> [--dir evals] [--split dev|test|none] [--force] [--plain] [--json]
       Split the judge's labels 15/45/40 (train/dev/test, test locked once
       drawn), run the judge on the dev split (freely) or the test split
       (once, after dev reaches the trust threshold), and write TPR, TNR,
@@ -145,7 +154,7 @@ function main(argv: string[]): number {
   if (cmd === "calibrate") { runCalibrate(rest); return 0; }
   if (cmd === "draft-judge" || cmd === "draft-check") { runDraft(cmd, rest); return 0; }
   if (cmd === "run") { runRun(rest); return 0; }
-  if (cmd === "explain") { runExplain(rest); return 0; }
+  if (cmd === "explain") return runExplain(rest);
   if (cmd === "coverage") return runCoverage(rest);
   if (cmd === "sample") { runSample(rest); return 0; }
   if (cmd === "graduate") return runGraduate(rest);
@@ -222,11 +231,13 @@ function runIngest(rest: string[]): number {
 
 function runCompare(rest: string[]): number {
   try {
-    const { values, flags, positional } = opts(rest, ["--dir", "--json", "--markdown"]);
+    const { values, flags, positional } = opts(rest, ["--dir", "--json", "--markdown", "--plain"]);
     const [a, b] = positional; if (!a || !b) { process.stderr.write("compare: two run ids are required\n"); return 2; }
-    const c = compareRuns(resolve(values.get("--dir") ?? "evals"), a, b); const g = evaluateGates(c);
+    const dir = resolve(values.get("--dir") ?? "evals");
+    const c = compareRuns(dir, a, b); const g = evaluateGates(c);
     if (flags.has("--json")) { process.stdout.write(JSON.stringify({ ...c, gates_passed: g.passed }, null, 2) + "\n"); return 0; }
     process.stdout.write(comparisonMarkdown(c) + "\n");
+    if (flags.has("--plain")) process.stdout.write("\n" + meaningBlock(dir, c, { all: true, collapsed: false }));
     return g.passed ? 0 : 1;
   } catch (e) { process.stderr.write(`compare: ${(e as Error).message}\n`); return 1; }
 }
@@ -275,11 +286,16 @@ function runGraduate(rest: string[]): number {
 
 function runDoctor(rest: string[]): number {
   try {
-    const { values, flags } = opts(rest, ["--dir", "--json"]);
-    const d = doctor(resolve(values.get("--dir") ?? "evals"));
+    const { values, flags } = opts(rest, ["--dir", "--json", "--plain"]);
+    const dir = resolve(values.get("--dir") ?? "evals");
+    const d = doctor(dir);
     if (flags.has("--json")) { process.stdout.write(JSON.stringify(d, null, 2) + "\n"); return 0; }
     if (!d.alerts.length) { process.stdout.write(`${d.next}\n`); return 0; }
-    for (const a of d.alerts) process.stdout.write(`${String(a.kind).padEnd(16)} ${a.title} ${a.body}\n${"".padEnd(17)}-> ${a.action} (${a.href})\n`);
+    for (const a of d.alerts) {
+      process.stdout.write(`${String(a.kind).padEnd(16)} ${a.title} ${a.body}\n${"".padEnd(17)}-> ${a.action} (${a.href})\n`);
+      const t = flags.has("--plain") ? alertTerm(String(a.kind), String(a.href)) : null;
+      const line = t ? plainLines(dir, [t], "".padEnd(17)) : ""; if (line) process.stdout.write(line + "\n");
+    }
     process.stdout.write(`\nnext: ${d.next}\n`);
     return 0;
   } catch (e) { process.stderr.write(`doctor: ${(e as Error).message}\n`); return 1; }
@@ -287,7 +303,7 @@ function runDoctor(rest: string[]): number {
 
 function runRun(rest: string[]): void {
   const suites: string[] = []; const tasks: string[] = []; const values = new Map<string, string>(); const flags = new Set<string>();
-  for (let i = 0; i < rest.length; i++) { const a = rest[i]!; if (a === "--suite") suites.push(rest[++i]!); else if (a === "--task") tasks.push(rest[++i]!); else if (["--dry-run", "--json", "--explain"].includes(a)) flags.add(a); else if (a.startsWith("--")) { if (!["--dir", "--trials", "--concurrency", "--id"].includes(a)) { process.stderr.write(`unknown flag ${a}\n`); process.exitCode = 2; return; } values.set(a, rest[++i]!); } }
+  for (let i = 0; i < rest.length; i++) { const a = rest[i]!; if (a === "--suite") suites.push(rest[++i]!); else if (a === "--task") tasks.push(rest[++i]!); else if (["--dry-run", "--json", "--explain", "--plain"].includes(a)) flags.add(a); else if (a.startsWith("--")) { if (!["--dir", "--trials", "--concurrency", "--id"].includes(a)) { process.stderr.write(`unknown flag ${a}\n`); process.exitCode = 2; return; } values.set(a, rest[++i]!); } }
   const t0 = Date.now();
   run({ evalsDir: resolve(values.get("--dir") ?? "evals"), suites, tasks, trials: values.has("--trials") ? Number(values.get("--trials")) : undefined, concurrency: values.has("--concurrency") ? Number(values.get("--concurrency")) : undefined, runId: values.get("--id"), dryRun: flags.has("--dry-run"),
     onProgress: flags.has("--json") ? undefined : (e) => process.stderr.write(`\r  ${e.done}/${e.total} trials  ${e.task} #${e.n} ${e.result?.infra_error ? "infra:" + e.result.infra_error_kind : e.result?.pass ? "pass" : "fail " + e.result?.failed_checks.join(",")}        `) })
@@ -295,7 +311,7 @@ function runRun(rest: string[]): void {
       if (flags.has("--json")) { process.stdout.write(JSON.stringify({ run_id: r.run_id, path: r.path, summary: r.summary, warnings: r.warnings }, null, 2) + "\n"); return; }
       process.stderr.write("\n");
       const s = r.summary as { suites: Record<string, { pass_rate: number; ci: { low: number; high: number }; pass_at_1: number; pass_hat_k: number; k: number; n_tasks: number; infra_errors: number; excluded_judges: string[] }>; infra_error_rate: number; cost_usd: number };
-      for (const [name, x] of Object.entries(s.suites)) process.stdout.write(`${name.padEnd(12)} ${String(x.pass_rate).padStart(5)}%  (${x.ci.low}–${x.ci.high})  pass@1 ${x.pass_at_1}%  pass^${x.k} ${x.pass_hat_k}%  ${x.n_tasks} tasks  ${x.infra_errors} infra${x.excluded_judges.length ? `  excluded: ${x.excluded_judges.join(", ")}` : ""}\n`);
+      for (const [name, x] of Object.entries(s.suites)) { process.stdout.write(`${name.padEnd(12)} ${String(x.pass_rate).padStart(5)}%  (${x.ci.low}–${x.ci.high})  pass@1 ${x.pass_at_1}%  pass^${x.k} ${x.pass_hat_k}%  ${x.n_tasks} tasks  ${x.infra_errors} infra${x.excluded_judges.length ? `  excluded: ${x.excluded_judges.join(", ")}` : ""}\n`); if (flags.has("--plain")) { const p = plainLines(resolve(values.get("--dir") ?? "evals"), [{ id: "suite", source: "suite", ctx: { suite: name, run: r.run_id } }]); if (p) process.stdout.write(p + "\n"); } }
       for (const w of r.warnings) process.stdout.write(`  warning ${w}\n`);
       process.stdout.write(`infra errors ${s.infra_error_rate}% · cost $${s.cost_usd} · ${Math.round((Date.now() - t0) / 1000)}s\nwrote ${r.path}; transcripts under ${r.transcripts_dir}\n`);
       if (flags.has("--explain") && !flags.has("--dry-run")) return explainRun({ evalsDir: resolve(values.get("--dir") ?? "evals"), runId: r.run_id }).then((x) => { process.stdout.write("\n"); for (const i of x.items) process.stdout.write(explainText(i) + "\n\n"); if (x.written) process.stdout.write(`wrote ${x.written} explanation${x.written > 1 ? "s" : ""} to ${x.path}\n`); });
@@ -314,9 +330,16 @@ function runCoverage(rest: string[]): number {
   return under.length ? 1 : 0;
 }
 
-function runExplain(rest: string[]): void {
+function runExplain(rest: string[]): number {
+  if (rest[0] === "--terms" || (rest[0] && !rest[0].startsWith("--"))) {
+    let dir = "evals"; const words: string[] = [];
+    for (let i = 0; i < rest.length; i++) { const a = rest[i]!; if (a === "--dir") dir = rest[++i]!; else if (a !== "--terms") words.push(a); }
+    if (rest[0] === "--terms") { process.stdout.write(termList(resolve(dir)) + "\n"); return 0; }
+    const r = termText(words.join(" "), resolve(dir));
+    process.stdout.write(r.text + "\n"); return r.found ? 0 : 1;
+  }
   const tasks: string[] = []; const values = new Map<string, string>(); const flags = new Set<string>();
-  for (let i = 0; i < rest.length; i++) { const a = rest[i]!; if (a === "--task") tasks.push(rest[++i]!); else if (["--all", "--force", "--no-model", "--json"].includes(a)) flags.add(a); else if (["--dir", "--run", "--concurrency"].includes(a)) values.set(a, rest[++i]!); else { process.stderr.write(`unknown argument ${a}\n`); process.exitCode = 2; return; } }
+  for (let i = 0; i < rest.length; i++) { const a = rest[i]!; if (a === "--task") tasks.push(rest[++i]!); else if (["--all", "--force", "--no-model", "--json"].includes(a)) flags.add(a); else if (["--dir", "--run", "--concurrency"].includes(a)) values.set(a, rest[++i]!); else { process.stderr.write(`unknown argument ${a}\n`); return 2; } }
   explainRun({ evalsDir: resolve(values.get("--dir") ?? "evals"), runId: values.get("--run"), tasks, all: flags.has("--all"), force: flags.has("--force"), model: !flags.has("--no-model"), concurrency: values.has("--concurrency") ? Number(values.get("--concurrency")) : undefined, onItem: flags.has("--json") ? undefined : (i) => process.stdout.write(explainText(i) + "\n\n") })
     .then((r) => {
       if (flags.has("--json")) { process.stdout.write(JSON.stringify(r, null, 2) + "\n"); return; }
@@ -325,6 +348,7 @@ function runExplain(rest: string[]): void {
       if (r.items.some((i) => i.error)) process.exitCode = 1;
     })
     .catch((e: Error) => { process.stderr.write(`explain: ${e.message}\n`); process.exitCode = 1; });
+  return 0;
 }
 
 function runDraft(cmd: string, rest: string[]): void {
@@ -343,7 +367,7 @@ function runDraft(cmd: string, rest: string[]): void {
 }
 
 function runCalibrate(rest: string[]): void {
-  const { values, flags, positional } = opts(rest, ["--dir", "--split", "--force", "--json"]);
+  const { values, flags, positional } = opts(rest, ["--dir", "--split", "--force", "--json", "--plain"]);
   const judge = positional[0];
   if (!judge) { process.stderr.write("calibrate: a judge name is required\n"); process.exitCode = 2; return; }
   const split = (values.get("--split") ?? "dev") as "dev" | "test" | "none";
@@ -361,6 +385,7 @@ function runCalibrate(rest: string[]): void {
         if (r.ran.disagreements.length) { process.stdout.write(`  ${r.ran.disagreements.length} disagreements:\n`); for (const d of r.ran.disagreements.slice(0, 15)) process.stdout.write(`    ${d.trace_id}  human ${d.human} / judge ${d.judge}  ${String(d.critique).slice(0, 100)}\n`); }
       }
       process.stdout.write(`status: ${r.status}  (wrote ${r.path})\n`);
+      if (flags.has("--plain")) { const p = plainLines(resolve(values.get("--dir") ?? "evals"), ["tpr", "tnr", r.status === "stale" ? "stale" : "calibration"].map((id) => ({ id, source: "judge", ctx: { judge } })), "  "); if (p) process.stdout.write(p + "\n"); }
     })
     .catch((e: Error) => { process.stderr.write(`calibrate: ${e.message}\n`); process.exitCode = 1; });
 }

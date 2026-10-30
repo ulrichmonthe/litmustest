@@ -1,0 +1,1118 @@
+# The explainer's glossary. docs/EXPLAINER.md is the contract; litmustest validate checks every rule.
+# Order roughly follows the lifecycle: traces and review, tasks and suites, judges and calibration, runs and gates, the loop.
+
+# ---------------- traces, review, failure modes
+
+- id: trace
+  term: Trace
+  aliases: [traces]
+  short: One recorded conversation or run of your AI, start to finish.
+  why: Every eval starts from what your AI actually did, not from what you think it does.
+  here:
+    - source: queue
+      template: Batch {batch} holds {items} traces sampled for review. {labelled} have a label and {left} are left.
+      next:
+        - when: left > 0
+          say: Read the {left} left in Review.
+          link: "#/review"
+        - say: Every trace in this batch has a label.
+  related: [label, failure_mode]
+  learn_more: master-class#ch-2
+
+- id: label
+  term: Label
+  aliases: [labels]
+  short: A person's Pass or Fail on one [[trace]], with a note.
+  why: Labels are the ground truth that tasks and judges are measured against. Only people write them.
+  here:
+    - source: queue
+      template: >-
+        In batch {batch}, {labelled} of {items} traces have a label. {fails} of them have at least one Fail.
+      next:
+        - when: left > 0
+          say: Label the {left} traces left in Review.
+          link: "#/review"
+        - say: Nothing left to label in this batch.
+    - source: failure_mode
+      when: labels > 0
+      template: "{labels} traces carry a label for {mode}: {labels_fail} Fail and {labels_pass} Pass."
+      next:
+        - say: Open Review to label more.
+          link: "#/review"
+    - source: failure_mode
+      template: No trace carries a label for {mode} yet.
+      next:
+        - say: Label traces for it in Review.
+          link: "#/review"
+  related: [trace, failure_mode, calibration]
+  learn_more: master-class#ch-3
+
+- id: failure_mode
+  term: Failure mode
+  aliases: [failure modes]
+  short: A named, repeatable way your AI goes wrong.
+  why: Naming a failure is what lets you count it, check for it and see when it stops.
+  here:
+    - source: failure_mode
+      when: labels > 0
+      template: >-
+        People labelled {labels} traces for {mode}. {labels_fail} were Fail ({fail_rate | pct} of the labelled ones,
+        could be {fail_rate_ci | range}).
+      next:
+        - when: judge_status == 'stale'
+          say: Its judge changed since its test set run. Rerun the dev set, then the test set once.
+          link: "#/modes/{mode}"
+        - when: judge_status == 'untested' or judge_status == 'dev'
+          say: Its judge does not count yet. Calibrate it on the dev set, then the test set.
+          link: "#/modes/{mode}"
+        - when: tasks == 0
+          say: No task checks it yet. Add a check for it to a task.
+          link: "#/modes/{mode}"
+        - say: Open it to see its traces, checks and tasks.
+          link: "#/modes/{mode}"
+    - source: failure_mode
+      when: has_code_check
+      template: No one has labelled traces for {mode} yet, but a code check covers it in {tasks} tasks.
+      next:
+        - say: Label a few traces for it in Review to see how often it happens.
+          link: "#/review"
+    - source: failure_mode
+      when: tasks == 0
+      template: No one has labelled traces for {mode} yet, and no task checks it.
+      next:
+        - say: Label traces for it in Review first, then add a check for it to a task.
+          link: "#/review"
+    - source: failure_mode
+      template: No one has labelled traces for {mode} yet, and {tasks} tasks check it.
+      next:
+        - say: Label traces for it in Review to see how often it happens.
+          link: "#/review"
+  related: [severity, label, judge, code_check]
+  learn_more: master-class#ch-4
+
+- id: severity
+  term: Severity
+  short: "How much a [[failure_mode]] hurts users: high, medium or low."
+  why: Severity decides what to fix first and which failures belong in the regression suite.
+  here:
+    - source: failure_mode
+      when: severity == 'high'
+      template: "{mode} is high severity: when it happens, users are hurt badly."
+      next:
+        - when: tasks == 0
+          say: No task checks it yet. Add one to the regression suite first.
+          link: "#/modes/{mode}"
+        - say: Keep a regression task checking it so a merge can't bring it back.
+          link: "#/modes/{mode}"
+    - source: failure_mode
+      when: severity == 'med' or severity == 'medium'
+      template: "{mode} is medium severity: it hurts users, but less than a high one."
+      next:
+        - when: tasks == 0
+          say: No task checks it yet. Add one once the high ones are covered.
+          link: "#/modes/{mode}"
+        - say: Fix it after the high severity failure modes.
+    - source: failure_mode
+      when: severity == 'low'
+      template: "{mode} is low severity: it annoys users more than it hurts them."
+      next:
+        - say: Fix it when the high and medium ones are under control.
+    - source: failure_mode
+      template: "{mode} has no severity yet."
+      next:
+        - say: Set one on its page so you know what to fix first.
+          link: "#/modes/{mode}"
+  related: [failure_mode, regression_suite]
+  learn_more: master-class#ch-5
+
+# ---------------- tasks, checks, suites
+
+- id: task
+  term: Task
+  aliases: [tasks, test case]
+  short: "One test case: an input, the [[check]]s it must pass, a known good answer."
+  why: A task turns a failure you saw once into something you can rerun after every change.
+  here:
+    - source: task
+      template: >-
+        {task} is in the {suite} suite. In {run_id} it passed {passed} of {trials} trials ({pass_rate | pct},
+        could be {pass_rate_ci | range}).
+      next:
+        - when: likely_broken
+          say: It fails every time. Check the task's reference solution and its premise before changing your AI.
+          link: "#/tasks/{suite}/{task}"
+        - when: failed_check != null
+          say: Most failures were on {failed_check}. Read a transcript to see why.
+          link: "#/transcripts/{run_id}/{task}/1"
+        - say: Nothing to do; every scored trial passed.
+          link: "#/tasks/{suite}/{task}"
+  related: [check, trial, suite, reference_solution]
+  learn_more: master-class#ch-6
+
+- id: check
+  term: Check
+  aliases: [checks]
+  short: One yes-or-no test inside a [[task]].
+  why: A yes-or-no answer can be counted, compared between runs and gated. A score from one to ten can't.
+  here:
+    - source: task
+      when: failed_check != null
+      template: In {run_id}, {task} failed most often on its {failed_check} check.
+      next:
+        - say: Read a transcript to see what that check saw.
+          link: "#/transcripts/{run_id}/{task}/1"
+    - source: task
+      template: No check in {task} failed in {run_id}.
+      next:
+        - say: Nothing to do.
+  related: [task, code_check, outcome_check, judge]
+  learn_more: master-class#ch-7
+
+- id: code_check
+  term: Code check
+  aliases: [code checks, code grader]
+  short: A [[check]] written as code, so it gives the same answer every time.
+  why: Code is cheap, fast and never drifts. Use it before reaching for a judge.
+  here:
+    - source: failure_mode
+      when: has_code_check
+      template: "{mode} has a code check in at least one task, so that check gives the same answer every time."
+      next:
+        - say: Nothing to do.
+    - source: failure_mode
+      template: "{mode} has no code check yet."
+      next:
+        - when: has_judge
+          say: It relies on its judge. If a rule can decide it, a code check is cheaper and steadier.
+          link: "#/modes/{mode}"
+        - say: If a rule can decide it, write a code check before drafting a judge.
+          link: "#/modes/{mode}"
+  related: [check, judge, outcome_check]
+  learn_more: master-class#ch-8
+
+- id: outcome_check
+  term: Outcome check
+  aliases: [outcome checks, end state check]
+  short: A [[check]] on what actually changed, like a row in the database, not on what the AI said.
+  why: An agent can say it issued a refund without issuing one. Only the end state tells you.
+  related: [check, code_check, reference_solution]
+  learn_more: master-class#ch-8
+
+- id: reference_solution
+  term: Reference solution
+  aliases: [reference, reference answer]
+  short: A known good answer that proves the [[task]] can be passed.
+  why: If no answer can pass a task, a failure there says nothing about your AI.
+  here:
+    - source: task
+      when: likely_broken
+      template: >-
+        {task} failed all {trials} trials in {run_id}. Its reference solution is the proof that it can be passed;
+        if that no longer holds, the task is wrong, not your AI.
+      next:
+        - say: Run the task's reference solution against its checks and reread its premise.
+          link: "#/tasks/{suite}/{task}"
+    - source: task
+      template: "{task} has a reference solution that passes all its checks, so a failure there is your AI's."
+      next:
+        - say: Nothing to do.
+          link: "#/tasks/{suite}/{task}"
+  related: [task, likely_broken]
+  learn_more: master-class#ch-6
+
+- id: suite
+  term: Suite
+  aliases: [suites]
+  short: A group of [[task]]s run together. Each is a [[regression_suite]], a [[capability_suite]] or a quality suite.
+  why: Each kind answers a different question, so each gets its own number and its own gate.
+  here:
+    - source: suite
+      template: >-
+        {suite} has {n_tasks} tasks. In {run_id} it passed {pass_rate | pct} (could be {pass_rate_ci | range}).
+      next:
+        - when: prev.exists
+          say: Compare with {prev.run_id} to see what changed.
+          link: "#/compare/{prev.run_id}/{run_id}"
+        - say: Run it again after your next change to compare.
+  related: [regression_suite, capability_suite, gate]
+  learn_more: master-class#ch-9
+
+- id: regression_suite
+  term: Regression suite
+  aliases: [regression]
+  short: Things that already work and must keep working. Blocks merges.
+  why: It is the promise that a change didn't break what users already rely on.
+  good: Near 100%.
+  here:
+    - source: suite
+      when: kind == 'regression' and below_min
+      template: >-
+        {suite} passed {pass_rate | pct} (could be {pass_rate_ci | range}) in {run_id}, under its minimum of
+        {gate.min_pass_rate | percent}. These tasks used to work, so this blocks a merge.
+      next:
+        - when: prev.exists
+          say: Look at the flips in Run compare to see which tasks broke.
+          link: "#/compare/{prev.run_id}/{run_id}"
+        - say: Open the failing tasks in this run.
+    - source: suite
+      when: kind == 'regression'
+      template: >-
+        {suite} passed {pass_rate | pct} (could be {pass_rate_ci | range}) in {run_id}. These tasks already work,
+        and a drop blocks a merge.
+      next:
+        - say: Nothing to do.
+    - source: suite
+      template: "{suite} is a {kind} suite. Regression suites hold the tasks that already work."
+      next:
+        - say: Nothing to do.
+  related: [suite, gate, graduation]
+  learn_more: master-class#ch-10
+
+- id: capability_suite
+  term: Capability suite
+  aliases: [capability]
+  short: Things you're still trying to make work. Reported, never blocks.
+  why: It is the hill to climb. A low score here is expected; the trend is what matters.
+  here:
+    - source: suite
+      when: kind == 'capability' and prev.exists
+      template: >-
+        {suite} passed {pass_rate | pct} (could be {pass_rate_ci | range}) in {run_id}, a change of
+        {prev.delta | pts} since {prev.run_id} (could be {prev.delta_ci | prange}). It is reported and never blocks a merge.
+      next:
+        - when: prev.significant and prev.delta > 0
+          say: A real gain. Tasks that now pass every trial may be ready to graduate.
+        - when: not prev.significant
+          say: The change is within noise. Keep climbing; compare again after your next change.
+          link: "#/compare/{prev.run_id}/{run_id}"
+        - say: Look at the flips in Run compare to see what got worse.
+          link: "#/compare/{prev.run_id}/{run_id}"
+    - source: suite
+      when: kind == 'capability'
+      template: >-
+        {suite} passed {pass_rate | pct} (could be {pass_rate_ci | range}) in {run_id}. It is reported and never
+        blocks a merge.
+      next:
+        - say: Pick a failing task and work on it.
+    - source: suite
+      template: "{suite} is a {kind} suite. Capability suites hold the tasks you are still working on."
+      next:
+        - say: Nothing to do.
+  related: [suite, graduation, regression_suite]
+  learn_more: master-class#ch-10
+
+- id: graduation
+  term: Graduation
+  aliases: [graduate, graduated]
+  short: Moving a [[task]] from the [[capability_suite]] to the [[regression_suite]] once it passes reliably.
+  why: Once something works, it should be protected like everything else that works.
+  good: Every trial passed in the last three runs.
+  here:
+    - source: suite
+      when: kind == 'capability' and graduate_ready > 0
+      template: >-
+        {graduate_ready} {suite} tasks passed every trial in the last runs and are ready to graduate.
+      next:
+        - say: Graduate them from this page; the move lands in Pending changes for you to commit.
+          link: "#/tasks/{suite}"
+    - source: suite
+      when: kind == 'capability'
+      template: >-
+        In {run_id}, {pass_hat_k | pct} of {suite} tasks passed all {k} trials (could be {pass_hat_k_ci | range}).
+        None has done it run after run yet, so none is ready to graduate.
+      next:
+        - say: Nothing to do yet.
+    - source: suite
+      when: kind == 'regression'
+      template: "{suite} receives tasks that graduate from the capability suite."
+      next:
+        - say: Nothing to do.
+    - source: suite
+      template: "{suite} is a {kind} suite; graduation moves tasks from capability to regression."
+      next:
+        - say: Nothing to do.
+  related: [capability_suite, regression_suite, pass_hat_k]
+  learn_more: master-class#ch-22
+
+# ---------------- judges and calibration
+
+- id: judge
+  term: Judge
+  aliases: [judges, LLM judge]
+  short: An AI that grades one [[failure_mode]] with Pass, Fail or [[unknown]].
+  why: Some failures, like tone, can't be decided by code. A judge can, once it agrees with people.
+  here:
+    - source: judge
+      when: status == 'trusted'
+      template: "The {judge} judge grades {failure_mode} in {used_by} tasks. It is trusted, so its verdicts count in scores and gates."
+      next:
+        - say: Nothing to do. Changing its prompt or model makes it stale.
+          link: "#/judges/{judge}"
+    - source: judge
+      when: status == 'stale'
+      template: >-
+        The {judge} judge grades {failure_mode} in {used_by} tasks, but it changed since its test set run, so its
+        verdicts are left out of scores and gates.
+      next:
+        - say: Rerun the dev set, then run the test set once.
+          link: "#/judges/{judge}"
+    - source: judge
+      when: status == 'dev'
+      template: "{judge} has a dev set run but has not passed a test set, so its verdicts don't count yet."
+      next:
+        - say: Get both rates over the bar on the dev set, then run the test set once.
+          link: "#/judges/{judge}"
+    - source: judge
+      template: "{judge} has not been compared with your labels yet, so its verdicts don't count."
+      next:
+        - say: Run the dev set from the judge's page.
+          link: "#/judges/{judge}"
+  related: [calibration, trusted, stale, unknown]
+  learn_more: master-class#ch-11
+
+- id: unknown
+  term: Unknown
+  aliases: [unknown verdict]
+  short: A [[judge]] verdict for when it can't decide between Pass and Fail.
+  why: A judge forced to guess hides its doubt. Unknown lets it say so, and you can see how often.
+  here:
+    - source: judge
+      when: dev.ran
+      template: On the dev set, {judge} answered Unknown {dev.unknown} times out of {dev.n}.
+      next:
+        - when: dev.unknown > 0
+          say: Read those traces. An Unknown often means the judge is missing context.
+          link: "#/judges/{judge}"
+        - say: Nothing to do.
+    - source: judge
+      template: "{judge} has no dev run yet, so there is no count of Unknown verdicts."
+      next:
+        - say: Run the dev set from the judge's page.
+          link: "#/judges/{judge}"
+  related: [judge]
+  learn_more: master-class#ch-11
+
+- id: calibration
+  term: Calibration
+  aliases: [calibrate, calibrated]
+  short: Checking a [[judge]] against human [[label]]s before trusting it.
+  why: An uncalibrated judge is a guess with a confident voice. Calibration measures how often it agrees with people.
+  good: TPR and TNR of 90% or higher on the test set, run once.
+  here:
+    - source: judge
+      when: status == 'trusted'
+      template: >-
+        {judge} was checked against your labels. On the test set it caught {test.tp} of {test.tp + test.fn} real
+        failures ({test.tpr | pct}, could be {test.tpr_ci | range}) and left {test.tn} of {test.tn + test.fp} real
+        passes alone ({test.tnr | pct}, could be {test.tnr_ci | range}).
+      next:
+        - say: Nothing to do. Changing its prompt or model makes it stale.
+          link: "#/judges/{judge}"
+    - source: judge
+      when: status == 'stale'
+      template: "{judge} was calibrated, but it changed since, so the result no longer applies and its verdicts don't count."
+      next:
+        - say: Rerun the dev set, then run the test set once.
+          link: "#/judges/{judge}"
+    - source: judge
+      when: test.ran and (test.tpr < threshold or test.tnr < threshold)
+      template: >-
+        {judge} missed the bar of {threshold | percent} on the test set. It caught {test.tpr | pct} of real failures
+        (could be {test.tpr_ci | range}) and left {test.tnr | pct} of real passes alone (could be {test.tnr_ci | range}).
+      next:
+        - say: Improve it on the dev set, then label fresh traces for a new test set. The old one has been seen.
+          link: "#/judges/{judge}"
+    - source: judge
+      when: dev.ran
+      template: >-
+        {judge} has been measured on {dev.n} dev set labels but not on the test set. It caught {dev.tpr | pct} of
+        real failures (could be {dev.tpr_ci | range}) and left {dev.tnr | pct} of real passes alone (could be
+        {dev.tnr_ci | range}).
+      next:
+        - when: dev.tpr >= threshold and dev.tnr >= threshold
+          say: Both rates reach {threshold | percent}. Run the test set once.
+          link: "#/judges/{judge}"
+        - say: Improve the prompt or label more until both rates reach {threshold | percent}. The misses are under Disagreements.
+          link: "#/judges/{judge}"
+    - source: judge
+      template: >-
+        {judge} has not been compared with your labels yet. You have {labels} labels for {failure_mode}:
+        {labels_fail} Fail and {labels_pass} Pass.
+      next:
+        - when: labels_fail == 0 or labels_pass == 0
+          say: Label both Pass and Fail traces in Review first.
+          link: "#/review"
+        - say: Split the labels and run the dev set.
+          link: "#/judges/{judge}"
+  related: [tpr, tnr, dev_set, test_set, trusted]
+  learn_more: master-class#ch-13
+
+- id: tpr
+  term: True positive rate
+  aliases: [TPR, recall, sensitivity]
+  short: Of the real failures, how many the [[judge]] caught.
+  why: A judge that misses failures lets bad changes ship.
+  good: 90% or higher on the dev set before the test set runs.
+  here:
+    - source: judge
+      when: dev.ran
+      template: >-
+        Your {judge} judge caught {dev.tp} of {dev.tp + dev.fn} real failures
+        ({dev.tpr | pct}, could be {dev.tpr_ci | range}).
+      next:
+        - when: status == 'stale'
+          say: It changed since it was measured. Rerun the dev set, then the test set once.
+          link: "#/judges/{judge}"
+        - when: test.ran and test.tpr < threshold
+          say: It missed the bar on the test set. Improve it on the dev set, then label fresh traces for a new test set.
+          link: "#/judges/{judge}"
+        - when: dev.tpr >= threshold and not test.ran
+          say: Ready to run the test set once.
+        - when: dev.tpr < threshold
+          say: Label more failures. The {dev.fn} it missed are under Disagreements.
+          link: "#/judges/{judge}"
+        - say: Nothing to do; the dev set is above the bar.
+    - source: judge
+      template: Your {judge} judge has no dev run yet, so its true positive rate is not measured.
+      next:
+        - say: Run the dev set from the judge's page.
+          link: "#/judges/{judge}"
+  related: [tnr, calibration, judge]
+  learn_more: master-class#ch-12
+
+- id: tnr
+  term: True negative rate
+  aliases: [TNR, specificity]
+  short: Of the real passes, how many the [[judge]] left alone.
+  why: A judge that flags good answers buries real failures in noise and blocks good changes.
+  good: 90% or higher on the dev set before the test set runs.
+  here:
+    - source: judge
+      when: dev.ran
+      template: >-
+        Your {judge} judge left {dev.tn} of {dev.tn + dev.fp} real passes alone
+        ({dev.tnr | pct}, could be {dev.tnr_ci | range}).
+      next:
+        - when: status == 'stale'
+          say: It changed since it was measured. Rerun the dev set, then the test set once.
+          link: "#/judges/{judge}"
+        - when: test.ran and test.tnr < threshold
+          say: It missed the bar on the test set. Improve it on the dev set, then label fresh traces for a new test set.
+          link: "#/judges/{judge}"
+        - when: dev.tnr >= threshold and not test.ran
+          say: Ready to run the test set once.
+        - when: dev.tnr < threshold
+          say: Label more passes. The {dev.fp} it wrongly failed are under Disagreements.
+          link: "#/judges/{judge}"
+        - say: Nothing to do; the dev set is above the bar.
+    - source: judge
+      template: Your {judge} judge has no dev run yet, so its true negative rate is not measured.
+      next:
+        - say: Run the dev set from the judge's page.
+          link: "#/judges/{judge}"
+  related: [tpr, calibration, judge]
+  learn_more: master-class#ch-12
+
+- id: dev_set
+  term: Dev set
+  aliases: [dev split]
+  short: "[[label]]s used to tune a [[judge]]."
+  why: You can rerun the dev set as often as you like while you fix the prompt.
+  here:
+    - source: judge
+      when: dev.ran
+      template: >-
+        {judge}'s dev set holds {splits.dev} of your labels. On it the judge caught {dev.tpr | pct} of real failures
+        (could be {dev.tpr_ci | range}) and left {dev.tnr | pct} of real passes alone (could be {dev.tnr_ci | range}).
+      next:
+        - when: status == 'stale'
+          say: It changed since. Rerun the dev set, then the test set once.
+          link: "#/judges/{judge}"
+        - when: dev.tpr < threshold or dev.tnr < threshold
+          say: Fix the prompt or label more until both rates reach {threshold | percent}.
+          link: "#/judges/{judge}"
+        - when: not test.ran
+          say: Run the test set once.
+          link: "#/judges/{judge}"
+        - say: Nothing to do.
+    - source: judge
+      when: splits.dev > 0
+      template: "{judge}'s dev set holds {splits.dev} of your labels and has not been run."
+      next:
+        - say: Run the dev set from the judge's page.
+          link: "#/judges/{judge}"
+    - source: judge
+      template: "{judge} has no dev set yet."
+      next:
+        - when: labels == 0
+          say: Label traces for {failure_mode} in Review first.
+          link: "#/review"
+        - say: Split its labels into train, dev and test sets.
+          link: "#/judges/{judge}"
+  related: [test_set, calibration]
+  learn_more: master-class#ch-13
+
+- id: test_set
+  term: Test set
+  aliases: [test split, held-out set]
+  short: "[[label]]s held back for one final measurement of a [[judge]]."
+  why: A set you never tuned on is the only honest estimate of how the judge will do on new traces.
+  here:
+    - source: judge
+      when: test.ran
+      template: >-
+        {judge}'s test set holds {splits.test} labels it was never tuned on. On it the judge caught
+        {test.tpr | pct} of real failures (could be {test.tpr_ci | range}) and left {test.tnr | pct} of real passes
+        alone (could be {test.tnr_ci | range}).
+      next:
+        - when: status == 'stale'
+          say: It changed since this run. Rerun the dev set, then the test set once.
+          link: "#/judges/{judge}"
+        - when: test.tpr < threshold or test.tnr < threshold
+          say: It missed the bar of {threshold | percent}. Improve it on the dev set, then label fresh traces for a new test set.
+          link: "#/judges/{judge}"
+        - say: Nothing to do.
+    - source: judge
+      when: splits.test > 0
+      template: "{judge}'s test set holds {splits.test} labels and has not been run. It runs once, after the dev set reaches the bar."
+      next:
+        - when: dev.ran and dev.tpr >= threshold and dev.tnr >= threshold
+          say: Run the test set once.
+          link: "#/judges/{judge}"
+        - say: Get both dev set rates to {threshold | percent} first.
+          link: "#/judges/{judge}"
+    - source: judge
+      template: "{judge} has no test set yet."
+      next:
+        - say: Split its labels into train, dev and test sets.
+          link: "#/judges/{judge}"
+  related: [dev_set, calibration, trusted]
+  learn_more: master-class#ch-14
+
+- id: trusted
+  term: Trusted
+  aliases: [trusted judge]
+  short: The [[judge]] passed its [[test_set]] run and counts in [[gate]]s.
+  why: Only a judge that agrees with people should be allowed to block a merge.
+  here:
+    - source: judge
+      when: status == 'trusted'
+      template: >-
+        {judge} is trusted. On the test set it caught {test.tpr | pct} of real failures (could be
+        {test.tpr_ci | range}) and left {test.tnr | pct} of real passes alone (could be {test.tnr_ci | range}).
+      next:
+        - say: Nothing to do. Changing its prompt or model makes it stale.
+          link: "#/judges/{judge}"
+    - source: judge
+      when: status == 'stale'
+      template: "{judge} was trusted, but it changed since its test set run. Its verdicts don't count in scores or gates."
+      next:
+        - say: Rerun the dev set, then run the test set once.
+          link: "#/judges/{judge}"
+    - source: judge
+      when: status == 'dev'
+      template: "{judge} is not trusted yet. It has a dev set run but no passing test set run, so its verdicts don't count."
+      next:
+        - when: dev.ran and dev.tpr >= threshold and dev.tnr >= threshold and not test.ran
+          say: Both dev set rates reach {threshold | percent}. Run the test set once.
+          link: "#/judges/{judge}"
+        - say: Get both dev set rates to {threshold | percent}, then run the test set once.
+          link: "#/judges/{judge}"
+    - source: judge
+      template: "{judge} is not trusted yet. It has not been compared with your labels, so its verdicts don't count."
+      next:
+        - say: Run the dev set, then the test set once.
+          link: "#/judges/{judge}"
+    - source: suite
+      when: excluded_count > 0
+      template: "{suite}'s score in {run_id} leaves out judges that are not trusted: {excluded_judges}."
+      next:
+        - say: Calibrate them to count their verdicts. Open each from Judges.
+    - source: suite
+      template: Every judge in {suite} was trusted in {run_id}, so all their verdicts count.
+      next:
+        - say: Nothing to do.
+  related: [stale, calibration, gate]
+  learn_more: master-class#ch-14
+
+- id: stale
+  term: Stale
+  aliases: [stale judge, judge stale]
+  short: The [[judge]] changed since its [[test_set]] run, so its verdicts don't count.
+  why: A judge measured with one prompt says nothing about a different prompt.
+  here:
+    - source: judge
+      when: status == 'stale' and stale_reason == 'prompt_changed'
+      template: "{judge}'s prompt changed after its test set run, so its verdicts are left out of scores and gates."
+      next:
+        - say: Rerun the dev set, then run the test set once.
+          link: "#/judges/{judge}"
+    - source: judge
+      when: status == 'stale' and stale_reason == 'model_changed'
+      template: "{judge}'s model changed after its test set run, so its verdicts are left out of scores and gates."
+      next:
+        - say: Rerun the dev set, then run the test set once.
+          link: "#/judges/{judge}"
+    - source: judge
+      when: status == 'stale' and stale_reason == 'labels_changed'
+      template: "{judge}'s labels changed after its test set run, so its verdicts are left out of scores and gates."
+      next:
+        - say: Rerun the dev set, then run the test set once.
+          link: "#/judges/{judge}"
+    - source: judge
+      when: status == 'stale'
+      template: "{judge} changed after its test set run, so its verdicts are left out of scores and gates."
+      next:
+        - say: Rerun the dev set, then run the test set once.
+          link: "#/judges/{judge}"
+    - source: judge
+      when: status == 'trusted'
+      template: "{judge} is not stale. Nothing has changed since its test set run."
+      next:
+        - say: Nothing to do.
+    - source: judge
+      template: "{judge} is not stale, but it has not been trusted yet, so its verdicts don't count."
+      next:
+        - say: Run the dev set, then the test set once.
+          link: "#/judges/{judge}"
+  related: [trusted, calibration]
+  learn_more: master-class#ch-15
+
+- id: corrected_rate
+  term: Corrected rate
+  aliases: [corrected pass rate]
+  short: The pass rate adjusted for the [[judge]]'s known mistakes.
+  why: A judge that misses one failure in ten makes your AI look better than it is. The correction undoes that.
+  here:
+    - source: suite
+      when: corrected
+      template: >-
+        Trials in {suite} passed {pass_at_1 | pct} of the time as graded (could be {pass_at_1_ci | range}). Corrected for
+        the known mistakes of {corrected_by}, the pass rate is {pass_rate | pct} (could be {pass_rate_ci | range}).
+      next:
+        - say: Trust the corrected number; the raw one still contains the judge's errors.
+    - source: suite
+      template: >-
+        {suite} passed {pass_rate | pct} in {run_id} (could be {pass_rate_ci | range}). No judge in this suite needed
+        correcting, so this is the rate as graded.
+      next:
+        - say: Nothing to do.
+  related: [tpr, tnr, confidence_interval]
+  learn_more: master-class#ch-15
+
+- id: strict_pass
+  term: Strict pass
+  aliases: [strict]
+  short: The share of [[trial]]s where every [[check]] in the [[task]] passed.
+  why: One failed check fails the trial; nothing is averaged away.
+  related: [weighted_score, check]
+  learn_more: master-class#ch-8
+
+- id: weighted_score
+  term: Weighted score
+  aliases: [weighted]
+  short: Partial credit for a [[task]], with each [[check]] counted by its weight.
+  why: It shows how close a failing task came, while strict pass decides whether it passed.
+  related: [strict_pass, check]
+  learn_more: master-class#ch-8
+
+# ---------------- runs, trials, gates
+
+- id: trial
+  term: Trial
+  aliases: [trials]
+  short: One attempt at a [[task]]. Each one runs several times because AI output varies.
+  why: One attempt tells you what can happen. Several tell you what usually happens.
+  here:
+    - source: task
+      when: infra_errors > 0
+      template: >-
+        In {run_id}, {task} had {trials} scored trials and passed {passed}. Trials that hit an infra error are not
+        counted: {infra_errors}.
+      next:
+        - say: Read a transcript to see one trial.
+          link: "#/transcripts/{run_id}/{task}/1"
+    - source: task
+      template: In {run_id}, {task} had {trials} scored trials and passed {passed}.
+      next:
+        - say: Read a transcript to see one trial.
+          link: "#/transcripts/{run_id}/{task}/1"
+  related: [task, pass_at_1, pass_hat_k, flaky]
+  learn_more: master-class#ch-16
+
+- id: pass_at_1
+  term: pass@1
+  aliases: [pass_at_1, pass at 1]
+  short: How often a single [[trial]] passes.
+  why: It is the chance one user gets a good answer on one try.
+  here:
+    - source: suite
+      template: >-
+        In {run_id}, a single trial of a {suite} task passed {pass_at_1 | pct} of the time (could be
+        {pass_at_1_ci | range}).
+      next:
+        - when: pass_hat_k < pass_at_1
+          say: Fewer tasks pass every trial ({pass_hat_k | pct}, could be {pass_hat_k_ci | range}), so some tasks are flaky.
+        - say: Nothing to do.
+    - source: task
+      template: >-
+        {task} passed {passed} of {trials} trials in {run_id} ({pass_rate | pct}, could be {pass_rate_ci | range}).
+      next:
+        - when: failed_check != null
+          say: Most failures were on {failed_check}. Read a transcript to see why.
+          link: "#/transcripts/{run_id}/{task}/1"
+        - say: Nothing to do.
+  related: [pass_hat_k, trial, confidence_interval]
+  learn_more: master-class#ch-17
+
+- id: pass_hat_k
+  term: pass^k
+  aliases: [pass_hat_k, pass hat k, pass^k]
+  short: How often all k [[trial]]s of a [[task]] pass. Measures reliability.
+  why: A user who asks the same thing twice should get a good answer twice.
+  here:
+    - source: suite
+      template: >-
+        In {run_id}, {pass_hat_k | pct} of {suite} tasks passed all {k} trials (could be {pass_hat_k_ci | range}).
+      next:
+        - when: pass_hat_k < pass_at_1
+          say: Single trials pass more often ({pass_at_1 | pct}, could be {pass_at_1_ci | range}), so some tasks are flaky. Look for tasks that pass only some trials.
+        - say: Nothing to do.
+  related: [pass_at_1, flaky, graduation]
+  learn_more: master-class#ch-17
+
+- id: flaky
+  term: Flaky
+  aliases: [flake, flaky task]
+  short: Passes sometimes and fails sometimes with no change.
+  why: A flaky task makes every comparison noisier. It also means a real user sometimes gets the bad answer.
+  here:
+    - source: task
+      when: flaky
+      template: >-
+        {task} is flaky: it passes some trials and fails others with no change in between. In {run_id} it passed
+        {passed} of {trials} ({pass_rate | pct}, could be {pass_rate_ci | range}).
+      next:
+        - when: failed_check != null
+          say: Read the transcripts where {failed_check} failed and look for what varies.
+          link: "#/transcripts/{run_id}/{task}/1"
+        - say: Read the transcripts and look for what varies.
+          link: "#/transcripts/{run_id}/{task}/1"
+    - source: task
+      template: "{task} is not flaky. In {run_id} it passed {passed} of {trials} trials."
+      next:
+        - say: Nothing to do.
+  related: [trial, pass_hat_k, likely_broken]
+  learn_more: master-class#ch-17
+
+- id: likely_broken
+  term: Likely broken
+  aliases: [broken task, broken]
+  short: Fails every time, so the [[task]] itself may be wrong.
+  why: Before you spend a day fixing your AI, make sure the test can be passed at all.
+  here:
+    - source: task
+      when: likely_broken and failed_check != null
+      template: >-
+        {task} failed all {trials} trials in {run_id} and in the runs before it, most often on {failed_check}. When
+        every trial fails, the task itself may be wrong.
+      next:
+        - say: Check the task's reference solution and its premise before changing your AI.
+          link: "#/tasks/{suite}/{task}"
+    - source: task
+      when: likely_broken
+      template: >-
+        {task} failed all {trials} trials in {run_id} and in the runs before it. When every trial fails, the task
+        itself may be wrong.
+      next:
+        - say: Check the task's reference solution and its premise before changing your AI.
+          link: "#/tasks/{suite}/{task}"
+    - source: task
+      template: "{task} is not likely broken. In {run_id} it passed {passed} of {trials} trials."
+      next:
+        - say: Nothing to do.
+  related: [reference_solution, flaky]
+  learn_more: master-class#ch-17
+
+- id: infra_error
+  term: Infra error
+  aliases: [infra errors, infra failure]
+  short: The run failed for a reason outside your AI, like a timeout. Not counted.
+  why: A timeout says nothing about your AI's answers, so counting it would blur the score.
+  here:
+    - source: task
+      when: infra_errors > 0
+      template: >-
+        Of {trials + infra_errors} trials of {task} in {run_id}, {infra_errors} failed for a reason outside your AI
+        and only {trials} were scored.
+      next:
+        - say: Read the transcript to see what failed, such as a timeout or a crashed tool.
+          link: "#/transcripts/{run_id}/{task}/1"
+    - source: task
+      template: No trial of {task} hit an infra error in {run_id}.
+      next:
+        - say: Nothing to do.
+    - source: suite
+      when: infra_errors > 0
+      template: In {run_id}, {infra_errors} trials in {suite} hit an infra error and are not counted.
+      next:
+        - say: Check the agent's command and its timeout in litmustest.yaml.
+    - source: suite
+      template: No trial in {suite} hit an infra error in {run_id}.
+      next:
+        - say: Nothing to do.
+    - source: run
+      template: In {run_id}, {infra_error_rate | percent} of trials hit an infra error and were left out of the scores.
+      next:
+        - when: infra_error_rate > 0
+          say: Open the trials marked infra in the run to see what failed.
+        - say: Nothing to do.
+  related: [trial]
+  learn_more: master-class#ch-16
+
+- id: confidence_interval
+  term: Confidence interval
+  aliases: [margin of error, error bar, error bars]
+  short: The range the true number probably sits in.
+  why: With a few dozen tasks, a pass rate can move several points by chance. The range shows how much.
+  here:
+    - source: suite
+      template: >-
+        {suite} passed {pass_rate | pct} in {run_id}. With {n_tasks} tasks, the true rate is probably within
+        {pass_rate_ci | range}.
+      next:
+        - when: prev.exists and not prev.significant
+          say: The change since {prev.run_id} ({prev.delta | pts}, could be {prev.delta_ci | prange}) is within noise.
+          link: "#/compare/{prev.run_id}/{run_id}"
+        - when: prev.exists
+          say: The change since {prev.run_id} ({prev.delta | pts}, could be {prev.delta_ci | prange}) is real, not noise.
+          link: "#/compare/{prev.run_id}/{run_id}"
+        - say: More tasks narrow the range.
+    - source: task
+      template: >-
+        {task} passed {passed} of {trials} trials in {run_id} ({pass_rate | pct}). With so few trials, the true
+        rate could be anywhere in {pass_rate_ci | range}.
+      next:
+        - say: More trials narrow the range.
+    - source: judge
+      when: test.ran
+      template: >-
+        {judge} caught {test.tpr | pct} of real failures on the test set, but with {test.tp + test.fn} failures there
+        the true rate could be anywhere in {test.tpr_ci | range}.
+      next:
+        - say: More labelled failures narrow the range.
+          link: "#/review"
+    - source: judge
+      when: dev.ran
+      template: >-
+        {judge} caught {dev.tpr | pct} of real failures on the dev set, but with {dev.tp + dev.fn} failures there the
+        true rate could be anywhere in {dev.tpr_ci | range}.
+      next:
+        - say: More labelled failures narrow the range.
+          link: "#/review"
+    - source: judge
+      template: "{judge} has no dev or test run, so there is nothing to put a range on yet."
+      next:
+        - say: Run the dev set from the judge's page.
+          link: "#/judges/{judge}"
+    - source: delta
+      template: >-
+        {suite} moved {delta | pts} from {a} to {b}. The true change is probably {delta_ci | prange}.
+      next:
+        - when: significant
+          say: The range doesn't cross zero, so the change is real.
+          link: "#/compare/{a}/{b}"
+        - say: The range crosses zero, so the change is within noise.
+          link: "#/compare/{a}/{b}"
+  related: [pass_at_1, gate, corrected_rate]
+  learn_more: master-class#ch-18
+
+- id: gate
+  term: Gate
+  aliases: [gates, merge gate]
+  short: The rule that blocks a merge if a [[suite]] drops too far.
+  why: A gate turns the numbers into a decision, so nobody has to argue about a two-point dip.
+  here:
+    - source: suite
+      when: gate.report_only
+      template: "{suite} has no blocking gate. It is report only, so it can't block a merge."
+      next:
+        - say: Nothing to do.
+    - source: suite
+      when: not gate.exists
+      template: "{suite} has no gate, so it can't block a merge."
+      next:
+        - say: Add one under gates in litmustest.yaml if this suite should protect merges.
+    - source: suite
+      when: below_min
+      template: >-
+        {suite} passed {pass_rate | pct} in {run_id} (could be {pass_rate_ci | range}), under the gate's minimum of
+        {gate.min_pass_rate | percent}. This blocks a merge.
+      next:
+        - when: prev.exists
+          say: Look at the flips in Run compare to see which tasks dropped.
+          link: "#/compare/{prev.run_id}/{run_id}"
+        - say: Open the failing tasks in this run.
+    - source: suite
+      when: prev.exists and prev.gate_passed == false
+      template: >-
+        {suite} dropped {prev.delta | pts} since {prev.run_id} (could be {prev.delta_ci | prange}), more than the
+        {gate.max_drop_pts | points} its gate allows. This blocks a merge.
+      next:
+        - say: Look at the flips in Run compare to see which tasks dropped.
+          link: "#/compare/{prev.run_id}/{run_id}"
+    - source: suite
+      when: gate.min_pass_rate != null and gate.max_drop_pts != null
+      template: >-
+        {suite} blocks a merge if it falls under {gate.min_pass_rate | percent} or drops more than
+        {gate.max_drop_pts | points} beyond noise.
+      next:
+        - say: Nothing to do; it is above its minimum.
+    - source: suite
+      when: gate.min_pass_rate != null
+      template: "{suite} blocks a merge if it falls under {gate.min_pass_rate | percent}."
+      next:
+        - say: Nothing to do; it is above its minimum.
+    - source: suite
+      template: "{suite} blocks a merge if it drops more than {gate.max_drop_pts | points} beyond noise."
+      next:
+        - say: Nothing to do.
+    - source: delta
+      when: gate.report_only
+      template: "{suite} is report only, so the change from {a} to {b} can't block a merge."
+      next:
+        - say: Nothing to do.
+    - source: delta
+      when: gate.passed == false and below_min
+      template: >-
+        {suite} passed {rate_b | pct} in {b} (could be {rate_b_ci | range}), under the gate's minimum of
+        {gate.min_pass_rate | percent}. This blocks a merge.
+      next:
+        - say: Look at the flips in Run compare to see which tasks dropped.
+          link: "#/compare/{a}/{b}"
+    - source: delta
+      when: gate.passed == false
+      template: >-
+        {suite} dropped {delta | pts} from {a} to {b} (could be {delta_ci | prange}), more than the
+        {gate.max_drop_pts | points} its gate allows. This blocks a merge.
+      next:
+        - say: Look at the flips in Run compare to see which tasks dropped.
+          link: "#/compare/{a}/{b}"
+    - source: delta
+      when: gate.passed
+      template: >-
+        The {suite} gate passed. It moved {delta | pts} from {a} to {b} (could be {delta_ci | prange}).
+      next:
+        - say: Nothing to do.
+    - source: delta
+      when: gate.exists
+      template: >-
+        {suite} moved {delta | pts} from {a} to {b} (could be {delta_ci | prange}). Its gate has not been checked
+        for this pair.
+      next:
+        - say: Run litmustest compare {a} {b} to check it.
+          link: "#/compare/{a}/{b}"
+    - source: delta
+      template: "{suite} has no gate, so the change from {a} to {b} can't block a merge."
+      next:
+        - say: Nothing to do.
+  related: [regression_suite, confidence_interval, trusted]
+  learn_more: master-class#ch-19
+
+# ---------------- the loop
+
+- id: pending_changes
+  term: Pending changes
+  aliases: [pending, pending tray]
+  short: Edits made in the dashboard, waiting to be committed to a branch.
+  why: Nothing changes a grader, label, task or gate without a diff a person reviews.
+  here:
+    - source: pending
+      when: count > 0
+      template: "{count} files under evals have uncommitted changes on {branch}."
+      next:
+        - say: Review them in Pending changes and commit.
+          link: "#/pending"
+    - source: pending
+      template: Nothing is waiting to be committed on {branch}.
+      next:
+        - say: Nothing to do.
+  related: [label]
+  learn_more: master-class#ch-21
+
+- id: coverage
+  term: Coverage
+  short: Which parts of your app an eval would catch if they broke.
+  why: A high pass rate on the wrong tasks protects nothing. Coverage shows where the gaps are.
+  here:
+    - source: coverage
+      when: not configured
+      template: The {label} map is not set up.
+      next:
+        - say: Configure it under coverage in litmustest.yaml.
+          link: "#/coverage"
+    - source: coverage
+      when: total == 0
+      template: The {label} map has no items yet.
+      next:
+        - say: Check its settings under coverage in litmustest.yaml.
+          link: "#/coverage"
+    - source: coverage
+      template: >-
+        {checked} of {total} items on the {label} map are checked or guarded ({checked_share | percent}). The rest:
+        {planned} planned, {none} with no task.
+      next:
+        - when: none > 0
+          say: Add a task for each item with no task, starting with the riskiest.
+          link: "#/coverage"
+        - when: planned > 0
+          say: Get the planned items passing in a regression task.
+          link: "#/coverage"
+        - say: Nothing to do.
+  related: [task, regression_suite]
+  learn_more: master-class#ch-24
+
+# ---------------- words the screens show in headers and pills
+
+- id: report_only
+  term: Report only
+  short: A [[suite]] whose results are posted but can never block a merge.
+  why: Capability work should be visible without stopping anyone from shipping.
+  related: [gate, capability_suite]
+  learn_more: master-class#ch-19
+
+- id: flip
+  term: Flip
+  aliases: [flips, flipped]
+  short: A [[task]] whose majority result changed between two runs, from pass to fail or back.
+  why: Flips tell you which tasks a change actually moved, not just how the average moved.
+  related: [flaky, confidence_interval]
+  learn_more: master-class#ch-18
+
+- id: grader
+  term: Grader
+  aliases: [graders]
+  short: "Whatever decides a [[check]]: a piece of code or a [[judge]]."
+  related: [code_check, judge]
+  learn_more: master-class#ch-9
+
+- id: transcript_check
+  term: Transcript check
+  aliases: [transcript checks, path check]
+  short: A [[check]] on how the AI got there, like how many turns or which tools it used.
+  related: [check, outcome_check]
+  learn_more: master-class#ch-9
+
+- id: coverage_depth
+  term: Coverage depth
+  aliases: [depth, guarded, planned]
+  short: "How well one item is covered: guarded by a passing [[regression_suite]] [[task]], checked, planned, or none."
+  related: [coverage]
+  learn_more: master-class#ch-25
+
+- id: coverage_map
+  term: Coverage map
+  aliases: [spec, surface, risk, coverage maps]
+  short: "One way of listing your app: cases in your spec, its API routes or tools, or [[failure_mode]]s by [[severity]]."
+  related: [coverage, coverage_depth]
+  learn_more: master-class#ch-25

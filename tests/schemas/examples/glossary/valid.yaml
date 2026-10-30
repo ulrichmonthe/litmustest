@@ -1,0 +1,16 @@
+- id: refund_window
+  term: Refund window
+  aliases: [window]
+  short: The days after a charge in which a customer can get money back.
+  why: Refunds outside it need a manager.
+  good: 14 days for monthly plans.
+  related: [refund_policy]
+- id: refund_policy
+  term: Refund policy
+  short: The rules the agent follows before it refunds anyone.
+  here:
+    - source: failure_mode
+      template: People marked {labels_fail} of {labels} reviewed traces as {mode}.
+      next:
+        - say: Open the failure mode.
+          link: "#/modes/{mode}"
