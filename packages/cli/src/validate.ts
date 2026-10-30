@@ -1,4 +1,4 @@
-import { validateRepoGlossary } from "./glossary.ts";
+import { glossaryDir, glossaryProblems } from "./glossary.ts";
 import { createHash } from "node:crypto";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { basename, dirname, join, relative, resolve, sep } from "node:path";
@@ -76,9 +76,9 @@ export function validateEvals(root: string, opts: ValidateOptions = {}): Validat
     failureModes.set(String(l.data.name), l);
   }
 
-  // ---- the repo's own glossary terms (docs/EXPLAINER.md); the plugin's are checked by the test suite
+  // ---- the glossary (docs/EXPLAINER.md): the plugin's terms, the repo's own, and one per failure mode, checked together
   const glossaryFile = join(root, "glossary.yaml");
-  if (existsSync(glossaryFile) && load(glossaryFile, "glossary")) for (const p of validateRepoGlossary(root)) add("error", glossaryFile, `${p.id}: ${p.message}`, "glossary");
+  if (!existsSync(glossaryFile) || load(glossaryFile, "glossary")) for (const p of glossaryProblems(root)) add("error", p.origin === "repo" ? glossaryFile : p.origin === "failure_mode" ? join(root, "failure_modes", `${p.id}.yaml`) : join(glossaryDir(), "terms.yaml"), `${p.id}: ${p.message}`, "glossary");
 
   // ---- suites
   const suites = new Map<string, Loaded>();

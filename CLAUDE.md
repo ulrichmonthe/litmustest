@@ -39,7 +39,8 @@ packages/cli/src/{run,compare,ci}.ts  # the runner (agent.command per trial, gra
 packages/cli/src/{coverage,coverage_cli}.ts, server/coverage_route.ts  # coverage v1: spec, surface and risk maps with depth; docs/COVERAGE.md says what it does not measure
 packages/cli/src/{explain,explain_run}.ts  # why a trial failed: a template from the data (no model) and Claude's reading, stored as trials[n].explanation; advice only, never a verdict
 packages/cli/src/{sample,graduate}.ts, adapters/platforms.ts  # the production sampler; graduation, saturation and doctor; Langfuse and Braintrust pull adapters
-packages/cli/src/{glossary,glossary_facts,glossary_cli}.ts, server/glossary_route.ts  # the explainer: plugin/glossary/terms.yaml rendered from typed facts; docs/EXPLAINER.md is the contract
+packages/cli/src/{glossary,glossary_facts,glossary_cli}.ts, explain/, server/glossary_route.ts  # the explainer: plugin/glossary/terms.yaml rendered from typed facts by explain(); docs/EXPLAINER.md is the contract, docs/stories/explainer.md the plan
+scripts/lint-terms.ts       # npm run lint:terms: fails on printed jargon (plugin/glossary/jargon.yaml) with no glossary entry
 docs/, brand/, design/    # spec, decisions, brand book, tokens, logos, mockups
 ```
 

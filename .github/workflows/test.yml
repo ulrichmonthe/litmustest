@@ -18,5 +18,6 @@ jobs:
       - run: npm ci
       - run: npm run build
       - run: npm test
+      - run: npm run lint:terms
       - run: node packages/cli/dist/main.js validate examples/support-agent/evals --deep --quiet
       - run: npx tsc -p examples/support-agent

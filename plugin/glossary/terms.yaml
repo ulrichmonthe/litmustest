@@ -31,6 +31,7 @@
       next:
         - when: left > 0
           say: Label the {left} traces left in Review.
+          action: review.openBatch
           link: "#/review"
         - say: Nothing left to label in this batch.
     - source: failure_mode
@@ -314,6 +315,7 @@
         {graduate_ready} {suite} tasks passed every trial in the last runs and are ready to graduate.
       next:
         - say: Graduate them from this page; the move lands in Pending changes for you to commit.
+          action: tasks.graduate
           link: "#/tasks/{suite}"
     - source: suite
       when: kind == 'capability'
@@ -355,6 +357,7 @@
         verdicts are left out of scores and gates.
       next:
         - say: Rerun the dev set, then run the test set once.
+          action: judges.runDev
           link: "#/judges/{judge}"
     - source: judge
       when: status == 'dev'
@@ -366,6 +369,7 @@
       template: "{judge} has not been compared with your labels yet, so its verdicts don't count."
       next:
         - say: Run the dev set from the judge's page.
+          action: judges.runDev
           link: "#/judges/{judge}"
   related: [calibration, trusted, stale, unknown]
   learn_more: master-class#ch-11
@@ -388,6 +392,7 @@
       template: "{judge} has no dev run yet, so there is no count of Unknown verdicts."
       next:
         - say: Run the dev set from the judge's page.
+          action: judges.runDev
           link: "#/judges/{judge}"
   related: [judge]
   learn_more: master-class#ch-11
@@ -413,6 +418,7 @@
       template: "{judge} was calibrated, but it changed since, so the result no longer applies and its verdicts don't count."
       next:
         - say: Rerun the dev set, then run the test set once.
+          action: judges.runDev
           link: "#/judges/{judge}"
     - source: judge
       when: test.ran and (test.tpr < threshold or test.tnr < threshold)
@@ -468,6 +474,7 @@
           link: "#/judges/{judge}"
         - when: dev.tpr >= threshold and not test.ran
           say: Ready to run the test set once.
+          action: judges.runTest
         - when: dev.tpr < threshold
           say: Label more failures. The {dev.fn} it missed are under Disagreements.
           link: "#/judges/{judge}"
@@ -476,6 +483,7 @@
       template: Your {judge} judge has no dev run yet, so its true positive rate is not measured.
       next:
         - say: Run the dev set from the judge's page.
+          action: judges.runDev
           link: "#/judges/{judge}"
   related: [tnr, calibration, judge]
   learn_more: master-class#ch-12
@@ -501,6 +509,7 @@
           link: "#/judges/{judge}"
         - when: dev.tnr >= threshold and not test.ran
           say: Ready to run the test set once.
+          action: judges.runTest
         - when: dev.tnr < threshold
           say: Label more passes. The {dev.fp} it wrongly failed are under Disagreements.
           link: "#/judges/{judge}"
@@ -509,6 +518,7 @@
       template: Your {judge} judge has no dev run yet, so its true negative rate is not measured.
       next:
         - say: Run the dev set from the judge's page.
+          action: judges.runDev
           link: "#/judges/{judge}"
   related: [tpr, calibration, judge]
   learn_more: master-class#ch-12
@@ -533,6 +543,7 @@
           link: "#/judges/{judge}"
         - when: not test.ran
           say: Run the test set once.
+          action: judges.runTest
           link: "#/judges/{judge}"
         - say: Nothing to do.
     - source: judge
@@ -540,6 +551,7 @@
       template: "{judge}'s dev set holds {splits.dev} of your labels and has not been run."
       next:
         - say: Run the dev set from the judge's page.
+          action: judges.runDev
           link: "#/judges/{judge}"
     - source: judge
       template: "{judge} has no dev set yet."
@@ -578,6 +590,7 @@
       next:
         - when: dev.ran and dev.tpr >= threshold and dev.tnr >= threshold
           say: Run the test set once.
+          action: judges.runTest
           link: "#/judges/{judge}"
         - say: Get both dev set rates to {threshold | percent} first.
           link: "#/judges/{judge}"
@@ -608,6 +621,7 @@
       template: "{judge} was trusted, but it changed since its test set run. Its verdicts don't count in scores or gates."
       next:
         - say: Rerun the dev set, then run the test set once.
+          action: judges.runDev
           link: "#/judges/{judge}"
     - source: judge
       when: status == 'dev'
@@ -646,24 +660,28 @@
       template: "{judge}'s prompt changed after its test set run, so its verdicts are left out of scores and gates."
       next:
         - say: Rerun the dev set, then run the test set once.
+          action: judges.runDev
           link: "#/judges/{judge}"
     - source: judge
       when: status == 'stale' and stale_reason == 'model_changed'
       template: "{judge}'s model changed after its test set run, so its verdicts are left out of scores and gates."
       next:
         - say: Rerun the dev set, then run the test set once.
+          action: judges.runDev
           link: "#/judges/{judge}"
     - source: judge
       when: status == 'stale' and stale_reason == 'labels_changed'
       template: "{judge}'s labels changed after its test set run, so its verdicts are left out of scores and gates."
       next:
         - say: Rerun the dev set, then run the test set once.
+          action: judges.runDev
           link: "#/judges/{judge}"
     - source: judge
       when: status == 'stale'
       template: "{judge} changed after its test set run, so its verdicts are left out of scores and gates."
       next:
         - say: Rerun the dev set, then run the test set once.
+          action: judges.runDev
           link: "#/judges/{judge}"
     - source: judge
       when: status == 'trusted'
@@ -914,6 +932,7 @@
       template: "{judge} has no dev or test run, so there is nothing to put a range on yet."
       next:
         - say: Run the dev set from the judge's page.
+          action: judges.runDev
           link: "#/judges/{judge}"
     - source: delta
       template: >-
@@ -1031,7 +1050,8 @@
       when: count > 0
       template: "{count} files under evals have uncommitted changes on {branch}."
       next:
-        - say: Review them in Pending changes and commit.
+        - say: Read each diff, then commit them to {branch}.
+          action: pending.commit
           link: "#/pending"
     - source: pending
       template: Nothing is waiting to be committed on {branch}.
@@ -1116,3 +1136,53 @@
   short: "One way of listing your app: cases in your spec, its API routes or tools, or [[failure_mode]]s by [[severity]]."
   related: [coverage, coverage_depth]
   learn_more: master-class#ch-25
+
+# ---------------- words the CLI help and the review and judge screens use
+
+- id: cluster
+  term: Cluster
+  aliases: [clusters, clustering, tf-idf, k-means]
+  short: A group of [[trace]]s that read alike, so one review sample covers each kind of conversation.
+  why: Reading one trace from every cluster finds more kinds of failure than reading the most recent ones.
+  related: [trace, label]
+  learn_more: master-class#ch-2
+
+- id: confusion_matrix
+  term: Confusion matrix
+  aliases: [matrix]
+  short: A two-by-two count of where a [[judge]] and people agreed and disagreed, Pass against Fail.
+  why: Its corners are where the true positive and true negative rates come from.
+  related: [tpr, tnr, calibration]
+  learn_more: master-class#ch-12
+
+- id: triage
+  term: Triage
+  aliases: [triage verdict]
+  short: Deciding whether a failed [[trial]] was the fault of the product, the [[grader]], the [[task]] or the infrastructure.
+  why: Only failures that are the product's fault should change the product.
+  related: [likely_broken, infra_error, grader]
+  learn_more: master-class#ch-17
+
+- id: saturation
+  term: Saturation
+  aliases: [saturating, saturated]
+  short: When a [[capability_suite]] passes so often that it stops telling you anything new.
+  why: A suite near 100% can't show improvement; its tasks should graduate and harder ones replace them.
+  related: [graduation, capability_suite]
+  learn_more: master-class#ch-22
+
+- id: bootstrap
+  term: Bootstrap
+  aliases: [bootstrap interval, bootstrap intervals, bootstrapped]
+  short: Re-sampling the [[task]]s many times to see how much a number could move by chance.
+  why: It is how litmustest gets the range shown beside each rate.
+  related: [confidence_interval]
+  learn_more: master-class#ch-16
+
+- id: few_shot
+  term: Few-shot examples
+  aliases: [few-shot, few shot]
+  short: "[[label]]led examples shown to a [[judge]] in its prompt, taken from the training split only."
+  why: Examples teach the judge where the line is; taking them from the test labels would flatter its score.
+  related: [judge, dev_set, test_set]
+  learn_more: master-class#ch-11

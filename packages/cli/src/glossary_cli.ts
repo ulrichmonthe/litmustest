@@ -2,38 +2,39 @@
 // and the one-line "here" sentences that --plain prints under table rows.
 import { existsSync } from "node:fs";
 import type { Comparison } from "./compare.ts";
-import { SOURCES, factsFor, type Ctx } from "./glossary_facts.ts";
-import { findEntry, loadGlossary, renderHere, unlink, type Entry } from "./glossary.ts";
+import { explain } from "./explain/index.ts";
+import { SOURCES, type Ctx } from "./glossary_facts.ts";
+import { loadGlossary, unlink, type Entry } from "./glossary.ts";
 import { loadFiles } from "./server/overview.ts";
 
 const MAX_CONTEXTS = 8;
 
 export function termText(q: string, evalsDir?: string): { text: string; found: boolean } {
   const dir = evalsDir && existsSync(evalsDir) ? evalsDir : undefined;
-  const entries = loadGlossary(dir); const e = findEntry(entries, q);
-  if (!e) {
-    const near = entries.filter((x) => x.id.includes(q.toLowerCase()) || x.term.toLowerCase().includes(q.toLowerCase())).slice(0, 5).map((x) => x.id);
+  const entries = loadGlossary(dir); const x = explain(q, { entries });
+  if (!x) {
+    const near = entries.filter((e) => e.id.includes(q.toLowerCase()) || e.term.toLowerCase().includes(q.toLowerCase())).slice(0, 5).map((e) => e.id);
     return { found: false, text: `No term "${q}".${near.length ? ` Did you mean: ${near.join(", ")}?` : ""} \`litmustest explain --terms\` lists them all.` };
   }
-  const lines = [`${e.term}${e.aliases?.length ? ` (${e.aliases.join(", ")})` : ""}`, "", unlink(e.short, entries)];
-  if (e.why) lines.push("", `Why it matters: ${e.why}`);
-  if (e.good) lines.push(`What good looks like: ${e.good}`);
+  const lines = [`${x.term}${x.aliases.length ? ` (${x.aliases.join(", ")})` : ""}`, "", x.shortPlain];
+  if (x.why) lines.push("", `Why it matters: ${x.why}`);
+  if (x.good) lines.push(`What good looks like: ${x.good}`);
   if (dir) {
-    const here = hereLines(e, dir);
+    const here = hereLines(entries.find((e) => e.id === x.id)!, dir, entries);
     if (here.length) lines.push("", "In this repo:", ...here.map((l) => `  ${l}`));
   }
-  if (e.related?.length) lines.push("", `Related: ${e.related.join(", ")}`);
-  if (e.learn_more) lines.push(`Learn more: Master Class, chapter ${e.learn_more.split("ch-")[1]}`);
+  if (x.related.length) lines.push("", `Related: ${x.related.map((r) => r.id).join(", ")}`);
+  if (x.learnMore) lines.push(`Learn more: Master Class, chapter ${x.learnMore.chapter}`);
   return { found: true, text: lines.join("\n") };
 }
 
-function hereLines(e: Entry, evalsDir: string): string[] {
-  const f = loadFiles(evalsDir); const out: string[] = [];
+function hereLines(e: Entry, evalsDir: string, entries: Entry[]): string[] {
+  const files = loadFiles(evalsDir); const out: string[] = [];
   for (const source of new Set((e.here ?? []).map((v) => v.source))) {
-    const contexts = e.origin === "failure_mode" ? [{ mode: e.id }] : SOURCES[source]!.contexts(evalsDir, f);
+    const contexts = e.origin === "failure_mode" ? [{ mode: e.id }] : SOURCES[source]!.contexts(evalsDir, files);
     for (const ctx of contexts.slice(0, MAX_CONTEXTS)) {
-      const facts = factsFor(evalsDir, source, ctx, f); const r = facts && renderHere(e, source, facts);
-      if (r) out.push(r.next ? `${r.text} Next: ${r.next.say}` : r.text);
+      const x = explain(e.id, { evalsDir, source, ctx, entries, files });
+      if (x?.here) out.push(x.next ? `${x.here} Next: ${x.next.say}` : x.here);
     }
   }
   return out;
@@ -47,11 +48,10 @@ export function termList(evalsDir?: string): string {
 
 /** For --plain: the "here" sentence and next step of one term for one row, indented under it. Empty when nothing renders. */
 export function plainLines(evalsDir: string, items: { id: string; source: string; ctx: Ctx }[], indent = "    "): string {
-  const entries = loadGlossary(evalsDir); const f = loadFiles(evalsDir); const out: string[] = [];
+  const entries = loadGlossary(evalsDir); const files = loadFiles(evalsDir); const out: string[] = [];
   for (const it of items) {
-    const e = findEntry(entries, it.id); const facts = e && factsFor(evalsDir, it.source, it.ctx, f);
-    const r = e && facts ? renderHere(e, it.source, facts) : null;
-    if (r) out.push(`${indent}${r.text}${r.next ? ` Next: ${r.next.say}` : ""}`);
+    const x = explain(it.id, { evalsDir, source: it.source, ctx: it.ctx, entries, files });
+    if (x?.here) out.push(`${indent}${x.here}${x.next ? ` Next: ${x.next.say}` : ""}`);
   }
   return out.join("\n");
 }

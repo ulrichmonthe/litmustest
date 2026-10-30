@@ -5,11 +5,13 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parse as parseYaml } from "yaml";
 import { SOURCES, type Kind } from "./glossary_facts.ts";
+import { ACTIONS } from "./explain/actions.ts";
 
 type Obj = Record<string, unknown>;
-export interface NextStep { when?: string; say: string; link?: string }
+export interface NextStep { when?: string; say: string; action?: string; link?: string }
 export interface HereVariant { source: string; when?: string; template: string; next?: NextStep[] }
-export interface Entry { id: string; term: string; aliases?: string[]; short: string; why?: string; good?: string; here?: HereVariant[]; related?: string[]; learn_more?: string; audience?: string[]; origin?: "plugin" | "repo" | "failure_mode" }
+/** As loaded: `here` is a list of variants, each with its own next steps (normalize() folds the file's shorthand into this). */
+export interface Entry { id: string; term: string; aliases?: string[]; short: string; why?: string; good?: string; here?: HereVariant[]; next?: NextStep[]; related?: string[]; learn_more?: string; audience?: string[]; origin?: "plugin" | "repo" | "failure_mode" }
 export interface GlossaryProblem { id: string; file: string; message: string }
 
 // ---------------- loading
@@ -21,7 +23,12 @@ export function glossaryDir(): string {
   for (const c of candidates) if (existsSync(join(c, "terms.yaml"))) return c;
   throw new Error(`glossary not found; looked in ${candidates.join(", ")}`);
 }
-const readEntries = (file: string): Entry[] => { const d = parseYaml(readFileSync(file, "utf8")); return Array.isArray(d) ? (d as Entry[]) : []; };
+/** The file allows `here: {source, template}` with a top-level `next`, or a list of variants each with its own; both load as a list. */
+function normalize(e: Entry & { here?: HereVariant | HereVariant[] }): Entry {
+  const list = e.here === undefined ? undefined : Array.isArray(e.here) ? e.here : [e.here];
+  return { ...e, here: list?.map((v) => ({ ...v, next: v.next ?? e.next })) };
+}
+const readEntries = (file: string): Entry[] => { const d = parseYaml(readFileSync(file, "utf8")); return Array.isArray(d) ? (d as Entry[]).map(normalize) : []; };
 export function pluginEntries(): Entry[] { return readEntries(join(glossaryDir(), "terms.yaml")).map((e) => ({ ...e, origin: "plugin" as const })); }
 
 /** Plugin terms, the repo's own terms (evals/glossary.yaml) and one term per failure mode, which reuses the `failure_mode` entry's "here". */
@@ -168,7 +175,7 @@ export function renderTemplate(tpl: string, scope: Obj): string | null {
   return out.replace(/\s+/g, " ").trim();
 }
 
-export interface Rendered { id: string; source: string; text: string; next: { say: string; link?: string } | null }
+export interface Rendered { id: string; source: string; text: string; next: { say: string; action?: string; link?: string } | null }
 
 /** Layer 2: the first variant for this source whose `when` holds and whose placeholders all resolve, with its first matching next step. */
 export function renderHere(entry: Entry, source: string, facts: Obj): Rendered | null {
@@ -182,7 +189,7 @@ export function renderHere(entry: Entry, source: string, facts: Obj): Rendered |
       if (n.when && !evaluate(parseExpr(n.when), facts)) continue;
       const say = renderTemplate(n.say, facts);
       if (say === null) continue;
-      next = { say, link: n.link ? renderTemplate(n.link, facts) ?? undefined : undefined };
+      next = { say, action: n.action, link: n.link ? renderTemplate(n.link, facts) ?? undefined : undefined };
       break;
     }
     return { id: entry.id, source, text, next };
@@ -251,7 +258,7 @@ export function validateGlossary(entries: Entry[], file = "glossary"): GlossaryP
       checkText(`${where}.template`, v.template); digits(`${where}.template`, v.template);
       for (const p of printed) { const pair = src.intervals?.[p]; if (pair && !printed.includes(pair)) add(e.id, `${where}.template prints ${p} without its interval {${pair} | ${FORMATTER_FOR[src.fields[pair]!]}}`); }
       const next = v.next ?? [];
-      next.forEach((n, i) => { const l = `${where}.next[${i}]`; if (n.when) checkExpr(`${l}.when`, n.when); checkText(`${l}.say`, n.say); digits(`${l}.say`, n.say); if (n.link) checkText(`${l}.link`, n.link); });
+      next.forEach((n, i) => { const l = `${where}.next[${i}]`; if (n.when) checkExpr(`${l}.when`, n.when); checkText(`${l}.say`, n.say); digits(`${l}.say`, n.say); if (n.link) checkText(`${l}.link`, n.link); if (n.action && !ACTIONS[n.action]) add(e.id, `${l}.action "${n.action}" is not a dashboard command (${Object.keys(ACTIONS).join(", ")})`); });
       if (next.length && next[next.length - 1]!.when) add(e.id, `${where}.next must end with a step that has no "when", so no state is left without a next step`);
     }
   }
@@ -259,9 +266,8 @@ export function validateGlossary(entries: Entry[], file = "glossary"): GlossaryP
 }
 function safeParts(text: string, onError: (m: string) => void): Part[] { try { return parseTemplate(text); } catch (err) { onError((err as Error).message); return []; } }
 
-/** Check the plugin glossary together with a repo's terms; problems in repo terms point at evals/glossary.yaml. */
-export function validateRepoGlossary(evalsDir: string): GlossaryProblem[] {
+/** Every glossary problem for a repo, each with the origin of the entry it belongs to so it can point at the right file. A duplicate is blamed on the later entry, so a repo term that reuses a plugin id is the repo's problem. */
+export function glossaryProblems(evalsDir: string): (GlossaryProblem & { origin: Entry["origin"] })[] {
   const all = loadGlossary(evalsDir);
-  const pluginIds = new Set(all.filter((e) => e.origin === "plugin").map((e) => e.id));
-  return validateGlossary(all, "glossary.yaml").filter((p) => !pluginIds.has(p.id) || p.message.includes("already used"));
+  return validateGlossary(all).map((p) => ({ ...p, origin: [...all].reverse().find((e) => e.id === p.id)?.origin }));
 }
