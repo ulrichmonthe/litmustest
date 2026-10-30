@@ -1126,7 +1126,7 @@
 - id: coverage_depth
   term: Coverage depth
   aliases: [depth, guarded, planned]
-  short: "How well one item is covered: guarded by a passing [[regression_suite]] [[task]], checked, planned, or none."
+  short: "How well one item is covered: guarded by a [[regression_suite]] [[task]] that passes, checked, planned, or none."
   related: [coverage]
   learn_more: master-class#ch-25
 
@@ -1186,3 +1186,11 @@
   why: Examples teach the judge where the line is; taking them from the test labels would flatter its score.
   related: [judge, dev_set, test_set]
   learn_more: master-class#ch-11
+
+- id: task_status
+  term: Task status
+  aliases: [passing, failing, mixed]
+  short: "How a [[task]] did over its recent runs: passing every time, failing every time, or mixed."
+  why: One run can be luck; the status looks across runs before calling a task fixed or broken.
+  related: [flaky, likely_broken, graduation]
+  learn_more: master-class#ch-8

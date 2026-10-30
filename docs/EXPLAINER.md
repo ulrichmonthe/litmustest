@@ -112,8 +112,10 @@ pass@1 and pass^k are stored without an interval. The `suite` and `task` facts a
 
 | Surface | How |
 | --- | --- |
-| Dashboard term | `term(id)`: dotted `line-strong` underline on the first use per screen, never blue; hover, focus or tap opens the popover; Escape closes it and returns focus |
-| Dashboard number | `help(id, source, ctx)`: a "?" button with a 44px target beside the metric |
+| Dashboard term | `term(id)`: a word with a dotted `line-strong` underline on its first use per screen, never blue |
+| Dashboard number or pill | `num(id, source, ctx, value)`: the value itself is the trigger and its explanation reads this value's facts. Status pills placed without one are wrapped after each render by matching their word to the glossary |
+| Peek (tier 1) | Hover for 400ms or keyboard focus shows `short` and "Click for more": one line where it fits, two at most, under the term, no controls. None on touch. Each trigger is `aria-describedby` its short definition |
+| Full explanation (tier 2) | Click, tap or Enter. Until the docked panel of Epic 3 lands, this is the popover; Escape closes it and returns focus |
 | Plain language | A per-viewer toggle in Settings, stored in the browser and on by default: the "here" sentence shows under each card |
 | API | `GET /api/glossary` (layer 1, merged); `POST /api/glossary/here` with `[{id, source, ctx}]` returns the rendered sentences |
 | CLI | `litmustest explain <term>` prints layer 1 and, when an `evals/` exists, the "here" sentence for every matching context. `explain` with no term keeps its old job (explaining failed trials). |
