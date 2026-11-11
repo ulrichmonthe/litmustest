@@ -112,9 +112,22 @@
           "minLength": 1
         },
         "action": {
-          "type": "string",
-          "pattern": "^[a-z]+\\.[a-zA-Z]+$",
-          "description": "A dashboard command id (pending.commit, judges.runTest, review.openBatch…). Where the command is available, the panel renders the step as a button that runs it."
+          "description": "A dashboard command id (pending.commit, judges.runTest, review.openBatch…), or several; the first is the primary button. Where a command is available on the current screen, the panel renders it as a button that runs the page's own handler.",
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^[a-z]+\\.[a-zA-Z]+$"
+            },
+            {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "pattern": "^[a-z]+\\.[a-zA-Z]+$"
+              }
+            }
+          ]
         },
         "link": {
           "type": "string",

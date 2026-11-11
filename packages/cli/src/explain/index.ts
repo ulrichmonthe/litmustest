@@ -15,7 +15,7 @@ export interface Explanation {
   good?: string;
   /** Layer 2: what it means here. Absent when no source was asked for or its file or a field is missing; never blank. */
   here?: string;
-  next?: { say: string; action?: string; link?: string };
+  next?: { say: string; action?: string[]; link?: string };
   learnMore?: { ref: string; chapter: number };
   related: { id: string; term: string }[];
   source?: string;

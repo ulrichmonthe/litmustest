@@ -8,6 +8,7 @@ import { graduationProposals } from "./graduate.ts";
 import { computeCoverage } from "./coverage.ts";
 import { loadFiles, judgeStatus, type Files } from "./server/overview.ts";
 import { wilson } from "./stats.ts";
+import { commitBranch } from "./server/git.ts";
 
 type Obj = Record<string, unknown>;
 export type Kind = "rate" | "interval" | "percent" | "pts" | "pts_interval" | "points" | "usd" | "count" | "text" | "enum" | "bool" | "date";
@@ -159,13 +160,13 @@ export const SOURCES: Record<string, Source> = {
 
   pending: {
     context: [],
-    fields: { count: "count", branch: "text" },
+    fields: { count: "count", branch: "text", commit_branch: "text", on_evals_branch: "bool" },
     build(evalsDir) {
       const dir = resolve(evalsDir); const repo = dirname(dir);
       try {
-        const lines = execFileSync("git", ["status", "--porcelain", "--", dir], { cwd: repo, encoding: "utf8" }).split("\n").filter(Boolean);
+        const lines = execFileSync("git", ["status", "--porcelain", "--untracked-files=all", "--", dir], { cwd: repo, encoding: "utf8" }).split("\n").filter(Boolean);
         const branch = execFileSync("git", ["rev-parse", "--abbrev-ref", "HEAD"], { cwd: repo, encoding: "utf8" }).trim();
-        return { count: lines.length, branch };
+        return { count: lines.length, branch, commit_branch: commitBranch(branch, lines.map((l) => l.slice(3).trim())), on_evals_branch: branch.startsWith("evals/") };
       } catch { return null; }
     },
     contexts: () => [{}],

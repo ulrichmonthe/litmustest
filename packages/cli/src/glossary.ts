@@ -8,7 +8,7 @@ import { SOURCES, type Kind } from "./glossary_facts.ts";
 import { ACTIONS } from "./explain/actions.ts";
 
 type Obj = Record<string, unknown>;
-export interface NextStep { when?: string; say: string; action?: string; link?: string }
+export interface NextStep { when?: string; say: string; action?: string | string[]; link?: string }
 export interface HereVariant { source: string; when?: string; template: string; next?: NextStep[] }
 /** As loaded: `here` is a list of variants, each with its own next steps (normalize() folds the file's shorthand into this). */
 export interface Entry { id: string; term: string; aliases?: string[]; short: string; why?: string; good?: string; here?: HereVariant[]; next?: NextStep[]; related?: string[]; learn_more?: string; audience?: string[]; origin?: "plugin" | "repo" | "failure_mode" }
@@ -175,7 +175,7 @@ export function renderTemplate(tpl: string, scope: Obj): string | null {
   return out.replace(/\s+/g, " ").trim();
 }
 
-export interface Rendered { id: string; source: string; text: string; next: { say: string; action?: string; link?: string } | null }
+export interface Rendered { id: string; source: string; text: string; next: { say: string; action?: string[]; link?: string } | null }
 
 /** Layer 2: the first variant for this source whose `when` holds and whose placeholders all resolve, with its first matching next step. */
 export function renderHere(entry: Entry, source: string, facts: Obj): Rendered | null {
@@ -189,7 +189,7 @@ export function renderHere(entry: Entry, source: string, facts: Obj): Rendered |
       if (n.when && !evaluate(parseExpr(n.when), facts)) continue;
       const say = renderTemplate(n.say, facts);
       if (say === null) continue;
-      next = { say, action: n.action, link: n.link ? renderTemplate(n.link, facts) ?? undefined : undefined };
+      next = { say, action: n.action === undefined ? undefined : [n.action].flat(), link: n.link ? renderTemplate(n.link, facts) ?? undefined : undefined };
       break;
     }
     return { id: entry.id, source, text, next };
@@ -258,7 +258,7 @@ export function validateGlossary(entries: Entry[], file = "glossary"): GlossaryP
       checkText(`${where}.template`, v.template); digits(`${where}.template`, v.template);
       for (const p of printed) { const pair = src.intervals?.[p]; if (pair && !printed.includes(pair)) add(e.id, `${where}.template prints ${p} without its interval {${pair} | ${FORMATTER_FOR[src.fields[pair]!]}}`); }
       const next = v.next ?? [];
-      next.forEach((n, i) => { const l = `${where}.next[${i}]`; if (n.when) checkExpr(`${l}.when`, n.when); checkText(`${l}.say`, n.say); digits(`${l}.say`, n.say); if (n.link) checkText(`${l}.link`, n.link); if (n.action && !ACTIONS[n.action]) add(e.id, `${l}.action "${n.action}" is not a dashboard command (${Object.keys(ACTIONS).join(", ")})`); });
+      next.forEach((n, i) => { const l = `${where}.next[${i}]`; if (n.when) checkExpr(`${l}.when`, n.when); checkText(`${l}.say`, n.say); digits(`${l}.say`, n.say); if (n.link) checkText(`${l}.link`, n.link); for (const a of [n.action ?? []].flat()) if (!ACTIONS[a]) add(e.id, `${l}.action "${a}" is not a dashboard command (${Object.keys(ACTIONS).join(", ")})`); });
       if (next.length && next[next.length - 1]!.when) add(e.id, `${where}.next must end with a step that has no "when", so no state is left without a next step`);
     }
   }
@@ -270,4 +270,20 @@ function safeParts(text: string, onError: (m: string) => void): Part[] { try { r
 export function glossaryProblems(evalsDir: string): (GlossaryProblem & { origin: Entry["origin"] })[] {
   const all = loadGlossary(evalsDir);
   return validateGlossary(all).map((p) => ({ ...p, origin: [...all].reverse().find((e) => e.id === p.id)?.origin }));
+}
+
+/** Explain this page (docs/stories/explainer.md E3-S2): per screen, the terms page mode lists, most important first. */
+export function loadPages(): Record<string, string[]> {
+  const f = join(glossaryDir(), "pages.yaml");
+  return existsSync(f) ? ((parseYaml(readFileSync(f, "utf8")) as Record<string, string[]>) ?? {}) : {};
+}
+export const SCREENS = ["overview", "review", "modes", "tasks", "task", "compare", "transcripts", "trial", "judges", "judge", "coverage", "settings", "pending"];
+export function validatePages(pages: Record<string, string[]>, entries: Entry[]): string[] {
+  const out: string[] = [];
+  for (const [screen, ids] of Object.entries(pages)) {
+    if (!SCREENS.includes(screen)) out.push(`pages.yaml: unknown screen "${screen}"`);
+    for (const id of ids) if (!entries.some((e) => e.id === id)) out.push(`pages.yaml: ${screen} lists "${id}", which is not a term`);
+  }
+  for (const s of SCREENS) if (!pages[s]?.length) out.push(`pages.yaml: no terms for the ${s} screen`);
+  return out;
 }

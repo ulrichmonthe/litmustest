@@ -58,3 +58,12 @@ function run(args: string[], cwd: string): string {
     throw new Error(`git ${args.join(" ")}: ${(err.stderr ?? "").trim() || (e as Error).message}`);
   }
 }
+
+/** A branch name for a batch of edits: the date and the first file's name. */
+export function defaultSlug(paths: string[]): string {
+  const day = new Date().toISOString().slice(0, 10);
+  const first = paths[0]?.replace(/^.*evals\//, "").replace(/\.[a-z]+$/, "").split("/").slice(-1)[0] ?? "edit";
+  return `${day}-${first.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}`;
+}
+/** Where a commit from the dashboard lands: the current branch when it is an evals/ branch, else evals/<slug> (ensureEvalsBranch). */
+export function commitBranch(current: string, paths: string[]): string { return current.startsWith("evals/") ? current : `evals/${defaultSlug(paths)}`; }
