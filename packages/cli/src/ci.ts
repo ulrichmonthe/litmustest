@@ -1,7 +1,8 @@
 // litmustest ci: run the gated suites, compare with the base run, post the comparison on the PR, fail on a crossed gate.
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { join, relative, resolve } from "node:path";
+import { localRoot, openStore, parseRef, storageConfig, type OpenStore } from "./storage/index.ts";
 import { run, type RunOptions } from "./run.ts";
 import { meaningBlock } from "./glossary_cli.ts";
 import { compareRuns, comparisonMarkdown, evaluateGates, type Comparison } from "./compare.ts";
@@ -31,7 +32,8 @@ export async function ci(o: CiOptions): Promise<CiResult> {
   const c = compareRuns(o.evalsDir, base, runId);
   const g = evaluateGates(c);
   const meaning = meaningBlock(o.evalsDir, c);
-  const markdown = comparisonMarkdown(c, { title: "litmustest" }) + (meaning ? `\n${meaning}` : "");
+  const links = transcriptLinks(o.evalsDir, c);
+  const markdown = comparisonMarkdown(c, { title: "litmustest" }) + (links ? `\n${links}` : "") + (meaning ? `\n${meaning}` : "");
   let posted = false;
   if (o.comment) {
     const pr = o.prNumber ?? prFromEnv();
@@ -44,7 +46,38 @@ function prFromEnv(): string | undefined {
   return process.env.PR_NUMBER;
 }
 
-export const WORKFLOW = `name: litmustest
+/** The name of the build artifact the scaffolded workflow uploads when transcripts are stored locally. */
+export const TRANSCRIPTS_ARTIFACT = "litmustest-transcripts";
+
+/**
+ * Where a reader of the PR comment can open the transcripts of the tasks that broke or turned flaky.
+ * A remote store: a link to the object or trace. The local store inside GitHub Actions: the build artifact the scaffolded
+ * workflow uploads. The local store anywhere else: nothing, because the files are only on the machine that ran them.
+ */
+export function transcriptLinks(evalsDir: string, c: Comparison, env: Record<string, string | undefined> = process.env): string {
+  const flips = c.flips.filter((f) => f.change !== "Fixed" && f.transcript_ref); if (!flips.length) return "";
+  let store: OpenStore | undefined; try { store = openStore(evalsDir, { env }); } catch { /* an unreadable storage config: fall back to the refs */ }
+  const artifacts = env.GITHUB_ACTIONS && env.GITHUB_RUN_ID && env.GITHUB_REPOSITORY ? `${env.GITHUB_SERVER_URL ?? "https://github.com"}/${env.GITHUB_REPOSITORY}/actions/runs/${env.GITHUB_RUN_ID}#artifacts` : undefined;
+  const lines: string[] = [];
+  for (const f of flips) {
+    const ref = String(f.transcript_ref); const p = parseRef(ref); if (!p) continue;
+    if (p.scheme === "local") { if (artifacts) lines.push(`- \`${f.task}\` (${f.change.toLowerCase()}): \`${p.run}/${p.task}/${p.n}/\` in the [${TRANSCRIPTS_ARTIFACT} artifact](${artifacts})`); continue; }
+    let url: string | undefined; try { url = store && store.backend !== "local" ? store.url(p.run, p.task, p.n) : undefined; } catch { /* no credentials here: the ref still says where it is */ }
+    lines.push(`- \`${f.task}\` (${f.change.toLowerCase()}): ${url ? `[transcript](${url})` : `\`${ref}\``}`);
+  }
+  return lines.length ? `**Transcripts**\n\n${lines.join("\n")}\n` : "";
+}
+
+const SECRETS: Record<string, string[]> = { s3: ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY"], gcs: ["GCS_ACCESS_KEY_ID", "GCS_SECRET_ACCESS_KEY"], langfuse: ["LANGFUSE_PUBLIC_KEY", "LANGFUSE_SECRET_KEY", "LANGFUSE_HOST"], braintrust: ["BRAINTRUST_API_KEY", "BRAINTRUST_PROJECT_ID"] };
+
+/**
+ * The GitHub Action for `litmustest ci`. Transcripts written on a CI runner vanish with it, so the workflow depends on
+ * where they are stored: with the local backend it uploads the transcript directory as a build artifact (the PR comment
+ * links broken tasks to it); with a remote backend it passes that backend's credentials and the comment links to the store.
+ */
+export function workflow(o: { backend?: string; transcriptsPath?: string } = {}): string {
+  const backend = o.backend ?? "local"; const secrets = SECRETS[backend] ?? [];
+  const head = `name: litmustest
 on:
   pull_request:
 jobs:
@@ -68,10 +101,26 @@ jobs:
         env:
           ANTHROPIC_API_KEY: \${{ secrets.ANTHROPIC_API_KEY }}
           GH_TOKEN: \${{ github.token }}
-        run: npx litmustest ci --comment
+${secrets.map((k) => `          ${k}: \${{ secrets.${k} }}\n`).join("")}        run: npx litmustest ci --comment
 `;
-export function writeWorkflow(repoRoot: string, path = ".github/workflows/litmustest.yml"): string {
+  if (backend !== "local") return head;
+  return `${head}      - name: Keep the transcripts (they are stored locally, and this runner is thrown away)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${TRANSCRIPTS_ARTIFACT}
+          path: ${o.transcriptsPath ?? ".litmustest/transcripts"}
+          include-hidden-files: true
+          if-no-files-found: ignore
+          retention-days: 14
+`;
+}
+/** The workflow for the default setup: local transcripts, uploaded as a build artifact. */
+export const WORKFLOW = workflow();
+export function writeWorkflow(repoRoot: string, path = ".github/workflows/litmustest.yml", evalsDir = join(repoRoot, "evals")): string {
   const abs = join(repoRoot, path); mkdirSync(join(repoRoot, ".github", "workflows"), { recursive: true });
   if (existsSync(abs)) throw new Error(`${path} already exists`);
-  writeFileSync(abs, WORKFLOW); return abs;
+  const backend = String(storageConfig(evalsDir).backend ?? "local");
+  const rel = relative(resolve(repoRoot), localRoot(evalsDir)).split("\\").join("/");
+  writeFileSync(abs, workflow({ backend, transcriptsPath: rel && !rel.startsWith("..") ? rel : ".litmustest/transcripts" })); return abs;
 }

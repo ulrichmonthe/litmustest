@@ -127,14 +127,19 @@ evals/litmustest.yaml. Where traces come from, how runs execute, how judges are 
 | Field | Type | Required | Constraints | Description |
 | --- | --- | --- | --- | --- |
 | `summaries` | string |  | default `"evals/runs"` | Directory for run summaries, committed. |
-| `transcripts` | object |  |  |  |
+| `transcripts` | object |  |  | Where each trial's trial.json, grades.json, stdout.txt and stderr.txt go. The run summary names them by transcript_ref (local:, s3://, gs://, langfuse:, braintrust:). With a remote backend the runner works in a local cache under .litmustest/cache/ and uploads after grading; readers fetch what is missing and keep it there. Credentials come from the environment only: s3 reads AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY and optionally AWS_SESSION_TOKEN and AWS_REGION; gcs reads GCS_ACCESS_KEY_ID and GCS_SECRET_ACCESS_KEY (HMAC keys for the S3-compatible XML API); langfuse reads LANGFUSE_PUBLIC_KEY, LANGFUSE_SECRET_KEY and LANGFUSE_HOST; braintrust reads BRAINTRUST_API_KEY and BRAINTRUST_PROJECT_ID. |
 
 ##### `transcripts`
 
 | Field | Type | Required | Constraints | Description |
 | --- | --- | --- | --- | --- |
-| `backend` | `local` · `s3` · `gcs` · `braintrust` · `langfuse` · `langsmith` | yes | default `"local"` |  |
-| `path` | string |  |  | Local directory (git-ignored) or bucket URI. |
+| `backend` | `local` · `s3` · `gcs` · `braintrust` · `langfuse` · `langsmith` | yes | default `"local"` | local: a git-ignored directory. s3 and gcs: one object per file. braintrust and langfuse: one trace per trial, tagged with run, task and trial. langsmith is not written yet and is refused with an error. |
+| `path` | string |  |  | local: the directory, relative to the repo root (default .litmustest/transcripts). s3 and gcs: optionally the bucket URI (s3://bucket/prefix) instead of bucket and prefix. |
+| `bucket` | string |  | min length 1 | s3 and gcs: the bucket name. |
+| `prefix` | string |  |  | s3 and gcs: key prefix inside the bucket. Objects are <prefix>/<run id>/<task id>/<n>/<file>. |
+| `region` | string |  | min length 1 | s3: the bucket's region. Default: AWS_REGION, then us-east-1. |
+| `endpoint` | string |  | uri | s3: a custom endpoint for an S3-compatible store (MinIO, R2); requests are then path-style. |
+| `project` | string |  | min length 1 | braintrust: the project id to log to. Default: BRAINTRUST_PROJECT_ID. |
 
 #### `ci`
 
@@ -534,7 +539,7 @@ evals/runs/<run id>.json. What one run of one or more suites produced, small eno
 | `tokens` | integer |  | ≥ 0 |  |
 | `latency_ms` | integer |  | ≥ 0 |  |
 | `cost_usd` | number |  | ≥ 0 |  |
-| `transcript_ref` | string |  |  | Address of the raw transcript in the configured store. |
+| `transcript_ref` | string |  |  | Address of the raw transcript in the store it was written to: local:<run>/<task>/<n>, s3://bucket/prefix/<run>/<task>/<n>, gs://..., langfuse:<run>/<task>/<n> or braintrust:<project>/<run>/<task>/<n>. The last three segments are always run, task and trial. |
 | `triage` | object |  |  | Why this trial failed, as triaged by a person. The runner writes a suggestion; the Transcript view confirms or overrides. |
 | `excluded_checks` | array of [name](#name) |  | unique | Judge checks that did not count because the judge was not trusted. |
 | `explanation` | object |  |  | Claude's plain-language reading of why this trial failed, written by `litmustest explain` or the Transcript view. Advice for the reader, never a verdict: it does not change pass, checks or gates. |

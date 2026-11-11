@@ -37,6 +37,7 @@ packages/cli/src/server/  # app (routes and validated writes), pending (the tray
 packages/cli/src/{stats,judge_run,calibrate,draft}.ts  # error bars and judge-error correction; running a judge; the calibration workflow; drafting graders
 packages/cli/src/{run,compare,ci}.ts  # the runner (agent.command per trial, grading, summaries); paired comparison and gates; the CI entry
 packages/cli/src/{environments,outcome}.ts  # where a trial's command runs (inprocess, docker, harbor; the last two tested against fakes only); how an outcome check reads the end state (trial.state, or the runner's own sql, fs and http readers)
+packages/cli/src/storage/  # where raw transcripts live: TranscriptStore with local, s3, gcs (one SigV4 signer over fetch), braintrust and langfuse; remote backends are tested against fakes only. Readers go through a read-through cache under .litmustest/cache/
 packages/cli/src/{coverage,coverage_cli}.ts, server/coverage_route.ts  # coverage v1: spec, surface and risk maps with depth; docs/COVERAGE.md says what it does not measure
 packages/cli/src/{explain,explain_run}.ts  # why a trial failed: a template from the data (no model) and Claude's reading, stored as trials[n].explanation; advice only, never a verdict
 packages/cli/src/{sample,graduate}.ts, adapters/platforms.ts  # the production sampler; graduation, saturation and doctor; Langfuse and Braintrust pull adapters
@@ -59,7 +60,7 @@ evals/
   datasets/{traces,synthetic}/
   batches/<name>.yaml      # review batches sampled by `litmustest ingest`
   suites/{regression,capability,quality}.yaml
-  runs/                   # summaries committed; raw transcripts git-ignored
+  runs/                   # summaries committed; raw transcripts in the store named by storage.transcripts (local and git-ignored by default)
 ```
 
 `npm test` runs everything; `npm run build` compiles the CLI; `npm run docs:schemas` regenerates `docs/SCHEMAS.md` and `npm run docs:tokens` regenerates `packages/cli/ui/tokens.css` (never edit either by hand); `npm run validate -- <evals dir> [--deep]` runs the validator from source; `node packages/cli/dist/main.js serve --dir <evals dir>` starts the local server and dashboard on http://127.0.0.1:4242.
