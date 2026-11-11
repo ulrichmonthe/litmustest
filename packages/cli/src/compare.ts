@@ -87,10 +87,11 @@ export function evaluateGates(c: Comparison, threshold = 90): { passed: boolean;
   return { passed, suites: c.suites };
 }
 
-export function comparisonMarkdown(c: Comparison, opts: { title?: string; gates?: boolean } = {}): string {
+/** `explain`, when given (litmustest compare --explain), adds one plain sentence under each suite row. */
+export function comparisonMarkdown(c: Comparison, opts: { title?: string; gates?: boolean; explain?: (suite: string) => string } = {}): string {
   const sign = (n: number) => (n > 0 ? `+${n}` : `${n}`);
   const lines = [`### ${opts.title ?? "litmustest"}: ${String(c.b.run_id)} vs ${String(c.a.run_id)}`, "", `**${c.verdict.text}**`, "", "| Suite | A | B | Δ (95% CI) | | Gate |", "| --- | ---: | ---: | ---: | --- | --- |"];
-  for (const s of c.suites) lines.push(`| ${s.name} | ${s.a}% | ${s.b}% | ${sign(s.delta)} (${sign(s.ci.low)}…${sign(s.ci.high)}) | ${s.note} | ${s.gate_result ? (s.gate_result.passed ? (s.gate?.report_only ? "report only" : "✅") : `❌ ${s.gate_result.reasons.join("; ")}`) : s.gate ? "" : "none"} |`);
+  for (const s of c.suites) { lines.push(`| ${s.name} | ${s.a}% | ${s.b}% | ${sign(s.delta)} (${sign(s.ci.low)}…${sign(s.ci.high)}) | ${s.note} | ${s.gate_result ? (s.gate_result.passed ? (s.gate?.report_only ? "report only" : "✅") : `❌ ${s.gate_result.reasons.join("; ")}`) : s.gate ? "" : "none"} |`); const x = opts.explain?.(s.name); if (x) lines.push(x); }
   if (c.flips.length) { lines.push("", `**${c.flips.length} task${c.flips.length > 1 ? "s" : ""} flipped** (majority verdict across trials)`, "", "| Task | Suite | A → B | Change | Failing check in B |", "| --- | --- | --- | --- | --- |"); for (const x of c.flips.slice(0, 25)) lines.push(`| \`${x.task}\` | ${x.suite} | ${x.a} → ${x.b} | ${x.change} | ${x.check ? `\`${x.check}\`` : "—"} |`); if (c.flips.length > 25) lines.push(`| … | | | ${c.flips.length - 25} more | |`); }
   if (c.modes.length) { lines.push("", "**Failed checks by failure mode**", "", "| Mode | A | B | Δ |", "| --- | ---: | ---: | ---: |"); for (const m of c.modes.slice(0, 10)) lines.push(`| \`${m.name}\` | ${m.a} | ${m.b} | ${sign(m.delta)} |`); }
   if (c.coverage?.length) {

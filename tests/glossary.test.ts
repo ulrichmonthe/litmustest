@@ -146,10 +146,10 @@ describe("surfaces read the same words", () => {
   });
   it("the PR comment block appears when a gate moved and not otherwise", () => {
     const c = compareRuns(EXAMPLE, "run_0040", "run_0041");
-    const moved = c.suites.filter((s) => s.gate && !s.gate.report_only && (s.significant || s.gate_result?.passed === false));
+    const moved = c.suites.filter((s) => s.gate && !s.gate.report_only && (s.delta !== 0 || s.a !== s.b || s.gate_result?.passed === false));
     const block = meaningBlock(EXAMPLE, c);
     if (moved.length) { expect(block).toMatch(/<details><summary>What these numbers mean/); for (const s of moved) expect(block).toContain(`**${s.name}**`); }
-    const calm = { ...c, suites: c.suites.map((s) => ({ ...s, significant: false, gate_result: s.gate_result && { passed: true, reasons: [] } })) };
+    const calm = { ...c, suites: c.suites.map((s) => ({ ...s, b: s.a, delta: 0, significant: false, gate_result: s.gate_result && { passed: true, reasons: [] } })) };
     expect(meaningBlock(EXAMPLE, calm)).toBe("");
   });
 });
