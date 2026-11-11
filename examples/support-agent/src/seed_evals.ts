@@ -6,11 +6,13 @@ import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { stringify as yaml } from "yaml";
-import { ACCOUNTS, FAILURE_MODES, PERSONAS, SCENARIOS, mulberry32, type Persona, type Scenario } from "./catalog.ts";
-import { generateAll, type Planted } from "./generate_traces.ts";
+import { ACCOUNTS, FAILURE_MODES, PERSONAS, SCENARIOS, mulberry32, pick, type Persona, type Scenario } from "./catalog.ts";
+import { BREEZY, OPENERS, generateAll, type Planted } from "./generate_traces.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const EVALS = join(here, "..", "evals");
+// Transcripts and grades for the seeded runs; the store litmustest.yaml names, git-ignored like a real run's.
+const STORE = join(here, "..", ".litmustest", "transcripts");
 const sha = (s: string) => createHash("sha256").update(s).digest("hex");
 const write = (rel: string, body: string) => { const p = join(EVALS, rel); mkdirSync(dirname(p), { recursive: true }); writeFileSync(p, body); };
 const rng = mulberry32(7);
@@ -150,6 +152,7 @@ specs.push({ id: "refund_ghost_account_frustrated", persona: "frustrated", suite
 specs.find((s) => s.id === "invoice_copy_frustrated")!.flaky = true;
 
 const taskIds: Record<string, string[]> = { regression: [], capability: [], quality: [] };
+const taskChecks = new Map<string, Record<string, unknown>[]>();
 for (const s of specs) {
   const dir = s.suite;
   const acc = ACCOUNTS.find((a) => a.id === s.sc.account);
@@ -171,7 +174,7 @@ for (const s of specs) {
     tags: [s.sc.id, s.persona],
   };
   write(`tasks/${dir}/${s.id}.yaml`, yaml(task));
-  taskIds[s.suite]!.push(s.id);
+  taskIds[s.suite]!.push(s.id); taskChecks.set(s.id, checks);
   // reference solution: the ideal path from the catalog
   const toolCalls = s.sc.tools.map((t) => ({ name: t.name, args: t.args, result: refResult(t.name, t.args, s.sc) }));
   const state: Record<string, unknown> = { refunds: { count: 0, status: "none", amount_cents: 0 }, tickets: { status: "none" }, confirmations: { sent: 0 } };
@@ -198,11 +201,20 @@ write("suites/quality.yaml", yaml({ name: "quality", kind: "quality", descriptio
 // ---- two run summaries, consistent with the broken and flaky tasks
 function runSummary(runId: string, commit: string, day: number, shift: number) {
   const r = mulberry32(day);
+  rmSync(join(STORE, runId), { recursive: true, force: true });
   const tasks: Record<string, unknown> = {}; const perSuite: Record<string, { pass: number; n: number; all: number }> = {};
   for (const s of specs) {
     const base = s.suite === "regression" ? 0.96 : s.suite === "capability" ? 0.55 + shift : 0.8;
     const p = s.broken ? 0 : s.flaky ? 0.5 : base;
-    const trials = Array.from({ length: 5 }, () => { const infra = r() < 0.02; const pass = !infra && r() < p; return { pass, failed_checks: pass || infra ? [] : [s.sc.refund && r() < 0.5 ? "end_state" : "tone"], infra_error: infra, ...(infra ? { infra_error_kind: "timeout" } : {}), tokens: 1800 + Math.floor(r() * 900), latency_ms: 4000 + Math.floor(r() * 5000), cost_usd: +(0.02 + r() * 0.02).toFixed(4), transcript_ref: `local:${runId}/${s.id}/${Math.floor(r() * 1e4)}` }; });
+    const trials = Array.from({ length: 5 }, (_, i) => {
+      const n = i + 1; const infra = r() < 0.02; const pass = !infra && r() < p;
+      const drawn = pass || infra ? [] : [s.sc.refund && r() < 0.5 ? "end_state" : "tone"];
+      const failed = s.broken && drawn.length ? ["end_state"] : drawn; // the ghost account never reaches the end state
+      const tokens = 1800 + Math.floor(r() * 900), latency_ms = 4000 + Math.floor(r() * 5000), cost_usd = +(0.02 + r() * 0.02).toFixed(4);
+      r(); // kept so the numbers above stay the same as before transcripts were seeded
+      writeTrial(runId, s, n, { pass, failed, infra, tokens, latency_ms, at: `2026-10-${day}T08:${String(2 + i).padStart(2, "0")}:00Z` });
+      return { pass, failed_checks: failed, infra_error: infra, ...(infra ? { infra_error_kind: "timeout" } : {}), tokens, latency_ms, cost_usd, transcript_ref: `local:${runId}/${s.id}/${n}` };
+    });
     const scored = trials.filter((t) => !t.infra_error); const passed = scored.filter((t) => t.pass).length;
     tasks[s.id] = { suite: s.suite, strict_pass: scored.length ? +(100 * passed / scored.length).toFixed(1) : 0, weighted: scored.length ? +(100 * (passed + 0.4 * (scored.length - passed)) / scored.length).toFixed(1) : 0, ...(s.flaky ? { flaky: true } : {}), ...(s.broken ? { likely_broken: true } : {}), trials };
     const ps = (perSuite[s.suite] ??= { pass: 0, n: 0, all: 0 }); ps.pass += passed; ps.n += scored.length; ps.all += passed === scored.length && scored.length ? 1 : 0;
@@ -214,6 +226,52 @@ function runSummary(runId: string, commit: string, day: number, shift: number) {
     infra_error_rate: +(100 * all.filter((t) => t.infra_error).length / all.length).toFixed(1), cost_usd: +all.reduce((a, t) => a + t.cost_usd, 0).toFixed(2),
     judge_corrections: [{ judge: "tone_mismatch", tpr: 90.0, tnr: 100.0, prompt_hash: sha(readFileSync(join(EVALS, "graders/judges/tone_mismatch/prompt.md"), "utf8")) }] }, null, 2) + "\n");
 }
+
+/** One trial's transcript and grades in the store, in the shape `litmustest run` writes, consistent with its summary line. */
+function writeTrial(runId: string, s: TaskSpec, n: number, t: { pass: boolean; failed: string[]; infra: boolean; tokens: number; latency_ms: number; at: string }) {
+  const dir = join(STORE, runId, s.id, String(n)); mkdirSync(dir, { recursive: true });
+  const out = (name: string, body: unknown) => writeFileSync(join(dir, name), typeof body === "string" ? body : JSON.stringify(body, null, 2) + "\n");
+  if (t.infra) {
+    out("stderr.txt", `trial ${n}: no reply from the model after 180 s; killed by the runner\n`);
+    out("grades.json", { run_id: runId, task: s.id, trial: n, pass: false, infra_error: true, infra_error_kind: "timeout", infra_message: "agent killed after 180 s", grades: [], triage_suggested: "infra" });
+    return;
+  }
+  const rr = mulberry32(runId.length * 1000 + s.id.length * 31 + n);
+  const ghost = Boolean(s.broken), missed = t.failed.includes("end_state") && !ghost, breezy = t.failed.includes("tone");
+  const acc = ACCOUNTS.find((a) => a.id === s.sc.account);
+  const calls: { name: string; args: Record<string, unknown>; result: unknown }[] = [];
+  for (const tool of s.sc.tools) {
+    if (ghost && tool.name !== "verify_identity") continue; // not found: the agent stops
+    if (missed && (tool.name === "process_refund" || tool.name === "send_confirmation")) continue;
+    calls.push({ name: tool.name, args: tool.args, result: ghost ? { verified: false, error: "not_found" } : refResult(tool.name, tool.args, s.sc) });
+  }
+  const body = ghost ? "I can't find an account for dmitri@volkov.example, so I can't see the charges or refund anything. If you signed up with a different address, write from that one and I'll deal with it straight away."
+    : missed ? "I've noted the issue on your account and flagged it for the billing team. You should hear back within a few days."
+    : s.sc.reply;
+  const reply = `${breezy ? pick(rr, BREEZY) : pick(rr, OPENERS[s.persona])} ${body}`;
+  const refunded = calls.some((c) => c.name === "process_refund"), confirmed = calls.some((c) => c.name === "send_confirmation");
+  const inv = acc?.invoices.find((x) => x.id === s.sc.tools.find((c) => c.name === "process_refund")?.args.invoice_id);
+  const state = { refunds: refunded ? { count: 1, status: "processed", amount_cents: inv?.amount_cents ?? 1999 } : { count: 0, status: "none", amount_cents: 0 }, tickets: { status: confirmed ? "resolved" : "none" }, confirmations: { sent: confirmed ? 1 : 0 }, audit: { tool_calls: calls.map((c) => c.name) } };
+  const transcript = [{ role: "user", content: `From: ${s.sc.tools[0]!.args.email}\n\n${s.sc.message[s.persona]}` }, ...calls.map((c) => ({ role: "tool", tool: c.name, content: JSON.stringify(c.result) })), { role: "agent", content: reply }];
+  const agentStep = transcript.length - 1, stepOf = (name: string) => { const i = calls.findIndex((c) => c.name === name); return i < 0 ? undefined : i + 1; };
+  out("trial.json", { task: s.id, output: reply, state, tool_calls: calls, transcript, usage: { input_tokens: Math.round(t.tokens * 0.88), output_tokens: t.tokens - Math.round(t.tokens * 0.88) }, latency_ms: t.latency_ms, at: t.at });
+  const grades = (taskChecks.get(s.id) ?? []).map((c) => {
+    const base = { check: String(c.id), type: String(c.type), weight: c.weight ?? 1, ...(c.failure_mode ? { failure_mode: c.failure_mode } : {}) };
+    switch (c.id) {
+      case "end_state": return { ...base, pass: !missed && !ghost, step: calls.length, reason: !missed && !ghost ? "refunds.status = processed, confirmations.sent = 1" : ghost ? "refunds.status is none and confirmations.sent is 0: the account was never found" : "refunds.status is none, expected processed" };
+      case "identity_first": return { ...base, pass: true, step: 1, reason: "verify_identity was the first tool call" };
+      case "confirmed": return { ...base, pass: confirmed, step: stepOf("send_confirmation") ?? calls.length, reason: confirmed ? "send_confirmation was called after the change" : "no send_confirmation call" };
+      case "missed_refund": return { ...base, pass: null, excluded: true, reason: "judge missed_refund is stale; its verdict does not count" };
+      case "bounded": return { ...base, pass: true, reason: `${calls.length} tool calls, within ${c.max_toolcalls}; verify_identity present` };
+      case "tone": return { ...base, pass: !breezy, step: agentStep, verdict: breezy ? "Fail" : "Pass", reason: `judge tone_mismatch: ${breezy ? "Fail" : "Pass"}`, critique: breezy
+        ? `The customer is ${s.persona === "first_time" ? "new and unsure" : s.persona}; the reply opens with exclamation marks and a scripted upbeat phrase before addressing the problem. The register does not match the person.`
+        : `The reply is ${s.persona === "business" ? "direct and formal" : s.persona === "frustrated" ? "calm and apologetic without being breezy" : "warm and plain"}, and it addresses the request before anything else. The register fits the person.` };
+      default: return { ...base, pass: true, reason: "ok" };
+    }
+  });
+  out("grades.json", { run_id: runId, task: s.id, trial: n, pass: t.pass, infra_error: false, grades, triage_suggested: ghost ? "task" : "agent" });
+}
+
 runSummary("run_0040", "9f3c1a2", 24, 0);
 runSummary("run_0041", "b7e04d5", 26, 0.12);
 console.log(`seeded evals/: ${specs.length} tasks (${taskIds.regression.length} regression, ${taskIds.capability.length} capability, ${taskIds.quality.length} quality), ${lines.length} labels, 2 judges, 2 runs`);
