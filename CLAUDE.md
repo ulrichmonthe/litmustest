@@ -24,6 +24,7 @@ It reconciles two sources: the evals-skills course method (error analysis → bi
 
 ```
 .claude-plugin/marketplace.json  # the marketplace: points at plugin/
+.agents/plugins/marketplace.json # the same marketplace for Codex (untested; docs/CODEX.md)
 plugin/                   # the plugin: .claude-plugin/plugin.json (name litmustest), skills/<name>/SKILL.md; .codex-plugin ships untested
                           # modified upstream skills carry the Apache 2.0 attribution comment
 schemas/                  # JSON Schema 2020-12 for every file under evals/; $id versioned under /v1/
@@ -88,6 +89,8 @@ evals/
 | What "done" means per phase | `docs/ACCEPTANCE.md` |
 | What coverage measures, and what v1 does not | `docs/COVERAGE.md` |
 | Hosted mode: the GitHub App, environment, deploy notes, what is untested | `docs/HOSTED.md` |
+| Codex: what ships, what was checked against its docs, the test checklist | `docs/CODEX.md` |
+| The protocol for the open "50 traces in an hour" acceptance line | `docs/LABELLING-STUDY.md` |
 | The explainer: glossary format, template rules, surfaces | `docs/EXPLAINER.md` |
 | Phase 1 brief: schemas and sample repo | `docs/FIRST-BRIEF.md` |
 | How we compare with the two sources | `docs/COMPARISON.md` |

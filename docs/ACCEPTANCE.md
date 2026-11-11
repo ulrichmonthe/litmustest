@@ -13,7 +13,7 @@ As of 2026-10-27. Derived from the 25-chapter "litmustest Master Class" guide, w
 - [x] Failure modes view lists modes with count, severity, grader status; definition and severity edit and save to files. (Plus owner, merge into, retire and new mode; saves carry the loaded hash and show the per-field save state with Reload / Keep mine on a conflict.)
 - [x] Overview (read-only) shows a failure-mode Pareto and the review coverage. (Also the verdict strip, suite scorecards with CI and paired deltas, needs-attention alerts, judge trust and the flip list, all from the files.)
 - [x] Every file written validates against its JSON Schema; an invalid write is refused with the field named. (Server: 422 with the failing field; a write that breaks a cross-file rule is reverted and refused the same way; a stale base hash is a 409 with reload / keep mine.)
-- [ ] A domain expert who has read guide chapters 3, 6 and 7 can label 50 traces in under an hour without asking an engineer anything.
+- [ ] A domain expert who has read guide chapters 3, 6 and 7 can label 50 traces in under an hour without asking an engineer anything. (Not run: a study with people. The protocol, timing sheet and pass criteria are in `docs/LABELLING-STUDY.md`; the box stays open until its results table is filled in.)
 
 ## Phase 2: Grade and trust
 
