@@ -94,3 +94,15 @@ describe("a multi-turn trial round-trips", () => {
     expect(back.calls.map((c) => c.name)).toEqual(ref.tool_calls.map((c: { name: string }) => c.name));
   });
 });
+
+describe("infra classification", () => {
+  it("a missing model key is a harness problem, and a stack trace's line numbers are not HTTP statuses", async () => {
+    const { classifyInfra } = await import("../packages/cli/src/run.ts");
+    expect(classifyInfra("client.mjs:501\nError: Could not resolve authentication method. Expected either apiKey or authToken to be set.")).toBe("harness");
+    expect(classifyInfra("at foo (file.js:503:12)\nTypeError: x is not a function")).toBe("harness");
+    expect(classifyInfra("Error: 529 overloaded_error")).toBe("network");
+    expect(classifyInfra("APIError: status 503 from upstream")).toBe("network");
+    expect(classifyInfra("TypeError: fetch failed")).toBe("network");
+    expect(classifyInfra("FATAL ERROR: Reached heap limit Allocation failed - JavaScript heap out of memory")).toBe("oom");
+  });
+});

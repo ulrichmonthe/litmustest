@@ -288,7 +288,7 @@ function writeTrial(runId: string, s: TaskSpec, n: number, t: { pass: boolean; f
       default: return { ...base, pass: true, reason: "ok" };
     }
   });
-  out("grades.json", { run_id: runId, task: s.id, trial: n, pass: t.pass, infra_error: false, grades, triage_suggested: ghost ? "task" : "agent" });
+  out("grades.json", { run_id: runId, task: s.id, trial: n, pass: t.pass, infra_error: false, grades, triage_suggested: ghost ? "task" : !t.pass && grades.filter((g) => g.pass === false).every((g) => g.type === "judge") ? "grader" : "agent" }); // as the runner's suggestTriage would
 }
 
 runSummary("run_0040", "9f3c1a2", 24, 0);
