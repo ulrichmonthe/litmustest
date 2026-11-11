@@ -44,4 +44,10 @@ describe("plugin skills", () => {
     }
     expect([...new Set(wrong)]).toEqual([]);
   });
+
+  // Rule 2: reading traces and labelling are human-only. The CLI has `label` and `dispute` so a person can do from a
+  // terminal what the review queue does; no skill may tell an agent to run them.
+  it.each(skills)("%s never tells an agent to label or dispute", (name) => {
+    expect(text(name)).not.toMatch(/litmustest\s+(label|dispute)\b/);
+  });
 });
