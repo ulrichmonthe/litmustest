@@ -16,7 +16,22 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 
 .shell { min-height: 100vh; display: flex; flex-wrap: wrap; align-items: stretch; }
 .nav { flex: 1 0 220px; max-width: 260px; padding: 24px 16px; background: var(--surface); border-right: 1px solid var(--line-soft); display: flex; flex-direction: column; gap: 24px; }
-@media (max-width: 900px) { .nav { max-width: none; flex-basis: 100%; border-right: 0; border-bottom: 1px solid var(--line-soft); } }
+.nav-bar { display: none; }
+/* Below 900px the nav is one bar: brand, the current page, pending changes and a Menu button that opens the rest. */
+@media (max-width: 900px) {
+  .nav { max-width: none; flex: 0 0 100%; border-right: 0; border-bottom: 1px solid var(--line-soft); padding: 8px 16px; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 8px; }
+  .nav .brand-sub { display: none; }
+  .nav-bar { display: flex; align-items: center; gap: 8px; margin-left: auto; min-width: 0; }
+  .nav-current { font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .nav-pending { display: inline-flex; align-items: center; justify-content: center; min-width: 44px; min-height: 44px; font-family: var(--font-mono); font-size: 12px; color: var(--blue-ink); background: var(--blue-tint); border-radius: var(--radius-pill); }
+  .nav-pending[hidden] { display: none; }
+  .nav .nav-items, .nav .nav-spacer, .nav .tray { display: none; }
+  .nav.open .nav-items { display: flex; flex: 0 0 100%; }
+  .nav.open .tray:not([hidden]) { display: flex; flex: 0 0 100%; }
+  .shell { align-content: flex-start; }
+  .code-block { white-space: pre; overflow-x: auto; overflow-wrap: normal; }
+  .card { overflow-x: auto; }
+}
 .brand { display: flex; align-items: center; gap: 10px; padding: 4px 8px; color: inherit; min-height: 44px; }
 .brand-text { display: flex; flex-direction: column; gap: 2px; }
 .wordmark { font-family: var(--font-display); font-weight: 600; font-size: 19px; letter-spacing: -0.04em; line-height: 1; color: var(--ink); }

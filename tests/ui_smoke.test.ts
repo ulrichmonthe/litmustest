@@ -361,3 +361,53 @@ describe("explainer, Epic 4 (docs/stories/explainer.md)", () => {
     void file; await page.close(); await page2.close();
   }, 90_000);
 });
+
+describe("phone layout and themes", () => {
+  it("at 390px the nav is one bar with a working Menu, the title is in the first screen and the page does not scroll sideways", async (ctx) => {
+    if (!browser) return ctx.skip();
+    const cwd = repo((c) => cpSync(EXAMPLE, join(c, "evals"), { recursive: true }));
+    const s = await serve({ evalsDir: join(cwd, "evals"), port: 0, watch: false }); servers.push(s);
+    const page = await browser.newPage({ viewport: { width: 390, height: 844 }, hasTouch: true });
+    const bad: string[] = [];
+    for (const r of ROUTES) {
+      await page.goto(`${s.url}/#/${r}`);
+      await page.waitForFunction(() => { const p = document.querySelector("#page"); return p && !/Loading…/.test(p.textContent ?? "") && p.querySelector("h1"); });
+      const m = await page.evaluate(() => ({ h1: document.querySelector("#page h1")!.getBoundingClientRect().top, items: getComputedStyle(document.querySelector("#nav-items")!).display, sideways: document.documentElement.scrollWidth - document.documentElement.clientWidth, toggle: document.querySelector("#nav-toggle")!.getBoundingClientRect().height, current: document.querySelector("#nav-current")!.textContent }));
+      if (m.items !== "none") bad.push(`${r}: nav items shown before Menu is pressed`);
+      if (m.h1 > 300) bad.push(`${r}: title starts ${Math.round(m.h1)}px down`);
+      if (m.sideways > 1) bad.push(`${r}: page scrolls sideways by ${m.sideways}px`);
+      if (m.toggle < 44) bad.push(`${r}: Menu is ${m.toggle}px tall`);
+      if (!m.current) bad.push(`${r}: the bar does not name the page`);
+    }
+    expect(bad).toEqual([]);
+    await page.click("#nav-toggle");
+    expect(await page.getAttribute("#nav-toggle", "aria-expanded")).toBe("true");
+    expect(await page.evaluate(() => getComputedStyle(document.querySelector("#nav-items")!).display)).toBe("flex");
+    await page.click('#nav-items a[href="#/modes"]');
+    await page.waitForFunction(() => location.hash === "#/modes" && document.querySelector("#nav-toggle")!.getAttribute("aria-expanded") === "false");
+    await page.close();
+  }, 90_000);
+
+  it("the theme setting switches the tokens, persists, and every route renders in dark", async (ctx) => {
+    if (!browser) return ctx.skip();
+    const cwd = repo((c) => cpSync(EXAMPLE, join(c, "evals"), { recursive: true }));
+    const s = await serve({ evalsDir: join(cwd, "evals"), port: 0, watch: false }); servers.push(s);
+    const context = await browser.newContext({ colorScheme: "light" }); const page = await context.newPage();
+    await page.goto(`${s.url}/#/settings`); await page.waitForSelector("#theme-setting");
+    const ground = () => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--ground").trim());
+    const light = await ground();
+    await page.selectOption("#theme-setting", "dark");
+    await page.waitForFunction(() => document.documentElement.dataset.theme === "dark");
+    expect(await ground()).not.toBe(light);
+    await page.waitForFunction(async () => (await (await fetch("/api/prefs")).json()).theme === "dark");
+    await page.reload(); await page.waitForSelector("#theme-setting");
+    expect(await page.evaluate(() => document.documentElement.dataset.theme)).toBe("dark");
+    // The verdict strip's dot is a token, so it follows the theme.
+    await page.goto(`${s.url}/#/overview`); await page.waitForSelector(".verdict-strip .dot");
+    const dot = await page.evaluate(() => getComputedStyle(document.querySelector(".verdict-strip .dot")!).backgroundColor);
+    await page.goto(`${s.url}/#/settings`); await page.waitForSelector("#theme-setting"); await page.selectOption("#theme-setting", "light");
+    await page.goto(`${s.url}/#/overview`); await page.waitForSelector(".verdict-strip .dot");
+    expect(await page.evaluate(() => getComputedStyle(document.querySelector(".verdict-strip .dot")!).backgroundColor)).not.toBe(dot);
+    await context.close();
+  }, 90_000);
+});
