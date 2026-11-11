@@ -8,7 +8,7 @@ import type { JudgeAsk } from "../judge_run.ts";
 import type { Ask } from "../discover.ts";
 import { SchemaSet } from "../schemas.ts";
 import { sha256 } from "../validate.ts";
-import { loadFiles, judgeStatus } from "./overview.ts";
+import { loadFiles, judgeStatus, matrixIntervals } from "./overview.ts";
 import type { App, Reply } from "./app.ts";
 
 type Obj = Record<string, unknown>;
@@ -22,7 +22,7 @@ export function judgesList(app: App): Reply {
     const s = judgeStatus(j, threshold);
     const c = j.calibration; const dev = c?.dev as Obj | undefined; const test = c?.test as Obj | null | undefined;
     const used = f.tasks.filter((t) => ((t.checks as Obj[]) ?? []).some((ch) => ch.type === "judge" && (ch.judge ?? ch.failure_mode) === j.name)).length;
-    return { name: j.name, failure_mode: j.judge?.failure_mode ?? j.name, status: s.status, label: s.label, model: j.judge?.model, version: j.judge?.version ?? 1, dev: dev?.tpr !== undefined ? { tpr: dev.tpr, tnr: dev.tnr } : null, test: test && s.status !== "stale" ? { tpr: test.tpr, tnr: test.tnr } : null, labels: labelsFor(app.evalsDir, String(j.judge?.failure_mode ?? j.name)).size, used_by: used, running: running.get(j.name) ?? null };
+    return { name: j.name, failure_mode: j.judge?.failure_mode ?? j.name, status: s.status, label: s.label, model: j.judge?.model, version: j.judge?.version ?? 1, dev: dev?.tpr !== undefined ? { tpr: dev.tpr, tnr: dev.tnr, ...matrixIntervals(dev.matrix as Obj | undefined) } : null, test: test && s.status !== "stale" ? { tpr: test.tpr, tnr: test.tnr, ...matrixIntervals(test.matrix as Obj | undefined) } : null, labels: labelsFor(app.evalsDir, String(j.judge?.failure_mode ?? j.name)).size, used_by: used, running: running.get(j.name) ?? null };
   });
   // failure modes without a judge, so the list can offer to draft one
   const candidates = f.modes.filter((m) => !m.retired && !f.judges.some((j) => j.name === m.name)).map((m) => ({ name: m.name, labels: labelsFor(app.evalsDir, String(m.name)).size, has_code_check: f.tasks.some((t) => ((t.checks as Obj[]) ?? []).some((ch) => ch.type === "code" && ch.failure_mode === m.name)) }));

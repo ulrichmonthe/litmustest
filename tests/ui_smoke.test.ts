@@ -411,3 +411,40 @@ describe("phone layout and themes", () => {
     await context.close();
   }, 90_000);
 });
+
+describe("numbers carry their margin and link down", () => {
+  it("rates on Tasks, Transcripts, Overview and Judges show an interval and link to the trials; counts filter the list", async (ctx) => {
+    if (!browser) return ctx.skip();
+    const cwd = repo((c) => cpSync(EXAMPLE, join(c, "evals"), { recursive: true }));
+    const s = await serve({ evalsDir: join(cwd, "evals"), port: 0, watch: false }); servers.push(s);
+    const page = await browser.newPage();
+    const ready = () => page.waitForFunction(() => { const p = document.querySelector("#page"); return p && !/Loading…/.test(p.textContent ?? "") && p.querySelector("h1"); });
+    const bare = async (route: string, cells: string) => {
+      await page.goto(`${s.url}/#/${route}`); await ready();
+      return page.evaluate((sel) => [...document.querySelectorAll(sel)].filter((el) => /\d%/.test(el.textContent ?? "")).filter((el) => { const r = el.querySelector(".rate"); return !r || !r.querySelector(".rate-ci"); }).map((el) => (el.textContent ?? "").trim()), cells);
+    };
+    // every percentage in these columns is a rate with its interval
+    expect(await bare("tasks/regression", "#page table.plain td.num")).toEqual([]);
+    expect(await bare("transcripts", "#page .task-row .num")).toEqual([]);
+    expect(await bare("overview", '#page [aria-label="Judge trust"] td.num')).toEqual([]);
+    expect(await bare("judges", "#page table.plain td.num")).toEqual([]);
+    // a task's rate links to its trial
+    await page.goto(`${s.url}/#/tasks/regression`); await ready();
+    expect(await page.getAttribute("#page table.plain td.num a.rate", "href")).toMatch(/^#\/transcripts\/run_0041\/[a-z_]+\/1$/);
+    // the health strip's counts filter the table, and the note leads back
+    const brokenHref = await page.evaluate(() => [...document.querySelectorAll("#page .health a.count-link")].map((a) => a.getAttribute("href"))[0]);
+    expect(brokenHref).toBe("#/tasks/regression?status=broken");
+    await page.goto(`${s.url}/${brokenHref}`); await page.waitForSelector(".filter-note");
+    expect(await page.$$eval("#page table.plain tbody tr", (r) => r.length)).toBe(1);
+    expect(await page.textContent("#page table.plain tbody tr")).toContain("refund_ghost_account_frustrated");
+    await page.click(".filter-note a"); await page.waitForFunction(() => !document.querySelector(".filter-note"));
+    // a failure mode's count on Run compare opens the transcripts that failed on it
+    await page.goto(`${s.url}/#/compare`); await ready();
+    const modeHref = await page.getAttribute('#page [aria-label="Failure-mode deltas"] a.count-link', "href");
+    expect(modeHref).toBe("#/transcripts/run_0041?mode=tone_mismatch");
+    await page.goto(`${s.url}/${modeHref}`); await page.waitForSelector(".filter-note");
+    const all = ((await (await fetch(`${s.url}/api/transcripts`)).json()) as { tasks: { failed_modes: string[] }[] }).tasks;
+    expect(await page.$$eval("#page .task-row a.mono", (r) => r.length)).toBe(all.filter((t) => t.failed_modes.includes("tone_mismatch")).length);
+    await page.close();
+  }, 90_000);
+});

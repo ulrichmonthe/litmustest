@@ -50,8 +50,8 @@ As of 2026-10-27. Derived from the 25-chapter "litmustest Master Class" guide, w
 
 ## Cross-cutting, every phase
 
-- [ ] Every number in the dashboard links to the tasks behind it; every task to its transcript.
-- [ ] No number is shown without its margin of error.
+- [ ] Every number in the dashboard links to the tasks behind it; every task to its transcript. (Done for the rates and counts on Tasks & suites, Transcripts, Run compare, the Overview's judge trust and the Judges list: each links to its trials or to a filtered list, `#/tasks/<suite>?status=` and `#/transcripts/<run>?mode=`. Still open: the Coverage area tables and the Overview's failure-mode counts, which link to the mode rather than to its tasks.)
+- [ ] No number is shown without its margin of error. (Every pass rate and every TPR and TNR on those screens now prints its 95% interval beside it; per-task rates use a Wilson interval over trials. Costs, tokens and latencies are measurements and carry none. Still open: coverage shares.)
 - [x] Every control is a real button/link/input, ≥ 44px, keyboard reachable, with a visible focus ring. (`tests/ui_smoke.test.ts` measures every control on every route in Chrome and fails under 44px; links in running text are exempt. Focus rings come from one `:focus-visible` rule.)
 - [x] Text contrast ≥ 4.5:1 on its ground in both themes. (`tests/contrast.test.ts` computes every text token on each ground it is used on from `brand/tokens.json`; `ink-faint` and light `warn` were darkened or lightened to pass. Marks that are not text hold 3:1.)
 - [ ] The same action works from the CLI and the dashboard; the dashboard is a client of the files.

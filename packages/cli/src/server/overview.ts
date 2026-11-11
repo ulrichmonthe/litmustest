@@ -5,7 +5,7 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { parse as parseYaml } from "yaml";
 import { sha256 } from "../validate.ts";
-import { pairedDelta } from "../stats.ts";
+import { pairedDelta, wilson } from "../stats.ts";
 
 type Obj = Record<string, unknown>;
 const readYaml = (p: string) => parseYaml(readFileSync(p, "utf8")) as Obj;
@@ -45,15 +45,22 @@ function failsByMode(run: Obj | undefined, cm: Map<string, Map<string, string>>)
   for (const [tid, t] of Object.entries((run.tasks as Record<string, Obj>) ?? {})) for (const tr of (t.trials as Obj[]) ?? []) for (const c of (tr.failed_checks as string[]) ?? []) { const mode = cm.get(tid)?.get(c); if (mode) out.set(mode, (out.get(mode) ?? 0) + 1); }
   return out;
 }
-export function judgeStatus(j: { judge?: Obj; calibration?: Obj }, threshold: number): { status: string; label: string; tpr?: number; tnr?: number } {
+/** 95% Wilson intervals for TPR and TNR from a confusion matrix, so neither is shown without its margin. */
+export function matrixIntervals(m: Obj | undefined): { tpr_ci?: { low: number; high: number }; tnr_ci?: { low: number; high: number } } {
+  if (!m) return {};
+  const tp = Number(m.tp ?? 0), fn = Number(m.fn ?? 0), tn = Number(m.tn ?? 0), fp = Number(m.fp ?? 0);
+  const ci = (k: number, n: number) => { const w = wilson(k, n); return { low: Math.round(w.low), high: Math.round(w.high) }; };
+  return { ...(tp + fn ? { tpr_ci: ci(tp, tp + fn) } : {}), ...(tn + fp ? { tnr_ci: ci(tn, tn + fp) } : {}) };
+}
+export function judgeStatus(j: { judge?: Obj; calibration?: Obj }, threshold: number): { status: string; label: string; tpr?: number; tnr?: number; tpr_ci?: { low: number; high: number }; tnr_ci?: { low: number; high: number } } {
   const c = j.calibration; const test = c?.test as Obj | null | undefined;
   if (!j.judge) return { status: "none", label: "No judge" };
   if (!c) return { status: "untested", label: "Judge, untested" };
   const status = String(c.status);
-  if (status === "trusted") return { status, label: "Judge · trusted", tpr: Number(test?.tpr), tnr: Number(test?.tnr) };
+  if (status === "trusted") return { status, label: "Judge · trusted", tpr: Number(test?.tpr), tnr: Number(test?.tnr), ...matrixIntervals(test?.matrix as Obj | undefined) };
   if (status === "stale") return { status, label: "Judge · stale", tpr: test ? Number(test.tpr) : undefined, tnr: test ? Number(test.tnr) : undefined };
   const dev = c.dev as Obj | undefined;
-  if (dev && dev.tpr !== undefined && (Number(dev.tpr) < threshold || Number(dev.tnr) < threshold)) return { status: "dev", label: "Judge · below target", tpr: Number(dev.tpr), tnr: Number(dev.tnr) };
+  if (dev && dev.tpr !== undefined && (Number(dev.tpr) < threshold || Number(dev.tnr) < threshold)) return { status: "dev", label: "Judge · below target", tpr: Number(dev.tpr), tnr: Number(dev.tnr), ...matrixIntervals(dev.matrix as Obj | undefined) };
   return { status, label: status === "dev" ? "Judge · dev" : "Judge · untested" };
 }
 
@@ -156,7 +163,7 @@ export function overview(evalsDir: string): Obj {
   const modes = f.modes.filter((m) => !m.retired).map((m) => { const name = String(m.name); const count = source === "run" ? (fails.get(name) ?? 0) : (labelFails.get(name) ?? 0); return { name, severity: m.severity, count, prev: source === "run" && prev ? (failsPrev.get(name) ?? 0) : null }; }).sort((a, b) => b.count - a.count);
   const total = modes.reduce((a, m) => a + m.count, 0); const top3 = modes.slice(0, 3).reduce((a, m) => a + m.count, 0);
   // judges
-  const judges = f.judges.map((j) => { const s = judgeStatus(j, threshold); return { name: j.name, status: s.status, label: s.label.replace(/^Judge · /, ""), tpr: s.tpr ?? null, tnr: s.tnr ?? null, labels: f.labels.filter((l) => l.failure_mode === j.name).length }; });
+  const judges = f.judges.map((j) => { const s = judgeStatus(j, threshold); return { name: j.name, status: s.status, label: s.label.replace(/^Judge · /, ""), tpr: s.tpr ?? null, tnr: s.tnr ?? null, tpr_ci: s.tpr_ci ?? null, tnr_ci: s.tnr_ci ?? null, labels: f.labels.filter((l) => l.failure_mode === j.name).length }; });
   // flips
   const flips: Obj[] = [];
   if (latest && prev) for (const [tid, t] of Object.entries((latest.tasks as Record<string, Obj>) ?? {})) {
