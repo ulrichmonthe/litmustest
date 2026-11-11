@@ -1,0 +1,8 @@
+# a sql reader needs a file and queries, not a url; and a query must be a SELECT
+id: end_state
+type: outcome
+backend: sql
+read:
+  url: http://127.0.0.1:8080/state
+  queries: { refunds.status: DELETE FROM refunds }
+expect: { refunds.status: processed }

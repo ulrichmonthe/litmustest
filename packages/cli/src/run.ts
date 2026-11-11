@@ -1,7 +1,7 @@
 // litmustest run: k trials per task in a clean trial directory, graded by the task's checks, scored with error bars,
 // written as a run summary under evals/runs/ with raw transcripts in the configured store.
 import { computeCoverage, coverageSnapshot } from "./coverage.ts";
-import { execFileSync, spawn } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { parse as parseYaml } from "yaml";
@@ -12,49 +12,24 @@ import { buildMessages, defaultJudgeAsk, loadJudge, parseVerdict, type JudgeAsk,
 import { passRateWithJudgeError, type Matrix } from "./stats.ts";
 import { judgeStatus, loadFiles } from "./server/overview.ts";
 import type { TraceView } from "./trace_view.ts";
+import { openEnvironment, splitCommand, type TrialRef } from "./environments.ts";
+import { getPath, gradeOutcome, OutcomeInfraError, type Fetch } from "./outcome.ts";
+export { getPath, splitCommand };
 
 type Obj = Record<string, unknown>;
-export interface Grade { check: string; type: string; pass: boolean | null; reason: string; weight: number; failure_mode?: string; step?: number; critique?: string; verdict?: string; excluded?: string }
+export interface Grade { check: string; type: string; pass: boolean | null; reason: string; weight: number; failure_mode?: string; step?: number; critique?: string; verdict?: string; excluded?: string; /** outcome checks: the value seen at each expect key, and who read it (trial = the agent's own snapshot) */ observed?: Obj; reader?: "trial" | "sql" | "fs" | "http" }
 export interface TrialResult { task: string; n: number; pass: boolean; failed_checks: string[]; unknown_checks: string[]; excluded_checks: string[]; infra_error: boolean; infra_error_kind?: "timeout" | "oom" | "harness" | "network" | "other"; infra_message?: string; tokens?: number; latency_ms?: number; cost_usd?: number; transcript_ref: string; grades: Grade[]; weighted: number | null; dir: string }
-export interface RunOptions { evalsDir: string; suites?: string[]; tasks?: string[]; trials?: number; concurrency?: number; judgeAsk?: JudgeAsk; runId?: string; now?: Date; python?: string; onProgress?: (e: { task: string; n: number; total: number; done: number; result?: TrialResult }) => void; dryRun?: boolean; agentCommand?: string; timeoutMs?: number }
+export interface RunOptions { evalsDir: string; suites?: string[]; tasks?: string[]; trials?: number; concurrency?: number; judgeAsk?: JudgeAsk; runId?: string; now?: Date; python?: string; onProgress?: (e: { task: string; n: number; total: number; done: number; result?: TrialResult }) => void; dryRun?: boolean; agentCommand?: string; timeoutMs?: number; /** for outcome checks with backend http */ fetch?: Fetch }
 export interface RunResult { run_id: string; path: string; summary: Obj; trials: TrialResult[]; transcripts_dir: string; warnings: string[]; gates?: Obj }
 
 const nowIso = (d: Date) => d.toISOString().replace(/\.\d{3}Z$/, "Z");
 
-/** Split a command line on spaces, respecting single and double quotes. No shell. */
-export function splitCommand(cmd: string): string[] {
-  const out: string[] = []; let cur = ""; let q: string | null = null; let had = false;
-  for (const ch of cmd) {
-    if (q) { if (ch === q) q = null; else cur += ch; continue; }
-    if (ch === '"' || ch === "'") { q = ch; had = true; continue; }
-    if (/\s/.test(ch)) { if (cur || had) { out.push(cur); cur = ""; had = false; } continue; }
-    cur += ch;
-  }
-  if (cur || had) out.push(cur);
-  return out;
-}
-export function getPath(obj: unknown, path: string): unknown {
-  let cur: unknown = obj;
-  for (const part of path.split(".")) { const m = /^([A-Za-z0-9_]+)(?:\[(\d+)\])?$/.exec(part); if (!m || cur === null || typeof cur !== "object") return undefined; cur = (cur as Obj)[m[1]!]; if (m[2] !== undefined) cur = Array.isArray(cur) ? cur[Number(m[2])] : undefined; }
-  return cur;
-}
 /** A trial in the reference-solution shape becomes the view a judge or the transcript page reads. */
 export function viewFromTrial(trial: Obj, id: string): TraceView {
   const turns = ((trial.transcript as Obj[]) ?? []).map((t) => ({ role: (t.role === "assistant" ? "agent" : t.role) as "user" | "agent" | "tool" | "system", content: String(t.content ?? ""), ...(t.tool ? { tool: String(t.tool) } : {}) }));
   const calls = ((trial.tool_calls as Obj[]) ?? []).map((c, i) => ({ name: String(c.name), args: c.args, result: c.result, ok: !(c.result && typeof c.result === "object" && "error" in (c.result as Obj)), span_id: `call_${i}` }));
   if (!turns.length) { if (trial.input) turns.push({ role: "user", content: typeof trial.input === "string" ? trial.input : JSON.stringify(trial.input) }); if (trial.output) turns.push({ role: "agent", content: String(trial.output) }); }
   return { id, turns, calls, model: undefined, input_tokens: Number((trial.usage as Obj)?.input_tokens ?? 0), output_tokens: Number((trial.usage as Obj)?.output_tokens ?? 0), metadata: {} };
-}
-
-async function execAgent(cmd: string[], env: Record<string, string>, cwd: string, timeoutMs: number): Promise<{ code: number | null; signal: string | null; stdout: string; stderr: string; timedOut: boolean; ms: number }> {
-  return new Promise((resolveP) => {
-    const started = Date.now(); let stdout = "", stderr = ""; let timedOut = false;
-    const child = spawn(cmd[0]!, cmd.slice(1), { cwd, env: { ...process.env, ...env }, stdio: ["ignore", "pipe", "pipe"] });
-    const timer = setTimeout(() => { timedOut = true; child.kill("SIGKILL"); }, timeoutMs);
-    child.stdout.on("data", (d) => (stdout += d)); child.stderr.on("data", (d) => (stderr += d));
-    child.on("error", (e) => { clearTimeout(timer); resolveP({ code: null, signal: null, stdout, stderr: stderr + `\n${e.message}`, timedOut, ms: Date.now() - started }); });
-    child.on("close", (code, signal) => { clearTimeout(timer); resolveP({ code, signal, stdout: stdout.slice(-20000), stderr: stderr.slice(-20000), timedOut, ms: Date.now() - started }); });
-  });
 }
 
 export async function run(o: RunOptions): Promise<RunResult> {
@@ -66,7 +41,6 @@ export async function run(o: RunOptions): Promise<RunResult> {
   const command = o.agentCommand ?? (agent.command as string | undefined);
   if (!command && !o.dryRun) throw new Error("no agent command: set agent.command in litmustest.yaml (see docs/SCHEMAS.md#config)");
   const envName = String((config.runs as Obj | undefined)?.environment ?? "inprocess");
-  if (envName !== "inprocess") throw new Error(`runs.environment '${envName}' is not implemented yet (decision #2); use inprocess`);
   const trialsDefault = o.trials ?? Number((config.runs as Obj | undefined)?.trials ?? 5);
   const concurrency = o.concurrency ?? Number((config.runs as Obj | undefined)?.concurrency ?? 4);
   const timeoutMs = o.timeoutMs ?? 1000 * Number(((config.runs as Obj | undefined)?.resources as Obj | undefined)?.timeout_s ?? 600);
@@ -80,6 +54,10 @@ export async function run(o: RunOptions): Promise<RunResult> {
   if (!tasks.length) throw new Error(`no tasks in suite${suiteNames.length > 1 ? "s" : ""} ${suiteNames.join(", ")}`);
   const storeRel = String(((config.storage as Obj | undefined)?.transcripts as Obj | undefined)?.path ?? ".litmustest/transcripts");
   const store = resolve(repo, storeRel); const runDir = join(store, runId); mkdirSync(runDir, { recursive: true });
+  const runsCfg = (config.runs as Obj | undefined) ?? {};
+  const environment = openEnvironment(envName, { repo, evalsDir, runId, project: config.project as string | undefined, runs: runsCfg });
+  if (!o.dryRun) { await environment.setup(); warnings.push(...environment.warnings()); }
+  const budget = Number(runsCfg.budget_usd ?? 0); let spent = 0; let skipped = 0;
 
   // judges: load once, decide trust once
   const judgeFiles = new Map<string, { files: JudgeFiles; status: string; matrix?: Matrix; tpr?: number; tnr?: number }>();
@@ -96,39 +74,42 @@ export async function run(o: RunOptions): Promise<RunResult> {
 
   const worker = async () => {
     while (next < work.length) {
+      // the budget stops new trials from starting; the ones already running finish and are counted
+      if (budget > 0 && spent >= budget) { skipped += work.length - next; next = work.length; break; }
       const w = work[next++]!; const t = w.task; const id = String(t.id);
       const dir = join(runDir, id, String(w.n)); rmSync(dir, { recursive: true, force: true }); mkdirSync(dir, { recursive: true });
       const ref = `local:${runId}/${id}/${w.n}`;
       let result: TrialResult;
-      const vars: Record<string, string> = { task: id, task_file: taskFile(t), trial_dir: dir, trial: String(w.n), evals: evalsDir };
-      const env: Record<string, string> = { LITMUSTEST_TASK: id, LITMUSTEST_TASK_FILE: vars.task_file!, LITMUSTEST_TRIAL_DIR: dir, LITMUSTEST_TRIAL: String(w.n), LITMUSTEST_INPUT: JSON.stringify(t.input ?? {}), LITMUSTEST_EVALS: evalsDir, LITMUSTEST_RUN: runId, ...((agent.env as Record<string, string>) ?? {}) };
+      const tref: TrialRef = { run: runId, task: id, n: w.n, dir }; const hostTaskFile = taskFile(t);
+      // paths as the command sees them: the host's own in process, /trial and /evals inside a container
+      const vars: Record<string, string> = { task: id, task_file: environment.path(tref, hostTaskFile), trial_dir: environment.path(tref, dir), trial: String(w.n), evals: environment.path(tref, evalsDir) };
+      const env: Record<string, string> = { LITMUSTEST_TASK: id, LITMUSTEST_TASK_FILE: vars.task_file!, LITMUSTEST_TRIAL_DIR: vars.trial_dir!, LITMUSTEST_TRIAL: String(w.n), LITMUSTEST_INPUT: JSON.stringify(t.input ?? {}), LITMUSTEST_EVALS: vars.evals!, LITMUSTEST_RUN: runId, ...(environment.name === "harbor" ? { LITMUSTEST_TASK_FILE_HOST: hostTaskFile } : {}), ...((agent.env as Record<string, string>) ?? {}) };
       const fill = (s: string) => s.replace(/\{(task|task_file|trial_dir|trial|evals)\}/g, (_, k) => vars[k]!);
       const cwd = agent.cwd ? resolve(repo, String(agent.cwd)) : repo;
       let trial: Obj | undefined; let infra: Partial<TrialResult> = {};
       if (o.dryRun) { const refPath = join(evalsDir, String(t.reference_solution)); trial = existsSync(refPath) ? JSON.parse(readFileSync(refPath, "utf8")) : undefined; }
       else {
-        if (agent.reset) { const r = await execAgent(splitCommand(fill(String(agent.reset))), env, cwd, timeoutMs); if (r.code !== 0) infra = { infra_error: true, infra_error_kind: "harness", infra_message: `reset failed: ${r.stderr.trim().split("\n").pop()}` }; }
+        await environment.prepare(tref);
+        if (agent.reset) { const r = await environment.exec(tref, fill(String(agent.reset)), env, cwd, timeoutMs, "reset"); if (r.code !== 0) infra = { infra_error: true, infra_error_kind: "harness", infra_message: `reset failed: ${r.stderr.trim().split("\n").pop()}` }; }
         if (!infra.infra_error) {
-          const r = await execAgent(splitCommand(fill(command!)), env, cwd, timeoutMs);
+          const r = await environment.exec(tref, fill(command!), env, cwd, timeoutMs, "agent");
           writeFileSync(join(dir, "stdout.txt"), r.stdout); writeFileSync(join(dir, "stderr.txt"), r.stderr);
           infra.latency_ms = r.ms;
           const tp = join(dir, "trial.json");
           if (r.timedOut) infra = { ...infra, infra_error: true, infra_error_kind: "timeout", infra_message: `killed after ${Math.round(timeoutMs / 1000)}s` };
-          else if (r.code !== 0) infra = { ...infra, infra_error: true, infra_error_kind: /\bENOMEM\b|out of memory|\bOOM\b/i.test(r.stderr) ? "oom" : /\bECONNRESET\b|\bETIMEDOUT\b|\bENOTFOUND\b|fetch failed|rate limit|\b429\b|\b5\d\d\b/i.test(r.stderr) ? "network" : "harness", infra_message: firstError(r.stderr) ?? `exit ${r.code ?? r.signal}` };
+          else if (r.code !== 0) infra = { ...infra, infra_error: true, infra_error_kind: r.kind ? r.kind : /\bENOMEM\b|out of memory|\bOOM\b/i.test(r.stderr) ? "oom" : /\bECONNRESET\b|\bETIMEDOUT\b|\bENOTFOUND\b|fetch failed|rate limit|\b429\b|\b5\d\d\b/i.test(r.stderr) ? "network" : "harness", infra_message: firstError(r.stderr) ?? `exit ${r.code ?? r.signal}` };
           else if (!existsSync(tp)) infra = { ...infra, infra_error: true, infra_error_kind: "harness", infra_message: "agent exited 0 but wrote no trial.json" };
           else { try { trial = JSON.parse(readFileSync(tp, "utf8")); const errs = schemas.check("reference_solution", { ...trial, task: id }); if (errs.length) infra = { ...infra, infra_error: true, infra_error_kind: "harness", infra_message: `trial.json does not validate: ${errs[0]}` }; } catch (e) { infra = { ...infra, infra_error: true, infra_error_kind: "harness", infra_message: `trial.json unreadable: ${(e as Error).message}` }; } }
+          await environment.cleanup(tref);
         }
       }
-      if (infra.infra_error || !trial) {
-        result = { task: id, n: w.n, pass: false, failed_checks: [], unknown_checks: [], excluded_checks: [], infra_error: true, infra_error_kind: infra.infra_error_kind ?? "harness", infra_message: infra.infra_message ?? "no trial", latency_ms: infra.latency_ms, transcript_ref: ref, grades: [], weighted: null, dir };
-      } else {
-        const grades: Grade[] = [];
+      const grade = async (trial: Obj, grades: Grade[]) => {
         const view = viewFromTrial(trial, `trial_${runId}_${id}_${w.n}`);
         for (const c of (t.checks as Obj[]) ?? []) {
           const cid = String(c.id); const weight = Number(c.weight ?? 1); const fm = c.failure_mode as string | undefined;
           const g: Grade = { check: cid, type: String(c.type), pass: null, reason: "", weight, failure_mode: fm };
           try {
-            if (c.type === "outcome") { const misses: string[] = []; for (const [path, want] of Object.entries(c.expect as Obj)) { const got = getPath(trial.state, path); if (JSON.stringify(got) !== JSON.stringify(want)) misses.push(`${path}: expected ${JSON.stringify(want)}, got ${JSON.stringify(got)}`); } g.pass = misses.length === 0; g.reason = misses.length ? misses.join("; ") : `end state matches ${Object.keys(c.expect as Obj).join(", ")}`; g.step = view.turns.length - 1; }
+            if (c.type === "outcome") { const r = await gradeOutcome(c, o.dryRun ? null : dir, trial, { fetch: o.fetch, vars: { task: id, trial: String(w.n) } }); g.pass = r.pass; g.reason = r.reason; g.observed = r.observed; g.reader = r.reader; g.step = view.turns.length - 1; }
             else if (c.type === "transcript") { const names = view.calls.map((x) => x.name); const agentTurns = view.turns.filter((x) => x.role === "agent").length; const why: string[] = []; if (c.max_turns !== undefined && agentTurns > Number(c.max_turns)) why.push(`${agentTurns} agent turns, max ${c.max_turns}`); if (c.max_toolcalls !== undefined && names.length > Number(c.max_toolcalls)) why.push(`${names.length} tool calls, max ${c.max_toolcalls}`); for (const r of (c.required_tools as string[]) ?? []) if (!names.includes(r)) why.push(`required tool ${r} never called`); for (const r of (c.forbidden_tools as string[]) ?? []) if (names.includes(r)) why.push(`forbidden tool ${r} was called`); g.pass = why.length === 0; g.reason = why.length ? why.join("; ") : `${names.length} tool calls within bounds`; g.step = view.turns.length - 1; }
             else if (c.type === "code") { const fn = resolve(evalsDir, String(c.fn)); const script = ["import importlib.util, json, sys", "fn, trial, args = sys.argv[1], json.loads(sys.argv[2]), json.loads(sys.argv[3])", "spec = importlib.util.spec_from_file_location('grader', fn); m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)", "print(json.dumps({'pass': bool(m.check(trial, args))}))"].join("\n"); const res = execSafe(o.python ?? "python3", ["-I", "-c", script, fn, JSON.stringify({ input: t.input, ...trial }), JSON.stringify(c.args ?? {})], repo); if (res.error) { g.pass = false; g.reason = `grader error: ${res.error}`; } else { g.pass = Boolean(res.pass); g.reason = g.pass ? `${String(c.fn).split("/").pop()} returned True` : `${String(c.fn).split("/").pop()} returned False`; } g.step = view.turns.length - 1; }
             else if (c.type === "judge") {
@@ -137,9 +118,16 @@ export async function run(o: RunOptions): Promise<RunResult> {
               else if (j.status !== "trusted") { g.excluded = `judge ${jname} is ${j.status}`; g.reason = `${g.excluded}; its verdicts do not count`; }
               else { const { system, user } = buildMessages(j.files, evalsDir, view, labelsOf(String(j.files.judge.failure_mode))); let raw = ""; try { raw = await judgeAsk(system, user, String(j.files.judge.model)); } catch (e) { raw = JSON.stringify({ critique: `model error: ${(e as Error).message}`, result: "Unknown" }); } const v = parseVerdict(raw); g.verdict = v.result; g.critique = v.critique; g.pass = v.result === "Pass" ? true : v.result === "Fail" ? false : null; g.reason = v.result === "Unknown" ? "judge answered Unknown; routed to the review queue" : `judge ${jname}: ${v.result}`; g.step = view.turns.length - 1; }
             }
-          } catch (e) { g.pass = false; g.reason = `check error: ${(e as Error).message}`; }
+          } catch (e) { if (e instanceof OutcomeInfraError) throw e; g.pass = false; g.reason = `check error: ${(e as Error).message}`; }
           grades.push(g);
         }
+      };
+      const grades: Grade[] = [];
+      // grade first: a state the runner could not read (the network, not the agent) turns the trial into an infra error
+      if (!infra.infra_error && trial) try { await grade(trial, grades); } catch (e) { if (!(e instanceof OutcomeInfraError)) throw e; infra = { ...infra, infra_error: true, infra_error_kind: e.kind, infra_message: `end state not read: ${e.message}` }; }
+      if (infra.infra_error || !trial) {
+        result = { task: id, n: w.n, pass: false, failed_checks: [], unknown_checks: [], excluded_checks: [], infra_error: true, infra_error_kind: infra.infra_error_kind ?? "harness", infra_message: infra.infra_message ?? "no trial", latency_ms: infra.latency_ms, transcript_ref: ref, grades: [], weighted: null, dir };
+      } else {
         const counted = grades.filter((g) => !g.excluded);
         const failed = counted.filter((g) => g.pass === false).map((g) => g.check);
         const unknown = counted.filter((g) => g.pass === null).map((g) => g.check);
@@ -149,6 +137,7 @@ export async function run(o: RunOptions): Promise<RunResult> {
         result = { task: id, n: w.n, pass: failed.length === 0 && unknown.length === 0, failed_checks: failed, unknown_checks: unknown, excluded_checks: grades.filter((g) => g.excluded).map((g) => g.check), infra_error: false, tokens: usage.input_tokens !== undefined ? Number(usage.input_tokens) + Number(usage.output_tokens ?? 0) : undefined, latency_ms: trial.latency_ms !== undefined ? Number(trial.latency_ms) : infra.latency_ms, cost_usd: usage.cost_usd !== undefined ? Number(usage.cost_usd) : undefined, transcript_ref: ref, grades, weighted, dir };
         if (o.dryRun) writeFileSync(join(dir, "trial.json"), JSON.stringify(trial, null, 2));
       }
+      spent += result.cost_usd ?? 0;
       results.push(result); done++;
       o.onProgress?.({ task: id, n: w.n, total: work.length, done, result });
     }
@@ -171,7 +160,7 @@ export async function run(o: RunOptions): Promise<RunResult> {
   }
   const suites: Record<string, Obj> = {}; const excludedAll = new Set<string>();
   for (const s of suiteNames) {
-    const ids = tasks.filter((t) => t.suite === s).map((t) => String(t.id)); if (!ids.length) continue;
+    const ids = tasks.filter((t) => t.suite === s && byTask.has(String(t.id))).map((t) => String(t.id)); if (!ids.length) continue;
     const trs = ids.flatMap((id) => byTask.get(id) ?? []); const scored = trs.filter((r) => !r.infra_error);
     for (const r of trs) for (const c of r.excluded_checks) { const chk = ((tasks.find((t) => t.id === r.task)!.checks as Obj[])).find((x) => x.id === c); if (chk) excludedAll.add(String(chk.judge ?? chk.failure_mode)); }
     // the judge used by most checks in this suite lends its confusion matrix to the bootstrap
@@ -191,6 +180,7 @@ export async function run(o: RunOptions): Promise<RunResult> {
   const summary: Obj = {
     run_id: runId, commit, ...(branch ? { branch } : {}), started_at: nowIso(now), finished_at: nowIso(new Date()), config_hash: sha256(readFileSync(join(evalsDir, "litmustest.yaml"))), trials: trialsDefault, suite_names: suiteNames, ...(command ? { agent_command: command } : {}),
     suites, tasks: taskSummaries, infra_error_rate: results.length ? +((100 * infraCount) / results.length).toFixed(1) : 0, cost_usd: +results.reduce((a, r) => a + (r.cost_usd ?? 0), 0).toFixed(4),
+    ...(skipped ? { budget: { limit_usd: budget, spent_usd: +spent.toFixed(4), trials_skipped: skipped, ...(tasks.some((t) => !byTask.has(String(t.id))) ? { tasks_skipped: tasks.filter((t) => !byTask.has(String(t.id))).map((t) => String(t.id)) } : {}) } } : {}),
     judge_corrections: [...judgeFiles.entries()].filter(([, j]) => j.matrix).map(([name, j]) => ({ judge: name, tpr: j.tpr, tnr: j.tnr, prompt_hash: String(j.files.judge.prompt_hash) })),
   };
   try { const snap = coverageSnapshot(computeCoverage(evalsDir, { run: summary })); if (Object.keys(snap).length) summary.coverage = snap; }
@@ -200,6 +190,7 @@ export async function run(o: RunOptions): Promise<RunResult> {
   const path = join(evalsDir, "runs", `${runId}.json`); mkdirSync(dirname(path), { recursive: true });
   writeFileSync(path, JSON.stringify(summary, null, 2) + "\n");
   if (excludedAll.size) warnings.push(`judge${excludedAll.size > 1 ? "s" : ""} ${[...excludedAll].join(", ")} excluded: not trusted`);
+  if (skipped) warnings.push(`budget of $${budget} reached after $${spent.toFixed(2)}: ${skipped} trial${skipped > 1 ? "s" : ""} not run and not scored`);
   if (infraCount) warnings.push(`${infraCount} infra error${infraCount > 1 ? "s" : ""} excluded from the agent's score`);
   return { run_id: runId, path, summary, trials: results, transcripts_dir: runDir, warnings };
 }

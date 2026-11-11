@@ -39,8 +39,9 @@ evals/litmustest.yaml. Where traces come from, how runs execute, how judges are 
 | `gates` | map of [gate](#gate) | yes |  | Per-suite gates, keyed by suite name. |
 | `storage` | object |  |  | Where run output goes. Summaries are small and go in git; transcripts are evidence and get a stable address. |
 | `ci` | object |  |  |  |
-| `agent` | object |  |  | How the runner starts the agent for one trial. The command runs once per trial in a fresh trial directory and must leave <trial_dir>/trial.json in the reference_solution shape (output, state, tool_calls, transcript, optional usage and latency_ms). Placeholders: {task}, {task_file}, {trial_dir}, {trial}, {evals}; the same values arrive as LITMUSTEST_TASK, LITMUSTEST_TASK_FILE, LITMUSTEST_TRIAL_DIR, LITMUSTEST_TRIAL, LITMUSTEST_INPUT (JSON) and LITMUSTEST_EVALS. |
+| `agent` | object |  |  | How the runner starts the agent for one trial. The command runs once per trial in a fresh trial directory and must leave <trial_dir>/trial.json in the reference_solution shape (output, state, tool_calls, transcript, optional usage and latency_ms). Placeholders: {task}, {task_file}, {trial_dir}, {trial}, {evals}; the same values arrive as LITMUSTEST_TASK, LITMUSTEST_TASK_FILE, LITMUSTEST_TRIAL_DIR, LITMUSTEST_TRIAL, LITMUSTEST_INPUT (JSON) and LITMUSTEST_EVALS. Under docker and harbor the paths are the ones inside the container and the command line goes to a shell there. |
 | `coverage` | object |  |  | Maps of the application that `litmustest coverage` measures the eval suite against. v1 measures three maps: spec (test-case ids in your docs), surface (API routes or tool names the trials actually call) and risk (failure modes by severity, always on). It does not measure production traffic, code lines or the frontend. |
+| `explain` | object |  |  | The explainer (docs/EXPLAINER.md). |
 
 #### `sources`
 
@@ -70,18 +71,47 @@ evals/litmustest.yaml. Where traces come from, how runs execute, how judges are 
 | Field | Type | Required | Constraints | Description |
 | --- | --- | --- | --- | --- |
 | `trials` | integer |  | ≥ 1, ≤ 100, default `5` | Trials per task unless the task overrides. |
-| `concurrency` | integer |  | ≥ 1, ≤ 256, default `8` |  |
-| `budget_usd` | number |  | ≥ 0 | Stop the run when spend crosses this. |
-| `environment` | `inprocess` · `harbor` · `docker` |  | default `"inprocess"` | Where each trial runs. Harbor and docker give a clean container per trial. |
+| `concurrency` | integer |  | ≥ 1, ≤ 256, default `4` | Trials running at the same time. |
+| `budget_usd` | number |  | ≥ 0 | Stop starting new trials once the run's recorded cost (usage.cost_usd from each trial.json) reaches this. Trials already running finish; the run summary records what was skipped under `budget`. 0 or absent means no limit. |
+| `environment` | `inprocess` · `harbor` · `docker` |  | default `"inprocess"` | Where each trial runs. inprocess: the command is a child process on this machine. docker: a fresh container per trial (see runs.docker). harbor: a one-trial Harbor job per trial (see runs.harbor). |
 | `resources` | object |  |  |  |
+| `docker` | any or any |  |  | For environment: docker. Each trial runs as `docker run --rm` with the trial directory mounted at /trial and evals/ mounted read-only at /evals; {trial_dir}, {task_file} and {evals} are filled with those container paths. The command goes to `sh -lc` inside the container. Give image or build. |
+| `harbor` | object |  |  | For environment: harbor (https://harborframework.com). Each trial is a generated Harbor task run once with Harbor's oracle agent, which runs the agent command inside the task's container. The trial directory is /logs/artifacts; the task file is at /solution/task.yaml; the rest of evals/ is not mounted, so bake what the command needs into the image. |
 
 ##### `resources`
 
 | Field | Type | Required | Constraints | Description |
 | --- | --- | --- | --- | --- |
-| `cpus` | number |  | > 0 |  |
-| `memory_mb` | integer |  | ≥ 128 |  |
-| `timeout_s` | integer |  | ≥ 1, default `600` |  |
+| `cpus` | number |  | > 0 | CPU limit per trial. Applied by docker (--cpus) and harbor; not enforced in process. |
+| `memory_mb` | integer |  | ≥ 128 | Memory limit per trial in MB. Applied by docker (--memory) and harbor; not enforced in process. |
+| `timeout_s` | integer |  | ≥ 1, default `600` | Seconds before a trial is killed and tagged as an infra error (timeout). In process the whole process group is killed. |
+
+##### `docker`
+
+| Field | Type | Required | Constraints | Description |
+| --- | --- | --- | --- | --- |
+| `image` | string |  | min length 1 | An image that already exists locally or can be pulled. |
+| `build` | object |  |  | Build the image once at the start of the run. |
+| `network` | string |  | min length 1 | Passed to --network, e.g. none or host. |
+| `mounts` | array of string |  |  | Extra volumes as host:container[:ro]. The host side is relative to the repo root. |
+| `workdir` | string |  | min length 1 | Working directory inside the container (-w). Default: the image's own. |
+| `pass_env` | array of string |  | unique | Names of environment variables on this machine to pass into the container (an API key, for example). Only the name is written anywhere; the value is read from the environment at run time. |
+
+###### `build`
+
+| Field | Type | Required | Constraints | Description |
+| --- | --- | --- | --- | --- |
+| `context` | string | yes | min length 1 | Build context, relative to the repo root. |
+| `dockerfile` | string |  | min length 1 | Dockerfile path, relative to the repo root. Default: <context>/Dockerfile. |
+
+##### `harbor`
+
+| Field | Type | Required | Constraints | Description |
+| --- | --- | --- | --- | --- |
+| `image` | string | yes | min length 1 | The container image the command runs in (Harbor's [environment] docker_image). |
+| `backend` | string |  | min length 1 | Harbor's environment backend, passed as `harbor run -e`. Default: Harbor's own default (docker). |
+| `workdir` | string |  | min length 1 | Directory the command starts in. |
+| `pass_env` | array of string |  | unique | Names of environment variables on this machine to pass into the container (an API key, for example). Only the name is written anywhere; the value is read from the environment at run time. |
 
 #### `judges`
 
@@ -147,6 +177,13 @@ evals/litmustest.yaml. Where traces come from, how runs execute, how judges are 
 | `ignore` | array of string |  |  | Items to leave out, matched exactly or by a trailing *. |
 | `group_depth` | integer |  | ≥ 1, ≤ 6 | How many path segments make an area for the chart. Default 2 (/api/play). |
 
+#### `explain`
+
+| Field | Type | Required | Constraints | Description |
+| --- | --- | --- | --- | --- |
+| `learn_more_url` | string |  | uri | Base URL of the Master Class guide. Learn more links go to <url>#ch-<n>; without it the chapter is named but not linked. |
+| `plain_language_default` | boolean |  | default `true` | Whether Plain language starts on for someone who has not chosen. Each person's own choice lives in ~/.config/litmustest/prefs.json, not here. |
+
 ## failure_mode
 
 evals/failure_modes/<name>.yaml. One named way the product goes wrong, found by reading traces. Failure modes are tags on the checks inside tasks.
@@ -209,16 +246,28 @@ A model-based check for one failure mode. Counts in a gate only when its judge i
 
 ## check.outcome
 
-Reads the real end state after a trial (a database row, a file, an HTTP resource, a page) and compares it to what should be there.
+Reads the real end state after a trial (a database row, a file, an HTTP resource, a page) and compares it to what should be there. Without `read` the state is `trial.state`, the snapshot the agent's own script wrote into trial.json. With `read` the runner reads the state itself, so the agent's script cannot report a state that is not there.
 
 | Field | Type | Required | Constraints | Description |
 | --- | --- | --- | --- | --- |
 | `id` | [name](#name) | yes |  |  |
 | `type` | `"outcome"` | yes |  |  |
-| `backend` | `sql` · `fs` · `http` · `page` |  | default `"sql"` | How the state is read. |
-| `expect` | object | yes |  | Dotted path to a value in the state snapshot, e.g. refunds.status: processed. Every entry must match. |
+| `backend` | `sql` · `fs` · `http` · `page` |  | default `"sql"` | What kind of state this is. It selects the reader when `read` is set; page has no reader and always uses trial.state. |
+| `read` | object |  |  | How the runner reads the state after the trial. sql: `file` and `queries`. fs: `file` or `exists`. http: `url`. Paths are relative to the trial directory and may not leave it. `validate --deep` and `run --dry-run` have no trial directory, so there the check is compared against the reference solution's `state`. |
+| `expect` | object | yes |  | Dotted path to a value in the state, e.g. refunds.status: processed, or rows[0].id. Every entry must match. |
 | `weight` | number |  | > 0, default `1` |  |
 | `failure_mode` | [name](#name) |  |  |  |
+
+#### `read`
+
+| Field | Type | Required | Constraints | Description |
+| --- | --- | --- | --- | --- |
+| `file` | string |  | min length 1 | sql: a SQLite file in the trial directory, opened read-only. fs: a JSON file in the trial directory; the parsed JSON is the state. |
+| `queries` | map of string |  |  | sql: one SELECT per `expect` key. The first column of the first row is the value; no row is null. |
+| `exists` | array of string |  | min 1 items | fs: paths to test. The state is { exists: [true, false, ...] } in the same order, so expect exists[0]: true. |
+| `url` | string |  | min length 1 | http: the resource to fetch; the JSON response is the state. {trial_dir}, {task} and {trial} are filled, and ${NAME} takes an environment variable. A network failure or a 5xx is an infra error, not a failed check; a 4xx gives the state { http_status }. |
+| `method` | `GET` · `POST` |  | default `"GET"` |  |
+| `headers` | map of string |  |  | http: request headers; ${NAME} takes an environment variable, so a token never sits in the task file. |
 
 ## check.transcript
 
@@ -445,6 +494,7 @@ evals/runs/<run id>.json. What one run of one or more suites produced, small eno
 | `suite_names` | array of [name](#name) |  |  | Suites this run covered, in order. |
 | `agent_command` | string |  |  |  |
 | `coverage` | object |  |  | Coverage when this run finished, from `litmustest coverage` (v1: spec, surface and risk maps). Items by depth: none, planned (only capability or unpassed tasks), checked (a passing task), guarded (a passing regression task). |
+| `budget` | object |  |  | Present only when runs.budget_usd stopped the run early. Skipped trials are not in `tasks` and count toward no score. |
 
 #### `suites` (each value)
 
@@ -559,6 +609,15 @@ evals/runs/<run id>.json. What one run of one or more suites produced, small eno
 | `checked` | integer | yes | ≥ 0 |  |
 | `guarded` | integer | yes | ≥ 0 |  |
 | `uncovered` | array of string |  | max 1000 items | Item ids with no task, for diffs between runs. |
+
+#### `budget`
+
+| Field | Type | Required | Constraints | Description |
+| --- | --- | --- | --- | --- |
+| `limit_usd` | number | yes | ≥ 0 | runs.budget_usd at run time. |
+| `spent_usd` | number | yes | ≥ 0 | Recorded cost when the runner stopped starting trials. |
+| `trials_skipped` | integer | yes | ≥ 1 | Trials that were planned and never started. |
+| `tasks_skipped` | array of [name](#name) |  |  | Tasks with no trial at all in this run. |
 
 ## trace
 

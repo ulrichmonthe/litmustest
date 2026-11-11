@@ -5,6 +5,7 @@ import { dirname, join, resolve } from "node:path";
 import { parse as parseYaml } from "yaml";
 import { SchemaSet } from "../schemas.ts";
 import { viewFromTrial } from "../run.ts";
+import { readerOf, valueAt } from "../outcome.ts";
 import { loadFiles } from "./overview.ts";
 import { HttpError, type App, type Reply } from "./app.ts";
 import { explainTemplate, explainWithClaude, type ClaudeExplanation, type ExplainInput, type Grade } from "../explain.ts";
@@ -44,7 +45,9 @@ export function loadTrial(evalsDir: string, runId: string, taskId: string, n: nu
   const reference = refPath && existsSync(refPath) ? (JSON.parse(readFileSync(refPath, "utf8")) as Obj) : null;
   const view = trialData ? viewFromTrial(trialData, `trial_${runId}_${taskId}_${n}`) : null;
   // expected vs actual end state, for the outcome panel
-  const outcome = taskFile ? ((taskFile.checks as Obj[]) ?? []).filter((c) => c.type === "outcome").flatMap((c) => Object.entries(c.expect as Obj).map(([path, want]) => ({ check: String(c.id), path, expected: want, actual: trialData ? get(trialData.state, path) : undefined, reference: reference ? get(reference.state, path) : undefined }))) : [];
+  // when the runner read the state itself, the values it saw are in the grade; otherwise the trial's own snapshot is all there is
+  const observedOf = (check: string) => ((grades?.grades as Obj[] | undefined) ?? []).find((g) => g.check === check && g.observed && typeof g.observed === "object") as { observed: Obj; reader?: string } | undefined;
+  const outcome = taskFile ? ((taskFile.checks as Obj[]) ?? []).filter((c) => c.type === "outcome").flatMap((c) => { const seen = observedOf(String(c.id)); return Object.entries(c.expect as Obj).map(([path, want]) => ({ check: String(c.id), path, expected: want, actual: seen && path in seen.observed ? seen.observed[path] : trialData ? valueAt(trialData.state, path) : undefined, reference: reference ? valueAt(reference.state, path) : undefined, reader: seen?.reader ?? (readerOf(c) === "trial" ? "trial" : "trial_fallback") })); }) : [];
   const stderr = existsSync(join(dir, "stderr.txt")) ? readFileSync(join(dir, "stderr.txt"), "utf8").slice(-4000) : "";
   const gradeList = (grades?.grades as Grade[]) ?? [];
   const suiteKind = String(f.suites.find((x) => x.name === task.suite)?.kind ?? task.suite ?? "");
@@ -82,8 +85,6 @@ export async function explainRoute(app: App, runId: string, taskId: string, n: n
   if (r.status !== 200) return r;
   return { status: 200, body: { ...(r.body as Obj), explanation: tr.explanation } };
 }
-
-function get(obj: unknown, path: string): unknown { let cur: unknown = obj; for (const p of path.split(".")) { if (cur === null || typeof cur !== "object") return undefined; cur = (cur as Obj)[p]; } return cur; }
 
 /** Confirm or override the triage: writes trials[n].triage into the run summary through the validated save path. */
 export function setTriage(app: App, runId: string, taskId: string, n: number, body: Obj): Reply {

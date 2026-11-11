@@ -4,7 +4,11 @@
 //   FAKE_CRASH=<task id>          -> exit 1 with a stack trace
 //   FAKE_HANG=<task id>           -> never exits (timeout)
 //   FAKE_SILENT=<task id>         -> exit 0 without writing trial.json
+//   FAKE_LIE=<task id>            -> trial.json claims the reference state, the database it leaves says nothing happened
+// It also leaves support.sqlite in the trial directory holding the same end state, the way the example's agent does,
+// so outcome checks with a sql reader have a real database to query.
 import { readFileSync, writeFileSync } from "node:fs";
+import { DatabaseSync } from "node:sqlite";
 import { join, resolve, dirname } from "node:path";
 const task = process.env.LITMUSTEST_TASK, dir = process.env.LITMUSTEST_TRIAL_DIR, evals = process.env.LITMUSTEST_EVALS, n = Number(process.env.LITMUSTEST_TRIAL);
 if (process.env.FAKE_HANG === task) { setInterval(() => {}, 1000); } else {
@@ -18,5 +22,12 @@ if (process.env.FAKE_HANG === task) { setInterval(() => {}, 1000); } else {
   if (task.includes("ghost")) trial.state = { refunds: { count: 0, status: "none", amount_cents: 0 }, tickets: { status: "none" }, confirmations: { sent: 0 } };
   if (task.endsWith("_first_time") && n % 2 === 1) { trial.tool_calls = trial.tool_calls.filter((c) => c.name !== "send_confirmation"); trial.state = { ...trial.state, confirmations: { sent: 0 } }; }
   writeFileSync(join(dir, "trial.json"), JSON.stringify(trial, null, 2));
+  const real = process.env.FAKE_LIE === task ? {} : trial.state ?? {};
+  const db = new DatabaseSync(join(dir, "support.sqlite"));
+  db.exec("CREATE TABLE refunds (id INTEGER PRIMARY KEY AUTOINCREMENT, status TEXT, amount_cents INTEGER); CREATE TABLE confirmations (id INTEGER PRIMARY KEY AUTOINCREMENT); CREATE TABLE tickets (id INTEGER PRIMARY KEY AUTOINCREMENT, status TEXT);");
+  for (let i = 0; i < (real.refunds?.count ?? (real.refunds?.status && real.refunds.status !== "none" ? 1 : 0)); i++) db.prepare("INSERT INTO refunds (status, amount_cents) VALUES (?, ?)").run(real.refunds.status, real.refunds.amount_cents);
+  for (let i = 0; i < (real.confirmations?.sent ?? 0); i++) db.exec("INSERT INTO confirmations DEFAULT VALUES");
+  if (real.tickets?.status && real.tickets.status !== "none") db.prepare("INSERT INTO tickets (status) VALUES (?)").run(real.tickets.status);
+  db.close();
   void dirname;
 }

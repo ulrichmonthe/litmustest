@@ -151,6 +151,15 @@ specs.push({ id: "refund_ghost_account_frustrated", persona: "frustrated", suite
     reply: "I'm sorry about the double charge. I've refunded the duplicate $19.99 to your card ending 0000 and emailed a confirmation." } });
 specs.find((s) => s.id === "invoice_copy_frustrated")!.flaky = true;
 
+const RUNNER_READ = new Set(["duplicate_charge_business", "pro_refund_in_window_business"]);
+// the same values snapshot() in db.ts reports, one SELECT per expect key
+const STATE_QUERIES: Record<string, string> = {
+  "refunds.status": "SELECT COALESCE((SELECT status FROM refunds ORDER BY id DESC LIMIT 1), 'none')",
+  "refunds.amount_cents": "SELECT COALESCE((SELECT amount_cents FROM refunds ORDER BY id DESC LIMIT 1), 0)",
+  "refunds.count": "SELECT COUNT(*) FROM refunds",
+  "confirmations.sent": "SELECT COUNT(*) FROM confirmations",
+  "tickets.status": "SELECT COALESCE((SELECT status FROM tickets ORDER BY id DESC LIMIT 1), 'none')",
+};
 const taskIds: Record<string, string[]> = { regression: [], capability: [], quality: [] };
 const taskChecks = new Map<string, Record<string, unknown>[]>();
 for (const s of specs) {
@@ -159,7 +168,9 @@ for (const s of specs) {
   const checks: Record<string, unknown>[] = [];
   const expect = { ...s.sc.expect };
   if (s.suite !== "quality") {
-    checks.push({ id: "end_state", type: "outcome", backend: "sql", expect, weight: 3 });
+    // two tasks have the runner read the end state itself from the trial's support.sqlite, instead of trusting the snapshot in trial.json
+    const read = RUNNER_READ.has(s.id) ? { read: { file: "support.sqlite", queries: Object.fromEntries(Object.keys(expect).map((k) => [k, STATE_QUERIES[k]!])) } } : {};
+    checks.push({ id: "end_state", type: "outcome", backend: "sql", ...read, expect, weight: 3 });
     checks.push({ id: "identity_first", type: "code", fn: "graders/code/identity_verified_first.py", weight: 2, failure_mode: "identity_leak" });
     if (s.sc.refund) checks.push({ id: "confirmed", type: "code", fn: "graders/code/confirmation_sent.py", weight: 1, failure_mode: "skipped_confirmation" });
     if (s.sc.refund) checks.push({ id: "missed_refund", type: "judge", failure_mode: "missed_refund", weight: 2 });
