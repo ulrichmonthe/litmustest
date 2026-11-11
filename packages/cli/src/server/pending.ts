@@ -22,8 +22,8 @@ export const VIEWS_FOR = (rel: string): string[] => {
 
 export class Pending {
   private file: string;
-  private git: Git;
-  private evalsDir: string;
+  protected git: Git;
+  protected evalsDir: string;
   private written = new Map<string, string>(); // repo-relative path -> written_at
   constructor(git: Git, evalsDir: string) {
     this.git = git; this.evalsDir = evalsDir;

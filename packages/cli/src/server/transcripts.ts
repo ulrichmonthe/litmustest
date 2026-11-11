@@ -115,7 +115,7 @@ export function dispute(app: App, runId: string, taskId: string, n: number, body
   if (!existsSync(tracePath)) {
     const trace = traceFromTrial(trialData, traceId, { run: runId, task: taskId, trial: n });
     const errs = new SchemaSet().check("trace", trace); if (errs.length) throw new HttpError(500, `trace would not validate: ${errs[0]}`);
-    mkdirSync(dirname(tracePath), { recursive: true }); writeFileSync(tracePath, JSON.stringify(trace, null, 1)); app.pending.track(tracePath); app.invalidate();
+    mkdirSync(dirname(tracePath), { recursive: true }); writeFileSync(tracePath, JSON.stringify(trace, null, 1)); app.wrote([tracePath]); app.invalidate();
     trialData.trace_id = traceId; writeFileSync(trialFile, JSON.stringify(trialData, null, 2));
   }
   const r = app.appendLabel(`disputes-${safe(runId)}`, { trace_id: traceId, failure_mode: mode, label, note: body.note ? String(body.note) : `disputed ${check} on ${taskId} trial ${n} of ${runId}`, annotator: String(body.annotator ?? "dashboard") });
