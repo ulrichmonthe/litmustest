@@ -131,8 +131,7 @@ Usage:
   litmustest --version
   litmustest --help
 
-Commands run, compare, ci and doctor arrive in later
-phases; see docs/SPEC.md.
+See docs/SPEC.md for the method behind each command.
 `;
 
 function main(argv: string[]): number {
