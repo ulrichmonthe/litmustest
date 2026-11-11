@@ -7,6 +7,8 @@ description: Keep the litmustest suites healthy. Find capability tasks that are 
 
 Capability tasks are the hill to climb. When the agent passes one every time, it stops measuring progress and starts guarding behaviour, which is the regression suite's job. This skill moves those tasks and says what to write next. The output is a set of uncommitted changes to task and suite files. A person commits them.
 
+**Where the evals directory is.** The commands here are written for `evals/` at the repository root. Find the directory that holds `litmustest.yaml` first. If it is somewhere else (the sample repo keeps it at `examples/support-agent/evals`), add `--dir <evals dir>` to every `litmustest` command and read the `evals/...` paths below as inside that directory. A command pointed at a directory that is not there fails; it never reports a clean result. `litmustest <command> --help` prints that command's flags.
+
 Three rules from `CLAUDE.md` bind you:
 
 1. `evals/` in git is the source of truth. A graduation is a change to three files: the task and two suite lists.
@@ -72,7 +74,9 @@ Show the diff. The changes are in the Pending changes tray at `http://127.0.0.1:
 
 ## Phase 4: Refill the hill
 
-Graduation shrinks capability. If it drops below roughly 20 tasks, or what is left is all near 100%, the suite has stopped measuring anything. Say so, and propose harder tasks: from the spec items with no task (`litmustest coverage --gaps 10`), from failure modes with no capability task, or from flips in recent compares. Hand off to `define-task`. A capability task should be one the agent cannot pass yet.
+If `graduate` reports 0 tasks ready, say so, say how many runs it considered (`runs_considered`: fewer than the window means there is not enough history yet, and a proposal on a short window is weak evidence), skip `--apply`, and go on to the health of what is left. To see which tasks lean on a stale judge, read the `is stale` warnings of `litmustest validate <evals dir> --deep`.
+
+Graduation shrinks capability. If it is, or would drop, below roughly 20 tasks, or what is left is all near 100%, the suite has stopped measuring anything. Say so, and propose harder tasks: from the spec items with no task (`litmustest coverage --gaps 10`), from failure modes with no capability task, or from flips in recent compares. Hand off to `define-task`. A capability task should be one the agent cannot pass yet.
 
 ## Phase 5: Report and stop
 

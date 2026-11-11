@@ -9,6 +9,8 @@ description: Evaluate a retrieval-augmented generation system with litmustest. S
 
 You are evaluating a system that retrieves context and then answers from it. The output is failure modes, code checks, judges and tasks under `evals/`, uncommitted on the branch. A person commits them.
 
+**Where the evals directory is.** The commands here are written for `evals/` at the repository root. Find the directory that holds `litmustest.yaml` first. If it is somewhere else (the sample repo keeps it at `examples/support-agent/evals`), add `--dir <evals dir>` to every `litmustest` command and read the `evals/...` paths below as inside that directory. A command pointed at a directory that is not there fails; it never reports a clean result. `litmustest <command> --help` prints that command's flags.
+
 Three rules from `CLAUDE.md` bind you:
 
 1. `evals/` in git is the source of truth. You write files there; nothing else.
@@ -23,7 +25,11 @@ Do not pick metrics before reading traces. If there are no failure modes yet, ru
 
 Make sure the trace records retrieval. In the JSONL shape, the retriever is a tool call: `{"name": "search_docs", "args": {"query": ...}, "result": [{"id": "doc_12#3", "rank": 1, ...}]}`. Without retrieved ids in the trace, retrieval cannot be checked; say so and help add them to the agent's logging.
 
+**A lookup by key is retrieval too.** If the product fetches by a key (a policy topic, a record id) and gets back one document, treat the key as the chunk id: check that the needed key was requested and that the call returned content. Recall@k, rank and precision@k do not apply; skip them and say so.
+
 ## Phase 2: Name the failure modes
+
+List `evals/failure_modes/` first and reuse a mode that already covers the failure (an existing grounding mode, for instance) before you write a new one.
 
 Split retrieval from generation. Typical modes, each its own file under `evals/failure_modes/`:
 
@@ -42,7 +48,7 @@ Use the names the reviewer's notes support, not this list. One failure per mode;
 
 ## Phase 3: Build retrieval tasks
 
-A retrieval task pairs a query with the chunk ids that answer it. It is an ordinary task (`docs/SCHEMAS.md`, `task`):
+A retrieval task pairs a query with the chunk ids that answer it. It is an ordinary task (`docs/SCHEMAS.md` in the litmustest repository, `task`):
 
 ```yaml
 id: refund_window_lookup
@@ -70,6 +76,8 @@ Where the questions come from, best first:
 Re-check against real queries regularly; do not overfit to synthetic ones.
 
 ## Phase 4: Write the code checks
+
+The check files named in the examples (`recall_at_k.py`) do not ship; you write them here. A reference solution copied from another task needs its `task` field changed to the new id. If the tool results in the traces are placeholders, a grounding judge has nothing to check: fix the logging first.
 
 Use `write-code-eval` for each. Each check is binary, so a metric becomes a threshold in `args`:
 

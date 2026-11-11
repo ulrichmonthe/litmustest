@@ -9,6 +9,8 @@ description: Write a deterministic code check for one failure mode with litmuste
 
 You are turning one failure mode into a code check. The failure mode already exists under `evals/failure_modes/<name>.yaml`, found by error analysis. The output of this skill is a Python check under `evals/graders/code/`, its test, and the task files that use it, all uncommitted on the branch. A person commits them.
 
+**Where the evals directory is.** The commands here are written for `evals/` at the repository root. Find the directory that holds `litmustest.yaml` first. If it is somewhere else (the sample repo keeps it at `examples/support-agent/evals`), add `--dir <evals dir>` to every `litmustest` command and read the `evals/...` paths below as inside that directory. A command pointed at a directory that is not there fails; it never reports a clean result. `litmustest <command> --help` prints that command's flags.
+
 Three rules from `CLAUDE.md` bind you:
 
 1. `evals/` in git is the source of truth. You write files there; nothing else.
@@ -19,7 +21,7 @@ Code checks come before judges. A check is cheap, fast, deterministic and needs 
 
 ## Phase 1: State the rule
 
-Read the failure mode's `definition`. Write the rule as one sentence that says what Pass and Fail look like in terms of fields of a trial. A trial has the reference-solution shape (`docs/SCHEMAS.md`, `reference_solution`):
+Read the failure mode's `definition`. Write the rule as one sentence that says what Pass and Fail look like in terms of fields of a trial. A trial has the reference-solution shape (`docs/SCHEMAS.md` in the litmustest repository, `reference_solution`):
 
 - `output`: the final response
 - `tool_calls`: `[{name, args, result}]`, in order
@@ -41,7 +43,9 @@ Outcome checks read the real end state and are the strongest signal for an agent
 
 ## Phase 2: Draft the check
 
-You need labels for this failure mode: at least 4 traces labelled Pass or Fail on the mode's own chip in the review queue. Labels for `overall` do not count.
+You need labels for this failure mode: at least 4 traces labelled Pass or Fail on the mode's own chip in the review queue. Labels for `overall` do not count. If there are none, stop and ask the user to label at least 4 on that chip; the mode's `examples:` list is a good place to start. You may write the check by hand meanwhile, but say plainly that it is untested against labels, and do not make up a fixture: a fixture is labelled trials, and only a person labels.
+
+If tasks already carry a check tagged with this failure mode (a transcript check such as `max_toolcalls`), keep it unless the user asks otherwise, add the code check for what it cannot express, and report the overlap. When the definition can be read two ways (a count per tool, or across tools), state your reading in the report and ask whether to sharpen the definition.
 
 ```bash
 litmustest draft-check <failure_mode>

@@ -91,6 +91,7 @@ evals/
 | Hosted mode: the GitHub App, environment, deploy notes, what is untested | `docs/HOSTED.md` |
 | Codex: what ships, what was checked against its docs, the test checklist | `docs/CODEX.md` |
 | The protocol for the open "50 traces in an hour" acceptance line | `docs/LABELLING-STUDY.md` |
+| What happened when each skill was followed once by an agent, and what was fixed | `docs/SKILL-RUNS.md` |
 | The explainer: glossary format, template rules, surfaces | `docs/EXPLAINER.md` |
 | Phase 1 brief: schemas and sample repo | `docs/FIRST-BRIEF.md` |
 | How we compare with the two sources | `docs/COMPARISON.md` |

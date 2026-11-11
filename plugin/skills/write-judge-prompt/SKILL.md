@@ -9,6 +9,8 @@ description: Write a model judge for one failure mode with litmustest. Drafts gr
 
 You are writing a judge for one failure mode that already exists under `evals/failure_modes/<name>.yaml`. The output is a judge directory under `evals/graders/judges/<name>/`, uncommitted on the branch. A judge counts in no score or gate until `validate-evaluator` makes it trusted.
 
+**Where the evals directory is.** The commands here are written for `evals/` at the repository root. Find the directory that holds `litmustest.yaml` first. If it is somewhere else (the sample repo keeps it at `examples/support-agent/evals`), add `--dir <evals dir>` to every `litmustest` command and read the `evals/...` paths below as inside that directory. A command pointed at a directory that is not there fails; it never reports a clean result. `litmustest <command> --help` prints that command's flags.
+
 Three rules from `CLAUDE.md` bind you:
 
 1. `evals/` in git is the source of truth. You write files there; nothing else.
@@ -21,7 +23,7 @@ Check three things and say what you found:
 
 - **A code check cannot do it.** Exhaust code first. Many modes that look subjective reduce to structure: which tool ran, whether a figure in the output matches a tool result, whether a hedge word appears. If code can do it, use `write-code-eval`.
 - **The prompt asked for the behaviour.** If the product's own prompt never told the agent to do this, the fix is the product prompt, not a judge. A judge can still guard a critical requirement afterwards.
-- **There are labels.** The judge's labels are lines in `evals/labels/*.jsonl` with `failure_mode: <name>`, Pass or Fail. `overall` labels do not count. `draft-judge` needs at least 6 with both Pass and Fail in the train split; calibration wants 60 or more, roughly balanced. If there are too few, send the reviewer back to the review queue (`litmustest serve`) to label this mode's chip.
+- **There are labels.** The judge's labels are lines in `evals/labels/*.jsonl` with `failure_mode: <name>`, Pass or Fail. `overall` labels do not count. `draft-judge` needs at least 6 with both Pass and Fail in the train split; calibration wants 60 or more, roughly balanced. If there are too few, send the reviewer back to the review queue (`litmustest serve`) to label this mode's chip. `draft-judge` checks the labels before it calls the model, so with none it stops at once. If the mode has no labels at all, you may write `prompt.md` and `judge.yaml` with `few_shot: []`, run `litmustest calibrate <name> --split none`, report that labels and few-shot examples are still owed, and stop. Never invent few-shot ids.
 
 ## The four parts of a judge
 
@@ -65,7 +67,7 @@ Needs `ANTHROPIC_API_KEY`. You can write `prompt.md` and `judge.yaml` yourself i
 Read the drafted prompt against the reviewers' notes and fix what is weak:
 
 - Definitions are concrete and drawn from what reviewers actually wrote.
-- `inputs` feeds only what the judge needs: `transcript`, `output`, `input`, `state`, `tool_calls`, `reference`. Tone needs the persona and the reply. Grounding needs the tool results and the reply. Tool misuse needs `tool_calls`. Less is more accurate.
+- `inputs` feeds only what the judge needs: `transcript`, `output`, `input`, `state`, `tool_calls`, `reference`. Tone needs the persona and the reply. Grounding needs `tool_calls` (each call carries its result) and the reply. Tool misuse needs `tool_calls`. Less is more accurate.
 - The few-shot set has a borderline case and real notes, not "see the agent's reply".
 
 ## Model
