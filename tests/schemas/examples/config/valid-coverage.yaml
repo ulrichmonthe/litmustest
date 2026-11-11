@@ -14,3 +14,5 @@ ci: { pr_comment: true }
 coverage:
   spec: { files: [docs/05-qa-test-cases.md], id_pattern: "SYS-[A-Z]+-\\d+" }
   surface: { scan: ["backend/**/*.py"], ignore: ["GET /api/health", "GET /{path:path}"], group_depth: 2 }
+  code: { report: coverage/lcov.info, ignore: ["tests/*"], group_depth: 2 }
+  frontend: { scan: ["web/app/**/page.tsx"], routes: ["/settings", "/orders/{id}"], ignore: ["/admin*"] }

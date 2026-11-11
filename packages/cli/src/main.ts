@@ -56,13 +56,15 @@ Usage:
       --explain-failures asks Claude to explain each failed task afterwards.
 
   litmustest coverage [--dir evals] [--gaps N] [--fail-under map=pct]... [--json]
-      How much of the application the evals cover. v1 measures three maps:
-      spec (test-case ids in your docs, from coverage.spec), surface (API
-      routes or tools, from coverage.surface, matched against the calls the
-      latest run's trials made) and risk (failure modes by severity). Each
-      item is guarded, checked, planned or none. It does not measure
-      production traffic, code lines or the frontend. --fail-under spec=20
-      exits 1 when less than 20% of spec items are checked or guarded.
+      How much of the application the evals cover, on six maps: spec
+      (test-case ids in your docs, from coverage.spec), surface (API routes
+      or tools, from coverage.surface, matched against the calls the latest
+      run's trials made), risk (failure modes by severity), traffic (the
+      surface items your ingested traces used, by how often), code (lines
+      that ran during the suites, from the report at coverage.code.report)
+      and frontend (pages, from coverage.frontend). Each item is guarded,
+      checked, planned or none. --fail-under spec=20 exits 1 when less than
+      20% of spec items are checked or guarded.
 
   litmustest explain <term> [--dir evals] | explain --list
       What a term means, why it matters and what good looks like, then what

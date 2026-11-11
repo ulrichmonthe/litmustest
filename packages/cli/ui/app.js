@@ -492,11 +492,11 @@ async function renderModes(selName) {
 // ---------------- overview (read-only)
 function coverageCard(c) {
   const prev = c.history.length > 1 ? c.history[c.history.length - 2] : null;
-  const rows = ["spec", "surface", "risk"].map((k) => c.maps[k]).filter((m) => m.configured);
+  const rows = COV_MAPS.map((k) => c.maps[k]).filter((m) => m && m.configured);
   return h("section", { class: "card", "aria-label": "Coverage" },
-    h("div", { class: "card-head" }, h("div", {}, h("h2", { class: "t-section-title" }, "Coverage"), h("div", { class: "caption muted" }, "Share of each map checked or guarded by a passing task. v1 measures spec, surface and risk; not production traffic, code lines or the frontend.")), h("a", { href: "#/coverage" }, "Open coverage")),
-    ...rows.map((m) => { const t = m.totals; const p = pctOf(t.checked + t.guarded, t.total); const b = prev?.[m.key]; const d = b ? p - pctOf(b.checked + b.guarded, b.total) : null;
-      return h("a", { class: "cov-row", href: `#/coverage/${m.key}` }, h("span", { class: "eyebrow" }, m.label), h("span", { class: "n" }, `${p}%`), depthBar(t), h("span", { class: "caption muted" }, `${t.total - t.none} of ${t.total} have a task${d ? ` · ${d > 0 ? "+" : "−"}${Math.abs(d)} pts` : ""}`)); }),
+    h("div", { class: "card-head" }, h("div", {}, h("h2", { class: "t-section-title" }, "Coverage"), h("div", { class: "caption muted" }, "Share of each map checked or guarded by a passing task. Traffic counts production use; code counts lines that ran.")), h("a", { href: "#/coverage" }, "Open coverage")),
+    ...rows.map((m) => { const t = m.totals; const p = covShare(m); const b = prev?.[m.key]; const d = b ? p - (b.weighted ? pctOf(b.weighted.covered, b.weighted.total) : pctOf(b.checked + b.guarded, b.total)) : null;
+      return h("a", { class: "cov-row", href: `#/coverage/${m.key}` }, h("span", { class: "eyebrow" }, covLabel(m)), h("span", { class: "n" }, `${p}%`), depthBar(t), h("span", { class: "caption muted" }, `${t.total - t.none} of ${t.total} have a task${d ? ` · ${d > 0 ? "+" : "−"}${Math.abs(d)} pts` : ""}`)); }),
     c.maps.spec.configured && c.maps.surface.configured ? null : h("p", { class: "caption muted", style: "margin:0" }, `Add ${[!c.maps.spec.configured && "coverage.spec", !c.maps.surface.configured && "coverage.surface"].filter(Boolean).join(" and ")} to litmustest.yaml to measure ${!c.maps.spec.configured && !c.maps.surface.configured ? "your spec and your API" : !c.maps.spec.configured ? "your spec" : "your API or tools"}.`));
 }
 async function renderOverview() {
@@ -800,6 +800,11 @@ async function renderTaskEditor(d, taskId) {
 // ---------------- coverage
 const DEPTHS = [["guarded", "Guarded", "A passing regression task: the merge gate protects it."], ["checked", "Checked", "A passing task outside regression."], ["planned", "Planned", "Only capability tasks, or tasks that have not passed."], ["none", "None", "No task covers it."]];
 const covPage = { depth: "", table: false };
+const COV_MAPS = ["spec", "surface", "risk", "traffic", "code", "frontend"];
+/** A map's headline share: the covered weight where items differ in size (traces, lines), else items at checked or better. */
+const covShare = (m) => (m.weighted ? pctOf(m.weighted.covered, m.weighted.total) : pctOf(m.totals.checked + m.totals.guarded, m.totals.total));
+const covLabel = (m) => (m.key === "code" ? "Code lines" : m.label);
+const covJob = (m) => { const t = m.totals; return m.key === "traffic" ? `of production use lands on a checked or guarded item · ${t.total} items seen in production` : m.key === "code" ? `of lines ran during the suites · ${m.weighted.covered} of ${m.weighted.total} lines in ${t.total} files` : `checked or guarded · ${t.total - t.none} of ${t.total} have a task`; };
 const pctOf = (n, d) => (d ? Math.round((100 * n) / d) : 0);
 function commonPrefix(names) { if (names.length < 2) return ""; let p = names[0]; for (const n of names) while (!n.startsWith(p)) p = p.slice(0, -1); return p.length >= 2 && /[-/_]$/.test(p) ? p : ""; }
 function depthBar(t) {
@@ -835,18 +840,18 @@ function areaTable(map, onPick) {
 async function renderCoverage(mapKey, area) {
   const seq = state.seq; const page = $("#page");
   const c = await api("/api/coverage"); if (stale(seq)) return;
-  const maps = ["spec", "surface", "risk"].map((k) => c.maps[k]);
+  const maps = COV_MAPS.map((k) => c.maps[k]).filter(Boolean);
   const key = mapKey && c.maps[mapKey] ? mapKey : (maps.find((m) => m.configured && m.areas.length >= 3) ?? maps.find((m) => m.configured) ?? maps[0]).key;
   const map = c.maps[key];
   const go = (k, a) => { location.hash = `#/coverage/${k}${a ? `/${encodeURIComponent(a)}` : ""}`; };
   const prev = c.history.length > 1 ? c.history[c.history.length - 2] : null;
   const tile = (m) => {
-    const t = m.totals; const cov = t.total - t.none; const covPct = pctOf(t.checked + t.guarded, t.total);
-    const before = prev?.[m.key]; const d = before ? covPct - pctOf(before.checked + before.guarded, before.total) : null;
+    const t = m.totals; const covPct = covShare(m);
+    const before = prev?.[m.key]; const d = before ? covPct - (before.weighted ? pctOf(before.weighted.covered, before.weighted.total) : pctOf(before.checked + before.guarded, before.total)) : null;
     return h("button", { type: "button", class: "cov-tile", "aria-pressed": m.key === key ? "true" : "false", onclick: () => go(m.key) },
-      h("span", { class: "eyebrow" }, m.label),
-      m.configured ? [h("span", { class: "n" }, `${covPct}%`), h("span", { class: "job" }, `checked or guarded · ${cov} of ${t.total} have a task${d !== null && d !== 0 ? ` · ${d > 0 ? "+" : "−"}${Math.abs(d)} pts vs ${prev.run_id}` : ""}`), depthBar(t)]
-        : [h("span", { class: "n muted" }, "–"), h("span", { class: "job" }, "Not measured: not configured")]);
+      h("span", { class: "eyebrow" }, covLabel(m)),
+      m.configured ? [h("span", { class: "n" }, `${covPct}%`), h("span", { class: "job" }, `${covJob(m)}${d !== null && d !== 0 ? ` · ${d > 0 ? "+" : "−"}${Math.abs(d)} pts vs ${prev.run_id}` : ""}`), depthBar(t)]
+        : [h("span", { class: "n muted" }, "–"), h("span", { class: "job", title: m.reason ?? "" }, "Not measured: not set up")]);
   };
   const legend = h("div", { class: "cov-legend" }, ...DEPTHS.map(([k, l, d]) => h("span", { title: d }, h("i", { class: `sw ${k}` }), l)));
   const onPick = (a) => go(key, a === area ? undefined : a);
@@ -872,8 +877,8 @@ async function renderCoverage(mapKey, area) {
       : h("p", { class: "muted", style: "margin:0" }, "No gaps in the measured maps."),
     h("p", { class: "caption muted", style: "margin:0" }, "To close one, add a task whose source is spec:<id> or whose covers: lists it."));
   const scope = h("details", { class: "card scope", open: !localStorage.getItem("litmustest.coverage.scope-seen") || undefined, ontoggle: (e) => { if (!e.target.open) try { localStorage.setItem("litmustest.coverage.scope-seen", "1"); } catch {} } },
-    h("summary", {}, h("strong", {}, "What v1 measures, and what it does not")),
-    h("div", { class: "scope-cols" }, h("div", {}, h("span", { class: "eyebrow" }, "Measured"), h("ul", {}, ...c.scope.measures.map((x) => h("li", {}, x)))), h("div", {}, h("span", { class: "eyebrow" }, "Not measured in v1"), h("ul", {}, ...c.scope.not_measured.map((x) => h("li", {}, x))))));
+    h("summary", {}, h("strong", {}, "What coverage measures, and what it does not")),
+    h("div", { class: "scope-cols" }, h("div", {}, h("span", { class: "eyebrow" }, "Measured"), h("ul", {}, ...c.scope.measures.map((x) => h("li", {}, x)))), h("div", {}, h("span", { class: "eyebrow" }, "Not measured"), h("ul", {}, ...c.scope.not_measured.map((x) => h("li", {}, x))))));
   page.replaceChildren(h("div", { class: "column" },
     h("header", { class: "page-header" }, h("div", { class: "titles" }, h("h1", { class: "t-page-title" }, "Coverage"), h("p", { class: "subtitle" }, "How much of the application an eval would catch if it broke", c.run_id ? [" · against ", h("span", { class: "mono" }, c.run_id)] : " · no runs yet, so nothing is checked or guarded"))),
     scope,

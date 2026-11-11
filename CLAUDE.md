@@ -36,7 +36,7 @@ packages/cli/ui/          # the dashboard: static HTML, CSS and one ES module, n
 packages/cli/src/server/  # app (routes and validated writes), pending (the tray), overview (read models), judges, discover_route, promote (trace to task, expected flips, PR comment)
 packages/cli/src/{stats,judge_run,calibrate,draft}.ts  # error bars and judge-error correction; running a judge; the calibration workflow; drafting graders
 packages/cli/src/{run,compare,ci}.ts  # the runner (agent.command per trial, grading, summaries); paired comparison and gates; the CI entry
-packages/cli/src/{coverage,coverage_cli}.ts, server/coverage_route.ts  # coverage v1: spec, surface and risk maps with depth; docs/COVERAGE.md says what it does not measure
+packages/cli/src/{coverage,coverage_cli}.ts, server/coverage_route.ts  # coverage: spec, surface, risk, traffic, code and frontend maps with depth; docs/COVERAGE.md says what it does not measure
 packages/cli/src/{explain,explain_run}.ts  # why a trial failed: a template from the data (no model) and Claude's reading, stored as trials[n].explanation; advice only, never a verdict
 packages/cli/src/{sample,graduate}.ts, adapters/platforms.ts  # the production sampler; graduation, saturation and doctor; Langfuse and Braintrust pull adapters
 packages/cli/src/{glossary,glossary_facts,glossary_cli}.ts, explain/, server/glossary_route.ts  # the explainer: plugin/glossary/terms.yaml rendered from typed facts by explain(); docs/EXPLAINER.md is the contract, docs/stories/explainer.md the plan
@@ -83,7 +83,7 @@ evals/
 | What each screen does and the write-back model | `docs/SCREENS.md`, `design/mockups/*.dc.html` |
 | Colours, type, spacing, voice, component rules | `docs/BRAND.md`, `brand/tokens.json`, `brand/logos/` |
 | What "done" means per phase | `docs/ACCEPTANCE.md` |
-| What coverage measures, and what v1 does not | `docs/COVERAGE.md` |
+| What coverage measures, and what it does not | `docs/COVERAGE.md` |
 | The explainer: glossary format, template rules, surfaces | `docs/EXPLAINER.md` |
 | Phase 1 brief: schemas and sample repo | `docs/FIRST-BRIEF.md` |
 | How we compare with the two sources | `docs/COMPARISON.md` |

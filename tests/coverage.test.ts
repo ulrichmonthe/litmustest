@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { beforeAll, describe, expect, it } from "vitest";
-import { callTarget, computeCoverage, coverageSnapshot, depthOf, matchRoute, scanRoutes, specItems, surfaceArea } from "../packages/cli/src/coverage.ts";
+import { callTarget, computeCoverage, coverageSnapshot, depthOf, matchRoute, scanRoutes, specItems, surfaceArea, codeReport, scanPages, matchPage } from "../packages/cli/src/coverage.ts";
 import { coverageText, gaps, underThresholds } from "../packages/cli/src/coverage_cli.ts";
 import { compareRuns, comparisonMarkdown } from "../packages/cli/src/compare.ts";
 import { SchemaSet } from "../packages/cli/src/schemas.ts";
@@ -85,13 +85,13 @@ describe("computeCoverage on a project", () => {
     expect(c.maps.risk.items.map((i) => `${i.id}=${i.depth}`)).toEqual(["gate_bypass=guarded", "tone=planned"]);
     expect(c.maps.risk.items[1]!.tasks[0]!.note).toMatch(/not trusted/);
     expect(c.warnings.join(" ")).toContain("SYS-NOPE-09");
-    expect(c.scope.not_measured.join(" ")).toMatch(/Production traffic/);
+    expect(c.scope.measures.join(" ")).toMatch(/Traffic: every surface item/); expect(c.scope.not_measured.join(" ")).toMatch(/good check/);
   });
   it("orders gaps by priority and severity, prints scope, and enforces thresholds", () => {
     const c = computeCoverage(evals);
     expect(gaps(c).map((g) => `${g.map}:${g.id}`)).toEqual(["spec:SYS-LOOP-02", "risk:tone"]);
     const text = coverageText(c);
-    expect(text).toContain("v1 measures three maps: spec, surface and risk. It does not measure production traffic");
+    expect(text).toContain("Six maps: spec, surface, risk, traffic, code and frontend.");
     expect(text).toContain("Spec     75% checked or guarded · 3 of 4 have a task · guarded 1 · checked 2 · planned 0 · none 1");
     expect(underThresholds(c, ["spec=80", "surface=50"])).toEqual(["spec coverage 75% is under 80%"]);
     expect(underThresholds(c, ["nope"])[0]).toMatch(/bad threshold/);
@@ -113,5 +113,68 @@ describe("computeCoverage on a project", () => {
     const cmp = compareRuns(evals, "r1", "r2");
     expect(cmp.coverage).toEqual([{ map: "spec", a: 100, b: 75, delta: -25, total_a: 4, total_b: 4, newly_uncovered: ["SYS-LOOP-02"] }]);
     expect(comparisonMarkdown(cmp)).toContain("**1 item with no eval since r1** (new, or lost their task): spec: `SYS-LOOP-02`");
+  });
+});
+
+describe("traffic, code and frontend maps", () => {
+  let root: string; let evals: string;
+  const trace = (id: string, tools: string[]) => JSON.stringify({ id, source: "jsonl", ingested_at: "2026-11-01T00:00:00Z", spans: [
+    { span_id: "c", name: "chat m", kind: "client", start_time: "2026-11-01T00:00:00Z", end_time: "2026-11-01T00:00:02Z", attributes: { "gen_ai.operation.name": "chat", "gen_ai.input.messages": [{ role: "user", parts: [{ type: "text", content: "hi" }] }], "gen_ai.output.messages": [{ role: "assistant", parts: [{ type: "text", content: "done" }] }] } },
+    ...tools.map((t, i) => ({ span_id: `t${i}`, parent_span_id: "c", name: `execute_tool ${t}`, kind: "internal", start_time: `2026-11-01T00:00:01.${i}00Z`, end_time: `2026-11-01T00:00:01.${i}50Z`, attributes: { "gen_ai.operation.name": "execute_tool", "gen_ai.tool.name": t, "gen_ai.tool.call.arguments": {}, "gen_ai.tool.call.result": { ok: true } } })),
+  ] });
+  beforeAll(() => {
+    root = mkdtempSync(join(tmpdir(), "litmustest-cov-more-")); evals = join(root, "evals");
+    w(evals, "litmustest.yaml", 'version: 1\nproject: p\ncoverage:\n  surface: { items: [lookup, refund, export] }\n  code: { report: coverage/lcov.info, ignore: ["tests/*"] }\n  frontend: { scan: ["web/app/**/page.tsx", "web/src/router.ts"], ignore: ["/admin*"] }\n');
+    w(evals, "tasks/regression/reg_lookup.yaml", "id: reg_lookup\nsuite: regression\nsource: spec:x\ncovers: [\"/orders/{id}\"]\nchecks:\n  - { id: end_state, type: outcome, expect: { a: 1 } }\n");
+    w(evals, "runs/r1.json", JSON.stringify({ run_id: "r1", commit: "abc1234", started_at: "2026-11-01T10:00:00Z", finished_at: "2026-11-01T10:00:00Z", config_hash: "0".repeat(64), trials: 1, suites: {}, infra_error_rate: 0, cost_usd: 0, tasks: { reg_lookup: { suite: "regression", strict_pass: 100, weighted: 100, trials: [{ pass: true, failed_checks: [], infra_error: false }] } } }));
+    w(root, ".litmustest/transcripts/r1/reg_lookup/1/trial.json", JSON.stringify({ tool_calls: [{ name: "lookup", args: {} }, { name: "open_page", args: { url: "https://app.example.com/settings?tab=1" } }] }));
+    // production: lookup in three traces, refund in two, export in none, and one call to a tool the surface does not list
+    w(evals, "datasets/traces/tr_1.json", trace("tr_1", ["lookup"]));
+    w(evals, "datasets/traces/tr_2.json", trace("tr_2", ["lookup", "refund"]));
+    w(evals, "datasets/traces/tr_3.json", trace("tr_3", ["lookup", "refund", "mystery"]));
+    w(root, "coverage/lcov.info", "SF:" + join(root, "src/agent.ts") + "\nDA:1,3\nDA:2,0\nDA:3,1\nDA:4,0\nend_of_record\nSF:src/tools/refund.ts\nDA:1,0\nDA:2,0\nend_of_record\nSF:tests/x.ts\nDA:1,1\nend_of_record\n");
+    w(root, "web/app/page.tsx", ""); w(root, "web/app/settings/page.tsx", ""); w(root, "web/app/(shop)/orders/[id]/page.tsx", ""); w(root, "web/app/admin/page.tsx", "");
+    w(root, "web/src/router.ts", 'const routes = [{ path: "/help", component: Help }, { path: "/legal/", component: Legal }];\n');
+  });
+  it("weighs surface items by production use", () => {
+    const c = computeCoverage(evals); const t = c.maps.traffic;
+    expect(t.configured).toBe(true);
+    expect(t.items.map((i) => `${i.id}:${i.weight}:${i.depth}`)).toEqual(["lookup:3:guarded", "refund:2:none"]);
+    expect(t.weighted).toEqual({ unit: "trace uses", total: 5, covered: 3 });
+    expect(c.warnings.join(" ")).toMatch(/1 tool call in production traces match no item/);
+    expect(coverageText(c)).toContain("Traffic  60% of production use lands on a checked or guarded item · 2 items seen in production");
+    expect(underThresholds(c, ["traffic=80"])).toEqual(["traffic coverage 60% is under 80%"]);
+    // an uncovered item production uses is a gap; one nobody calls is still listed by the surface map
+    expect(gaps(c).map((g) => `${g.map}:${g.id}`)).toEqual(expect.arrayContaining(["traffic:refund", "surface:export"]));
+  });
+  it("reads lines that ran from an lcov report, and from Istanbul JSON", () => {
+    const c = computeCoverage(evals); const code = c.maps.code;
+    expect(code.items.map((i) => `${i.id}:${i.covered}/${i.weight}:${i.depth}`)).toEqual(["src/agent.ts:2/4:checked", "src/tools/refund.ts:0/2:none"]);
+    expect(code.weighted).toEqual({ unit: "lines", total: 6, covered: 2 });
+    expect(coverageText(c)).toContain("Code     33% of lines ran during the suites · 2 of 6 lines · 2 files, 1 never ran");
+    expect(gaps(c).some((g) => g.map === "code")).toBe(false);
+    w(root, "coverage/summary.json", JSON.stringify({ total: { lines: { total: 9, covered: 4 } }, "src/a.ts": { lines: { total: 5, covered: 4 } }, "src/b.ts": { lines: { total: 4, covered: 0 } } }));
+    expect(codeReport(join(root, "coverage/summary.json"), root)).toEqual([{ file: "src/a.ts", total: 5, covered: 4 }, { file: "src/b.ts", total: 4, covered: 0 }]);
+    w(root, "coverage/final.json", JSON.stringify({ "/x/src/c.ts": { path: "/x/src/c.ts", statementMap: { 0: { start: { line: 1 } }, 1: { start: { line: 1 } }, 2: { start: { line: 2 } } }, s: { 0: 0, 1: 2, 2: 0 } } }));
+    expect(codeReport(join(root, "coverage/final.json"), root)).toEqual([{ file: "/x/src/c.ts", total: 2, covered: 1 }]);
+  });
+  it("finds pages in source and matches the URLs trials opened", () => {
+    expect(scanPages(root, ["web/app/**/page.tsx", "web/src/router.ts"])).toEqual(["/", "/admin", "/help", "/legal", "/orders/{id}", "/settings"]);
+    expect(matchPage(["/orders/{id}", "/settings"], { name: "open", args: { url: "https://x.test/orders/42" } })).toBe("/orders/{id}");
+    const fe = computeCoverage(evals).maps.frontend;
+    expect(fe.items.map((i) => `${i.id}=${i.depth}`)).toEqual(["/=none", "/help=none", "/legal=none", "/orders/{id}=guarded", "/settings=guarded"]);
+    expect(fe.items.find((i) => i.id === "/settings")!.tasks[0]!.via).toBe("called");
+    expect(fe.items.find((i) => i.id === "/orders/{id}")!.tasks[0]!.via).toBe("covers");
+  });
+  it("stores the weighted share in the run snapshot and says how to set up a map that is off", () => {
+    const snap = coverageSnapshot(computeCoverage(evals)) as Record<string, { weighted?: unknown }>;
+    expect(snap.traffic!.weighted).toEqual({ unit: "trace uses", total: 5, covered: 3 });
+    expect(snap.frontend!.weighted).toBeUndefined();
+    const bare = join(mkdtempSync(join(tmpdir(), "litmustest-cov-off-")), "evals");
+    w(bare, "litmustest.yaml", "version: 1\nproject: p\n");
+    const c = computeCoverage(bare);
+    expect(c.maps.traffic.reason).toMatch(/Needs coverage.surface/);
+    expect(c.maps.code.reason).toMatch(/coverage.code.report/);
+    expect(c.maps.frontend.reason).toMatch(/coverage.frontend/);
   });
 });

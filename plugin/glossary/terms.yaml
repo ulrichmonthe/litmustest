@@ -1144,8 +1144,8 @@
 
 - id: coverage_map
   term: Coverage map
-  aliases: [spec, surface, risk, coverage maps]
-  short: "One way of listing your app: cases in your spec, its API routes or tools, or [[failure_mode]]s by [[severity]]."
+  aliases: [spec, surface, risk, traffic, frontend, code lines, coverage maps]
+  short: "One way of listing your app: spec cases, API routes or tools, [[failure_mode]]s, production use, lines that ran, or pages."
   related: [coverage, coverage_depth]
   learn_more: master-class#ch-25
 

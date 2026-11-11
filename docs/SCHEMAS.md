@@ -40,7 +40,7 @@ evals/litmustest.yaml. Where traces come from, how runs execute, how judges are 
 | `storage` | object |  |  | Where run output goes. Summaries are small and go in git; transcripts are evidence and get a stable address. |
 | `ci` | object |  |  |  |
 | `agent` | object |  |  | How the runner starts the agent for one trial. The command runs once per trial in a fresh trial directory and must leave <trial_dir>/trial.json in the reference_solution shape (output, state, tool_calls, transcript, optional usage and latency_ms). Placeholders: {task}, {task_file}, {trial_dir}, {trial}, {evals}; the same values arrive as LITMUSTEST_TASK, LITMUSTEST_TASK_FILE, LITMUSTEST_TRIAL_DIR, LITMUSTEST_TRIAL, LITMUSTEST_INPUT (JSON) and LITMUSTEST_EVALS. |
-| `coverage` | object |  |  | Maps of the application that `litmustest coverage` measures the eval suite against. v1 measures three maps: spec (test-case ids in your docs), surface (API routes or tool names the trials actually call) and risk (failure modes by severity, always on). It does not measure production traffic, code lines or the frontend. |
+| `coverage` | object |  |  | Maps of the application that `litmustest coverage` measures the eval suite against: spec (test-case ids in your docs), surface (API routes or tool names the trials actually call), risk (failure modes by severity, always on), traffic (the surface items production traces used, on when surface is set and traces are ingested), code (lines that ran during the suites, from a report your process writes) and frontend (pages the trials opened). |
 | `explain` | object |  |  | The explainer (docs/EXPLAINER.md). |
 
 #### `sources`
@@ -129,6 +129,8 @@ evals/litmustest.yaml. Where traces come from, how runs execute, how judges are 
 | --- | --- | --- | --- | --- |
 | `spec` | object |  |  | Requirements: every match of id_pattern in these files is one item. A task covers an item through `covers:` or a `source: spec:<id>` (case-insensitive). |
 | `surface` | object |  |  | What the product exposes. Items come from an OpenAPI file, a scan of route decorators, or an explicit list (tool names, for an agent). A route counts as exercised when a trial in the latest run calls it; `covers:` can also claim one. |
+| `code` | object |  |  | Code that ran while the suites ran. litmustest instruments nothing: your agent's own process has to write the report (for example with c8, nyc or coverage.py's lcov output) during `litmustest run`. |
+| `frontend` | object |  |  | The product's pages. A page counts as exercised when a trial in the latest run opened its URL (a tool call whose url or path matches); `covers:` can also claim one. |
 
 ##### `spec`
 
@@ -147,6 +149,22 @@ evals/litmustest.yaml. Where traces come from, how runs execute, how judges are 
 | `items` | array of string |  | min 1 items, unique | An explicit list: "METHOD /path" or tool names. |
 | `ignore` | array of string |  |  | Items to leave out, matched exactly or by a trailing *. |
 | `group_depth` | integer |  | ≥ 1, ≤ 6 | How many path segments make an area for the chart. Default 2 (/api/play). |
+
+##### `code`
+
+| Field | Type | Required | Constraints | Description |
+| --- | --- | --- | --- | --- |
+| `report` | string | yes | min length 1 | Path to an lcov tracefile or an Istanbul JSON report (coverage-final.json or coverage-summary.json), relative to the repository root. |
+| `ignore` | array of string |  |  | Files to leave out. A trailing * matches a prefix. |
+| `group_depth` | integer |  | ≥ 1, ≤ 6 | How many leading path segments make an area. Default 1. |
+
+##### `frontend`
+
+| Field | Type | Required | Constraints | Description |
+| --- | --- | --- | --- | --- |
+| `routes` | array of string |  | min 1 items | Page routes, e.g. /settings or /orders/{id}. |
+| `scan` | array of string |  | min 1 items | Globs of source files to scan: Next.js app/ and pages/ folders by file name, React Router and Vue Router files by their path declarations. |
+| `ignore` | array of string |  |  | Routes to leave out. A trailing * matches a prefix. |
 
 #### `explain`
 
@@ -452,7 +470,7 @@ evals/runs/<run id>.json. What one run of one or more suites produced, small eno
 | `judge_corrections` | array of object |  |  | Per judge, the TPR/TNR used to correct its checks' pass rates. |
 | `suite_names` | array of [name](#name) |  |  | Suites this run covered, in order. |
 | `agent_command` | string |  |  |  |
-| `coverage` | object |  |  | Coverage when this run finished, from `litmustest coverage` (v1: spec, surface and risk maps). Items by depth: none, planned (only capability or unpassed tasks), checked (a passing task), guarded (a passing regression task). |
+| `coverage` | object |  |  | Coverage when this run finished, from `litmustest coverage` (spec, surface, risk, traffic, code and frontend maps; only the ones that are set up). Items by depth: none, planned (only capability or unpassed tasks), checked (a passing task), guarded (a passing regression task). |
 | `expected_flips` | array of object |  |  | Flips against an earlier run that a person marked as expected, from Run compare. An expected flip explains a change in the comparison's verdict; it never waives a gate. |
 
 #### `suites` (each value)
@@ -535,6 +553,9 @@ evals/runs/<run id>.json. What one run of one or more suites produced, small eno
 | `spec` | object |  |  |  |
 | `surface` | object |  |  |  |
 | `risk` | object |  |  |  |
+| `traffic` | object |  |  |  |
+| `code` | object |  |  |  |
+| `frontend` | object |  |  |  |
 
 ##### `spec`
 
@@ -559,6 +580,57 @@ evals/runs/<run id>.json. What one run of one or more suites produced, small eno
 | `uncovered` | array of string |  | max 1000 items | Item ids with no task, for diffs between runs. |
 
 ##### `risk`
+
+| Field | Type | Required | Constraints | Description |
+| --- | --- | --- | --- | --- |
+| `total` | integer | yes | ≥ 0 |  |
+| `none` | integer | yes | ≥ 0 |  |
+| `planned` | integer | yes | ≥ 0 |  |
+| `checked` | integer | yes | ≥ 0 |  |
+| `guarded` | integer | yes | ≥ 0 |  |
+| `uncovered` | array of string |  | max 1000 items | Item ids with no task, for diffs between runs. |
+
+##### `traffic`
+
+| Field | Type | Required | Constraints | Description |
+| --- | --- | --- | --- | --- |
+| `total` | integer | yes | ≥ 0 |  |
+| `none` | integer | yes | ≥ 0 |  |
+| `planned` | integer | yes | ≥ 0 |  |
+| `checked` | integer | yes | ≥ 0 |  |
+| `guarded` | integer | yes | ≥ 0 |  |
+| `uncovered` | array of string |  | max 1000 items | Item ids with no task, for diffs between runs. |
+| `weighted` | object |  |  | The headline for a map whose items differ in size: the covered share of the weight. |
+
+###### `weighted`
+
+| Field | Type | Required | Constraints | Description |
+| --- | --- | --- | --- | --- |
+| `unit` | string | yes |  |  |
+| `total` | number | yes | ≥ 0 |  |
+| `covered` | number | yes | ≥ 0 |  |
+
+##### `code`
+
+| Field | Type | Required | Constraints | Description |
+| --- | --- | --- | --- | --- |
+| `total` | integer | yes | ≥ 0 |  |
+| `none` | integer | yes | ≥ 0 |  |
+| `planned` | integer | yes | ≥ 0 |  |
+| `checked` | integer | yes | ≥ 0 |  |
+| `guarded` | integer | yes | ≥ 0 |  |
+| `uncovered` | array of string |  | max 1000 items | Item ids with no task, for diffs between runs. |
+| `weighted` | object |  |  | The headline for a map whose items differ in size: the covered share of the weight. |
+
+###### `weighted`
+
+| Field | Type | Required | Constraints | Description |
+| --- | --- | --- | --- | --- |
+| `unit` | string | yes |  |  |
+| `total` | number | yes | ≥ 0 |  |
+| `covered` | number | yes | ≥ 0 |  |
+
+##### `frontend`
 
 | Field | Type | Required | Constraints | Description |
 | --- | --- | --- | --- | --- |
