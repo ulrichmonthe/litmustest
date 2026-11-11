@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { alertTerm, meaningBlock, muted, plainLines, termList, termText } from "./glossary_cli.ts";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { explainRun, explainText } from "./explain_run.ts";
 import { computeCoverage } from "./coverage.ts";
 import { coverageText, underThresholds } from "./coverage_cli.ts";
@@ -12,6 +12,7 @@ import { validateEvals, type Problem } from "./validate.ts";
 import { initEvals } from "./init.ts";
 import { ingest } from "./ingest.ts";
 import { serve } from "./serve.ts";
+import { Hosted, hostedFromEnv } from "./server/hosted.ts";
 import { discover } from "./discover.ts";
 import { App } from "./server/app.ts";
 import { calibrate } from "./calibrate.ts";
@@ -21,6 +22,10 @@ import { compareRuns, comparisonMarkdown, evaluateGates } from "./compare.ts";
 import { ci, writeWorkflow } from "./ci.ts";
 import { sample, SAMPLER_WORKFLOW } from "./sample.ts";
 import { applyGraduations, doctor, graduationProposals } from "./graduate.ts";
+import { applyProposals, isWriteCommand, postComparison, writeCommand } from "./write_cli.ts";
+
+// `litmustest explain | head` closes the pipe early; that is the reader being done, not an error.
+process.stdout.on("error", (e: NodeJS.ErrnoException) => { if (e.code === "EPIPE") process.exit(0); throw e; });
 
 const VERSION: string = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), "..", "package.json"), "utf8")).version;
 
@@ -37,11 +42,12 @@ Usage:
       representative per cluster plus a random draw to batches/<name>.yaml
       with a coverage report. Defaults come from sources.sampler in the config.
 
-  litmustest discover [--dir evals] [--batch name] [--apply] [--json]
+  litmustest discover [--dir evals] [--batch name] [--apply] [--only a,b] [--json]
       Group the reviewers' notes into failure modes with the model and show
       each proposed failure_modes/<name>.yaml as a diff. Nothing is written
       unless --apply, which saves the files (validated) as pending changes
-      on the branch for a person to commit. Needs ANTHROPIC_API_KEY.
+      on the branch for a person to commit; --only saves just the named
+      failure modes. Needs ANTHROPIC_API_KEY.
 
   litmustest run [--dir evals] [--suite s]... [--task id]... [--trials k] [--concurrency n] [--id run_id] [--dry-run] [--explain] [--explain-failures] [--json]
       Run each task k times in a fresh trial directory via agent.command
@@ -81,11 +87,12 @@ Usage:
       change; --no-model prints the template only and writes nothing. One
       trial per task unless --all; --force re-explains. Needs a model token.
 
-  litmustest compare <A> <B> [--dir evals] [--json] [--markdown] [--explain]
+  litmustest compare <A> <B> [--dir evals] [--json] [--markdown] [--explain] [--comment] [--pr N]
       Paired comparison of two run summaries over their common tasks: per-suite
       delta with a bootstrap interval, significant or within noise; the flip
       list (Broke, Fixed, Flaky); failed checks by failure mode; cost, tokens,
-      latency and infra deltas; and the gate verdict for B.
+      latency and infra deltas; and the gate verdict for B. --comment posts
+      it on the branch's pull request, or --pr N (needs gh).
 
   litmustest ci [--dir evals] [--suite s]... [--base run_id] [--base-branch main] [--comment] [--pr N] [--write-workflow]
       Run the gated suites, compare with the base run (the latest on the base
@@ -101,10 +108,11 @@ Usage:
       --if-due only samples when sources.sampler.every says it is time.
       --write-workflow scaffolds a weekly GitHub Action that opens a PR.
 
-  litmustest graduate [--dir evals] [--runs 3] [--apply] [--json]
+  litmustest graduate [--dir evals] [--runs 3] [--apply] [--only a,b] [--json]
       Capability tasks that passed every trial in the last 3 runs are
       proposed for the regression suite; --apply moves them (task file and
-      suite lists) as pending changes. Reports capability saturation.
+      suite lists) as pending changes; --only moves just the named tasks.
+      Reports capability saturation.
 
   litmustest doctor [--dir evals] [--json] [--explain]
       Eval health from the files: stale or untested judges, broken and
@@ -129,13 +137,64 @@ Usage:
       bootstrap intervals, the confusion matrix and the disagreements to
       calibration.json. --split none only refreshes splits and status.
 
+  litmustest label <trace> pass|fail [--mode m]... [--note s] [--batch b] [--annotator name] [--dir evals] [--json]
+      Append a person's label, the way the review queue does: one overall
+      verdict, plus one Fail per --mode. Lands in labels/<batch>.jsonl (the
+      newest batch holding the trace). A label is a person's judgement: with
+      no terminal on stdin the command refuses unless --annotator says who
+      decided. Skills and agents never run it.
+
+  litmustest triage <run> <task> <n> agent|grader|task|infra [--note s] [--by name] [--dir evals] [--json]
+      Confirm or override why a trial failed; written to the run summary.
+
+  litmustest dispute <run> <task> <n> <check> pass|fail [--note s] [--annotator name] [--dir evals] [--json]
+      Disagree with a judge's verdict on a trial: the trial becomes a trace
+      and your label is appended for that judge's failure mode. Human-only,
+      like label.
+
+  litmustest promote <trace> [--suite regression] [--id task_id] [--dir evals] [--json]
+      Turn a reviewed trace into a task: the task file, a reference drafted
+      from what the agent did, and the suite entry, as one pending change.
+      Prints the checks the drafted reference fails, for a person to fix.
+
+  litmustest flip <A> <B> <task> --expected [--undo] [--note s] [--by name] [--dir evals] [--json]
+      Mark a task that flipped between runs A and B as expected (or --undo).
+      It explains the change in the comparison; it never waives a gate.
+
+  litmustest mode new|set|merge|retire <name> [into] [--definition s] [--severity high|med|low] [--owner o] [--dir evals] [--json]
+      Create or edit a failure mode, merge it into another, or retire it.
+
+  litmustest set <path> [key=value]... [--unset key]... [--from file] [--dir evals] [--json]
+      The validated save behind every dashboard editor, for any file under
+      evals/ (a task, a judge, litmustest.yaml): dotted keys on a YAML or
+      JSON file, or the whole file with --from (- reads stdin). Refused when
+      it breaks a schema or a cross-file rule; editing a judge's prompt or
+      model marks its calibration stale. calibration.json and traces stay
+      read-only.
+
+  litmustest pending [status|commit|pr|discard] [paths...] [--diff] [--message m] [--slug s] [--title t] [--body b] [--all] [--dir evals] [--json]
+      The Pending changes tray: list every uncommitted change under evals/,
+      commit them to an evals/<slug> branch, open the pull request (needs
+      gh), or discard named paths (--all for everything).
+
+  litmustest prefs [key=true|false]... [--dir evals] [--json]
+      Your own display preferences (plain_language); kept outside the repo.
+
   litmustest serve [--dir evals] [--port 4242] [--host 127.0.0.1]
       Local server over evals/: reads with content hashes, validated writes
       that land on an evals/<slug> branch, the Pending changes API (commit,
       open PR, discard), append-only labels, batches and traces for the
-      review queue, and server-sent events from the file watcher.
+      review queue, and server-sent events from the file watcher. Listens
+      on this machine only.
 
-  litmustest validate [path] [--deep] [--json] [--quiet]
+  litmustest serve --hosted --repo owner/name [--dir evals] [--port 4242] [--host 0.0.0.0] [--workdir path] [--base main]
+      Hosted mode, for a team with no local checkout: the server clones the
+      repository as a GitHub App, people sign in with GitHub, and every save
+      is a commit on an evals/<slug> pull-request branch authored by the
+      person who made it. Needs the LITMUSTEST_APP_* variables; see
+      docs/HOSTED.md.
+
+  litmustest validate [path] [--dir path] [--deep] [--json] [--quiet]
       Validate an evals/ directory (default: ./evals) against the schemas and
       the cross-file rules. --deep also runs each task's code, outcome and
       transcript checks against its reference solution. Exit 1 on any error.
@@ -150,6 +209,12 @@ function main(argv: string[]): number {
   const [cmd, ...rest] = argv;
   if (!cmd || cmd === "--help" || cmd === "-h" || cmd === "help") { process.stdout.write(HELP); return 0; }
   if (cmd === "--version" || cmd === "-v") { process.stdout.write(VERSION + "\n"); return 0; }
+  // `litmustest <command> --help` prints that command's part of the usage, not an "unknown flag" error.
+  if (rest.includes("--help") || rest.includes("-h")) { const part = usageOf(cmd); if (part) { process.stdout.write(part); return 0; } }
+  // Commands that only read used to answer "nothing needs attention" for a directory that is not there.
+  if (["doctor", "coverage", "graduate", "compare"].includes(cmd)) { const i = rest.indexOf("--dir"); const dir = resolve(i >= 0 && rest[i + 1] ? rest[i + 1]! : "evals"); if (!existsSync(join(dir, "litmustest.yaml"))) { process.stderr.write(`${cmd}: no evals directory at ${dir} (no litmustest.yaml). Pass --dir <evals dir>, or run litmustest init.\n`); return 1; } }
+  // Write commands may wait on the transcript store, so they set the exit code when they finish.
+  if (isWriteCommand(cmd)) { void writeCommand(cmd, rest).then((c) => { process.exitCode = c ?? 0; }); return 0; }
   if (cmd === "init") return runInit(rest);
   if (cmd === "ingest") return runIngest(rest);
   if (cmd === "serve") { runServe(rest); return 0; }
@@ -166,10 +231,13 @@ function main(argv: string[]): number {
   if (cmd === "ci") { runCi(rest); return 0; }
   if (cmd !== "validate") { process.stderr.write(`unknown command '${cmd}'\n\n${HELP}`); return 2; }
 
+  // validate takes the directory as an argument; --dir is accepted too, because every other command spells it that way.
+  const di = rest.indexOf("--dir"); const dirFlag = di >= 0 ? rest[di + 1] : undefined; if (di >= 0) rest.splice(di, 2);
+  if (di >= 0 && !dirFlag) { process.stderr.write("validate: --dir needs a path\n"); return 2; }
   const flags = new Set(rest.filter((a) => a.startsWith("--")));
   const unknown = [...flags].filter((f) => !["--deep", "--json", "--quiet"].includes(f));
   if (unknown.length) { process.stderr.write(`unknown flag ${unknown.join(", ")}\n`); return 2; }
-  const path = resolve(rest.find((a) => !a.startsWith("--")) ?? "evals");
+  const path = resolve(dirFlag ?? rest.find((a) => !a.startsWith("--")) ?? "evals");
 
   const result = validateEvals(path, { deep: flags.has("--deep") });
 
@@ -191,6 +259,12 @@ function main(argv: string[]): number {
   return result.errors ? 1 : 0;
 }
 
+/** The usage paragraphs of one command, cut from HELP. */
+function usageOf(cmd: string): string | undefined {
+  const parts = HELP.split(/\n(?= {2}litmustest )/).filter((p) => p.startsWith(`  litmustest ${cmd} `) || p.startsWith(`  litmustest ${cmd}\n`));
+  return parts.length ? `Usage:\n${parts.map((p) => p.replace(/\n\nSee docs\/SPEC\.md[\s\S]*$/, "").trimEnd()).join("\n\n")}\n` : undefined;
+}
+
 function opts(rest: string[], known: string[]): { values: Map<string, string>; flags: Set<string>; positional: string[] } {
   const values = new Map<string, string>(); const flags = new Set<string>(); const positional: string[] = [];
   for (let i = 0; i < rest.length; i++) {
@@ -198,10 +272,13 @@ function opts(rest: string[], known: string[]): { values: Map<string, string>; f
     if (!a.startsWith("--")) { positional.push(a); continue; }
     if (!known.includes(a)) throw new Error(`unknown flag ${a}`);
     const next = rest[i + 1];
-    if (["--force", "--json", "--apply", "--if-due", "--write-workflow"].includes(a) || next === undefined || next.startsWith("--")) flags.add(a); else { values.set(a, next); i++; }
+    if (["--force", "--json", "--apply", "--if-due", "--write-workflow", "--comment"].includes(a) || next === undefined || next.startsWith("--")) flags.add(a); else { values.set(a, next); i++; }
   }
   return { values, flags, positional };
 }
+
+/** --only a,b: the items to apply, or undefined for all of them. */
+function onlyList(v: string | undefined): string[] | undefined { return v === undefined ? undefined : v.split(",").map((x) => x.trim()).filter(Boolean); }
 
 function runInit(rest: string[]): number {
   try {
@@ -234,10 +311,11 @@ function runIngest(rest: string[]): number {
 
 function runCompare(rest: string[]): number {
   try {
-    const { values, flags, positional } = opts(rest, ["--dir", "--json", "--markdown", "--explain"]);
+    const { values, flags, positional } = opts(rest, ["--dir", "--json", "--markdown", "--explain", "--comment", "--pr"]);
     const [a, b] = positional; if (!a || !b) { process.stderr.write("compare: two run ids are required\n"); return 2; }
     const dir = resolve(values.get("--dir") ?? "evals");
     const c = compareRuns(dir, a, b); const g = evaluateGates(c);
+    if (flags.has("--comment")) return postComparison(dir, a, b, values.get("--pr"));
     if (flags.has("--json")) { process.stdout.write(JSON.stringify({ ...c, gates_passed: g.passed }, null, 2) + "\n"); return 0; }
     const explain = flags.has("--explain") ? (suite: string) => muted(plainLines(dir, [{ id: "gate", source: "delta", ctx: { a, b, suite } }])) : undefined;
     process.stdout.write(comparisonMarkdown(c, { explain }) + "\n");
@@ -275,14 +353,16 @@ function runSample(rest: string[]): void {
 
 function runGraduate(rest: string[]): number {
   try {
-    const { values, flags } = opts(rest, ["--dir", "--runs", "--apply", "--json"]);
+    const { values, flags } = opts(rest, ["--dir", "--runs", "--apply", "--only", "--json"]);
     const dir = values.get("--dir") ?? "evals";
     const g = graduationProposals(resolve(dir), { runs: values.has("--runs") ? Number(values.get("--runs")) : undefined });
     if (flags.has("--json")) { process.stdout.write(JSON.stringify(g, null, 2) + "\n"); return 0; }
     process.stdout.write(`${g.proposals.length} task${g.proposals.length === 1 ? "" : "s"} ready to graduate (passed every trial in ${g.runs_considered.join(", ") || "no runs"})\n`);
     for (const p of g.proposals) process.stdout.write(`  ${p.task}  ${p.from} -> ${p.to}  ${p.trials} trials\n`);
     for (const s of g.saturation) process.stdout.write(`  saturation: ${s.suite} is at ${s.pass_rate}%; write harder tasks\n`);
-    if (flags.has("--apply") && g.proposals.length) { const r = applyGraduations(new App(dir), g.proposals.map((p) => p.task)); process.stdout.write(`moved ${r.moved.length}: ${r.moved.join(", ")}\n`); for (const x of r.refused) process.stdout.write(`  refused ${x.task}: ${x.message}\n`); process.stdout.write("Pending on the branch; review with git diff or the tray.\n"); }
+    const only = onlyList(values.get("--only")); const chosen = g.proposals.map((p) => p.task).filter((t) => !only || only.includes(t));
+    for (const o of only ?? []) if (!g.proposals.some((p) => p.task === o)) process.stdout.write(`  --only ${o}: not ready to graduate\n`);
+    if (flags.has("--apply") && chosen.length) { const r = applyGraduations(new App(dir), chosen); process.stdout.write(`moved ${r.moved.length}: ${r.moved.join(", ")}\n`); for (const x of r.refused) process.stdout.write(`  refused ${x.task}: ${x.message}\n`); process.stdout.write("Pending on the branch; review with git diff or the tray.\n"); }
     return 0;
   } catch (e) { process.stderr.write(`graduate: ${(e as Error).message}\n`); return 1; }
 }
@@ -396,7 +476,7 @@ function runCalibrate(rest: string[]): void {
 }
 
 function runDiscover(rest: string[]): void {
-  const { values, flags } = opts(rest, ["--dir", "--batch", "--apply", "--json"]);
+  const { values, flags } = opts(rest, ["--dir", "--batch", "--apply", "--only", "--json"]);
   const dir = values.get("--dir") ?? "evals";
   discover({ evalsDir: resolve(dir), batch: values.get("--batch") }).then((r) => {
     if (flags.has("--json")) { process.stdout.write(JSON.stringify(r, null, 2) + "\n"); return; }
@@ -404,18 +484,31 @@ function runDiscover(rest: string[]): void {
     for (const p of r.proposals) process.stdout.write(`== ${p.action} ${p.path}\n   ${p.rationale}\n${p.diff}\n`);
     if (!flags.has("--apply")) { process.stdout.write("Nothing written. Re-run with --apply to save these as pending changes, or accept them in the dashboard.\n"); return; }
     const app = new App(dir);
-    for (const p of r.proposals) { const res = app.putFile(p.path, p.content); process.stdout.write(`${res.status === 200 ? "saved  " : "refused"} ${p.path}${res.status !== 200 ? `: ${(res.body as { message: string }).message}` : ""}\n`); }
+    for (const line of applyProposals(app, r.proposals, onlyList(values.get("--only")))) process.stdout.write(line + "\n");
     process.stdout.write(`Pending on branch ${app.git.branch()}. Review with git diff, then commit, or open the Pending changes tray.\n`);
   }).catch((e: Error) => { process.stderr.write(`discover: ${e.message}\n`); process.exitCode = 1; });
 }
 
 function runServe(rest: string[]): void {
   try {
-    const { values } = opts(rest, ["--dir", "--port", "--host"]);
-    serve({ evalsDir: values.get("--dir") ?? "evals", port: values.has("--port") ? Number(values.get("--port")) : undefined, host: values.get("--host") })
+    const hosted = rest.includes("--hosted");
+    const { values } = opts(rest.filter((a) => a !== "--hosted"), ["--dir", "--port", "--host", "--repo", "--workdir", "--base"]);
+    const port = values.has("--port") ? Number(values.get("--port")) : undefined;
+    if (hosted) {
+      const repo = values.get("--repo") ?? process.env.LITMUSTEST_REPO; if (!repo) throw new Error("--hosted needs --repo owner/name (or LITMUSTEST_REPO)");
+      Hosted.start(hostedFromEnv(repo, { dir: values.get("--dir"), workDir: values.get("--workdir"), base: values.get("--base") }))
+        .then((h) => serve({ evalsDir: h.evalsDir, port, host: values.get("--host"), hosted: h }))
+        .then((r) => process.stdout.write(`litmustest hosting ${repo} on ${r.url} (clone at ${r.app.git.root}); saves land on evals/ pull-request branches\n`))
+        .catch((e: Error) => { process.stderr.write(`serve: ${e.message}\n`); process.exitCode = 1; });
+      return;
+    }
+    for (const f of ["--repo", "--workdir", "--base"]) if (values.has(f)) throw new Error(`${f} goes with --hosted`);
+    serve({ evalsDir: values.get("--dir") ?? "evals", port, host: values.get("--host") })
       .then((r) => process.stdout.write(`litmustest serving ${r.app.evalsDir} on ${r.url} (branch ${r.app.git.branch()})\n`))
       .catch((e: Error) => { process.stderr.write(`serve: ${e.message}\n`); process.exitCode = 1; });
   } catch (e) { process.stderr.write(`serve: ${(e as Error).message}\n`); process.exitCode = 1; }
 }
 
-process.exitCode = main(process.argv.slice(2));
+// Commands that finish later set process.exitCode themselves; a 0 returned now must not hide a failure they already recorded.
+const code = main(process.argv.slice(2));
+if (code !== 0 || process.exitCode === undefined) process.exitCode = code;

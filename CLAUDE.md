@@ -24,6 +24,7 @@ It reconciles two sources: the evals-skills course method (error analysis → bi
 
 ```
 .claude-plugin/marketplace.json  # the marketplace: points at plugin/
+.agents/plugins/marketplace.json # the same marketplace for Codex (untested; docs/CODEX.md)
 plugin/                   # the plugin: .claude-plugin/plugin.json (name litmustest), skills/<name>/SKILL.md; .codex-plugin ships untested
                           # modified upstream skills carry the Apache 2.0 attribution comment
 schemas/                  # JSON Schema 2020-12 for every file under evals/; $id versioned under /v1/
@@ -35,6 +36,8 @@ scripts/gen-tokens-css.ts   # writes packages/cli/ui/tokens.css from brand/token
 packages/cli/ui/          # the dashboard: static HTML, CSS and one ES module, no build step; served by `litmustest serve`
 packages/cli/src/server/  # app (routes and validated writes), pending (the tray), overview (read models), judges, discover_route, promote (trace to task, expected flips, PR comment)
 packages/cli/src/{stats,judge_run,calibrate,draft}.ts  # error bars and judge-error correction; running a judge; the calibration workflow; drafting graders
+packages/cli/src/server/hosted.ts  # hosted mode: GitHub App auth, a server-side clone, HostedGit and HostedPending, sign-in, a commit and push per save; built, not deployed (docs/HOSTED.md)
+packages/cli/src/write_cli.ts  # the dashboard's writes as commands (label, triage, dispute, mode, set, pending, prefs, promote, flip), each a call into the App method its route uses; tests/parity.test.ts maps every write route to its command
 packages/cli/src/{run,compare,ci}.ts  # the runner (agent.command per trial, grading, summaries); paired comparison and gates; the CI entry
 packages/cli/src/{environments,outcome}.ts  # where a trial's command runs (inprocess, docker, harbor; the last two tested against fakes only); how an outcome check reads the end state (trial.state, or the runner's own sql, fs and http readers)
 packages/cli/src/storage/  # where raw transcripts live: TranscriptStore with local, s3, gcs (one SigV4 signer over fetch), braintrust and langfuse; remote backends are tested against fakes only. Readers go through a read-through cache under .litmustest/cache/
@@ -70,6 +73,7 @@ evals/
 - Plain text files, JSON Schema for every file type (`docs/SCHEMAS.md`). Validate on every write. Add a valid and an invalid example under `tests/schemas/examples/` with every schema change.
 - Trace shape: OpenTelemetry GenAI conventions internally; a JSONL adapter for plain logs; Langfuse and Braintrust pull adapters map to the JSONL shape first. Labels reference trace ids, never positions.
 - A change that spans files (a graduation moves a task and edits two suite lists) goes through `App.putFiles`, which validates once and reverts all together.
+- Every writer that leaves a file under `evals/` ends in `App.wrote(paths)`: locally it feeds the Pending tray, in hosted mode it commits to the pull-request branch. Never call `pending.track` anywhere else (`tests/hosted.test.ts` checks).
 - Pin judge model ids to one exact id (`claude-opus-5-5`, or a dated snapshot where the provider issues them). Never a floating alias such as `-latest`; calibration records the id it measured and a change marks the judge stale.
 - Identifiers are `snake_case` and are what the dashboard shows in mono.
 - Words a person reads about evals come from `plugin/glossary/terms.yaml`. A new header, pill or metric needs a term (the smoke test's lint fails otherwise), and an explanation never types a number: it prints a fact.
@@ -86,6 +90,10 @@ evals/
 | Colours, type, spacing, voice, component rules | `docs/BRAND.md`, `brand/tokens.json`, `brand/logos/` |
 | What "done" means per phase | `docs/ACCEPTANCE.md` |
 | What coverage measures, and what it does not | `docs/COVERAGE.md` |
+| Hosted mode: the GitHub App, environment, deploy notes, what is untested | `docs/HOSTED.md` |
+| Codex: what ships, what was checked against its docs, the test checklist | `docs/CODEX.md` |
+| The protocol for the open "50 traces in an hour" acceptance line | `docs/LABELLING-STUDY.md` |
+| What happened when each skill was followed once by an agent, and what was fixed | `docs/SKILL-RUNS.md` |
 | The explainer: glossary format, template rules, surfaces | `docs/EXPLAINER.md` |
 | Phase 1 brief: schemas and sample repo | `docs/FIRST-BRIEF.md` |
 | How we compare with the two sources | `docs/COMPARISON.md` |
@@ -97,5 +105,6 @@ evals/
 - The runner's contract: `agent.command` runs once per trial in a fresh directory and must leave `trial.json` in the reference-solution shape, including the end state in `state` (the agent's own script snapshots it; an outcome check with `read` has the runner read the state itself from the trial directory or over HTTP). Only trusted judges count; infra failures are excluded and reported.
 - Judges: one failure mode each, few-shot from the train split only, critique before verdict, Unknown allowed. `litmustest calibrate` is the only writer of `calibration.json`, with one exception below. A judge counts in gates only while `status: trusted`.
 - Never hand-edit `calibration.json`; it is written by `litmustest calibrate` only. The one exception is the server marking a trusted calibration `stale` when the judge's prompt or model changes; the API refuses direct writes to it.
-- The dashboard is a client of the CLI and the files. If something works in the dashboard but not the CLI, that is a bug.
+- The dashboard is a client of the CLI and the files. If something works in the dashboard but not the CLI, that is a bug. A new PUT or POST route in `serve.ts` needs a command and a row in `tests/parity.test.ts`.
+- `litmustest label` and `litmustest dispute` are for a person at a terminal. No skill or agent runs them.
 - Mockups in `design/mockups/` are the UI reference. Replicate their values from inline styles and `brand/tokens.json`; do not copy the markup wholesale. In `packages/cli/ui/` every colour, radius and spacing is a `var(--token)` from the generated `tokens.css`; no hex values in `app.css`.

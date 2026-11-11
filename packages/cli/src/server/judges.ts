@@ -83,7 +83,7 @@ export async function judgeCalibrate(app: App, name: string, body: Obj, hooks: J
   running.set(name, job);
   app.emit({ type: "calibrate", judge: name, split, done: 0, total: 0, state: "started" });
   const run = calibrate({ evalsDir: app.evalsDir, judge: name, split, ask: hooks.judgeAsk, force: Boolean(body.force), onProgress: (done, total) => { job.done = done; job.total = total; app.emit({ type: "calibrate", judge: name, split, done, total, state: "running" }); } })
-    .then((r) => { app.pending.track(r.path); app.invalidate(); app.emit({ type: "calibrate", judge: name, split, state: "done", status: r.status, tpr: r.ran?.tpr, tnr: r.ran?.tnr, warnings: r.warnings }); return r; })
+    .then((r) => { app.wrote([r.path]); app.invalidate(); app.emit({ type: "calibrate", judge: name, split, state: "done", status: r.status, tpr: r.ran?.tpr, tnr: r.ran?.tnr, warnings: r.warnings }); return r; })
     .catch((e: Error) => { app.emit({ type: "calibrate", judge: name, split, state: "failed", message: e.message }); throw e; })
     .finally(() => running.delete(name));
   if (body.wait) {
@@ -95,11 +95,11 @@ export async function judgeCalibrate(app: App, name: string, body: Obj, hooks: J
 }
 
 export async function judgeDraft(app: App, mode: string, hooks: JudgeHooks): Promise<Reply> {
-  try { const r = await draftJudge({ evalsDir: app.evalsDir, failureMode: mode, ask: hooks.draftAsk }); for (const f of r.files) app.pending.track(join(app.evalsDir, f.path)); app.invalidate(); app.emit({ type: "saved", path: r.files[0]!.path, side_effects: r.files.slice(1).map((f) => f.path) }); return { status: 200, body: r }; }
+  try { const r = await draftJudge({ evalsDir: app.evalsDir, failureMode: mode, ask: hooks.draftAsk }); app.wrote(r.files.map((f) => join(app.evalsDir, f.path))); app.invalidate(); app.emit({ type: "saved", path: r.files[0]!.path, side_effects: r.files.slice(1).map((f) => f.path) }); return { status: 200, body: r }; }
   catch (e) { return { status: modelUnavailable(e) ? 502 : 400, body: { error: "draft_failed", message: (e as Error).message } }; }
 }
 export async function checkDraft(app: App, mode: string, hooks: JudgeHooks): Promise<Reply> {
-  try { const r = await draftCheck({ evalsDir: app.evalsDir, failureMode: mode, ask: hooks.draftAsk }); for (const f of r.files) app.pending.track(join(app.evalsDir, f.path)); app.invalidate(); app.emit({ type: "saved", path: r.files[0]!.path, side_effects: r.files.slice(1).map((f) => f.path) }); return { status: 200, body: r }; }
+  try { const r = await draftCheck({ evalsDir: app.evalsDir, failureMode: mode, ask: hooks.draftAsk }); app.wrote(r.files.map((f) => join(app.evalsDir, f.path))); app.invalidate(); app.emit({ type: "saved", path: r.files[0]!.path, side_effects: r.files.slice(1).map((f) => f.path) }); return { status: 200, body: r }; }
   catch (e) { return { status: modelUnavailable(e) ? 502 : 400, body: { error: "draft_failed", message: (e as Error).message } }; }
 }
 function modelUnavailable(e: unknown): boolean { return /authentication|api key|apiKey|authToken|401/i.test((e as Error).message ?? ""); }

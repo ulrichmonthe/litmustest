@@ -129,7 +129,7 @@ export async function dispute(app: App, runId: string, taskId: string, n: number
   if (!existsSync(tracePath)) {
     const trace = traceFromTrial(trialData, traceId, { run: runId, task: taskId, trial: n });
     const errs = new SchemaSet().check("trace", trace); if (errs.length) throw new HttpError(500, `trace would not validate: ${errs[0]}`);
-    mkdirSync(dirname(tracePath), { recursive: true }); writeFileSync(tracePath, JSON.stringify(trace, null, 1)); app.pending.track(tracePath); app.invalidate();
+    mkdirSync(dirname(tracePath), { recursive: true }); writeFileSync(tracePath, JSON.stringify(trace, null, 1)); app.wrote([tracePath]); app.invalidate();
     trialData.trace_id = traceId;
     try { await store.put(runId, taskId, n, "trial.json", JSON.stringify(trialData, null, 2)); } catch { /* the local copy has the trace id; the remote copy only loses the back-link */ }
   }

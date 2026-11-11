@@ -8,7 +8,7 @@ Install name is `litmustest`, no hyphen. The `litmus-test` packages on npm and P
 
 ## Status
 
-Pre-release. Phases 1 to 3 are complete and Phase 4 is in progress (hosted mode is not started). Nothing is published to npm yet.
+Pre-release. Phases 1 to 3 are complete and Phase 4 is in progress (hosted mode is built and tested against a fake GitHub API, but not deployed: see `docs/HOSTED.md`). Nothing is published to npm yet.
 
 ## What is here
 
@@ -32,7 +32,7 @@ claude plugin marketplace add ulrichmonthe/litmustest
 claude plugin install litmustest
 ```
 
-The skills call the `litmustest` CLI, installed separately: `npm install -g litmustest` once it is published. Codex manifests ship but are untested.
+The skills call the `litmustest` CLI, installed separately: `npm install -g litmustest` once it is published. Codex manifests ship but are untested: they were checked against Codex's plugin documentation, not run (`docs/CODEX.md`).
 
 ## Commands
 
@@ -41,6 +41,7 @@ The skills call the `litmustest` CLI, installed separately: `npm install -g litm
 | `litmustest init` | Scaffolds `evals/`, detects a JSONL trace source |
 | `litmustest ingest <file>` | Normalizes traces, clusters, samples a review batch |
 | `litmustest serve` | The dashboard: review queue, failure modes, judges, overview, run compare, transcripts |
+| `litmustest serve --hosted --repo owner/name` | The same dashboard for a team: GitHub sign-in, every save a commit on a pull-request branch. Built, not deployed (`docs/HOSTED.md`) |
 | `litmustest discover` | Groups reviewers' notes into failure-mode files, as a diff |
 | `litmustest draft-judge` / `draft-check` | Drafts a judge or a code check from labels |
 | `litmustest calibrate <judge>` | Dev runs, then the held-out test once; TPR/TNR with intervals |
@@ -48,12 +49,21 @@ The skills call the `litmustest` CLI, installed separately: `npm install -g litm
 | `litmustest coverage` | How much of the application the evals cover: spec cases, API routes or tools, failure modes, production traffic, code lines and pages, each guarded, checked, planned or none (docs/COVERAGE.md) |
 | `litmustest explain` | Plain-language reasons for failed trials: what was tested, which step went wrong, what kind of failure, what would make it pass; Claude's reading is saved in the run summary |
 | `litmustest explain <term>` | What a term means, why it matters, what good looks like, and what it means in this repo with the next step; the dashboard's ? popovers and the PR comment use the same glossary (`docs/EXPLAINER.md`) |
-| `litmustest compare A B` | Paired deltas, flips, failure-mode and cost deltas |
+| `litmustest compare A B` | Paired deltas, flips, failure-mode and cost deltas; `--comment` posts it on the pull request |
 | `litmustest ci` | Gated suites, PR comment, non-zero on a crossed gate. `--write-workflow` scaffolds the GitHub Action; it uploads the transcripts as a build artifact unless `storage.transcripts` names a remote store |
 | `litmustest sample` | The production sampler: new traces since the last batch, on a schedule |
 | `litmustest graduate` | Capability tasks that passed every trial for 3 runs move to regression |
 | `litmustest doctor` | Eval health and the next step |
 | `litmustest validate` | Every file against its schema and the cross-file rules |
+| `litmustest label` / `dispute` | A person's label on a trace, or a disagreement with a judge's verdict, from a terminal. Human-only: refused without a terminal unless `--annotator` names who decided |
+| `litmustest triage` | Confirm or override why a trial failed |
+| `litmustest promote <trace>` | A reviewed trace becomes a task, a drafted reference and a suite entry, as one pending change |
+| `litmustest flip A B <task> --expected` | Mark a flip between two runs as expected; it explains the change, it never waives a gate |
+| `litmustest mode new\|set\|merge\|retire` | Create, edit, merge or retire a failure mode |
+| `litmustest set <path>` | The validated save behind every dashboard editor: `key=value` on a task, judge or config, or a whole file with `--from` |
+| `litmustest pending` | The Pending changes tray: `status`, `commit`, `pr`, `discard` |
+
+Every write the dashboard makes has a command that calls the same code, so a refused save is refused in both places and a judge goes stale either way. `tests/parity.test.ts` holds the table of routes to commands and fails when a route has none.
 
 ## Development
 

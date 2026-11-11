@@ -9,6 +9,8 @@ description: Audit an eval setup and report its problems in order of impact, eac
 
 You inspect an eval setup and produce a short, prioritized list of real problems, each with a concrete fix. The output is a report in the conversation. This skill writes no files; fixes happen through the skills it names.
 
+**Where the evals directory is.** The commands here are written for `evals/` at the repository root. Find the directory that holds `litmustest.yaml` first. If it is somewhere else (the sample repo keeps it at `examples/support-agent/evals`), add `--dir <evals dir>` to every `litmustest` command and read the `evals/...` paths below as inside that directory. A command pointed at a directory that is not there fails; it never reports a clean result. `litmustest <command> --help` prints that command's flags.
+
 Three rules from `CLAUDE.md` bind you:
 
 1. `evals/` in git is the source of truth. Audit the files, not what people say the setup does.
@@ -29,7 +31,7 @@ litmustest coverage --gaps 10
 
 Add `--json` to any of them if you want to parse the output. Read all three before judging anything:
 
-- `validate --deep`: schema and cross-file errors, stale judges, few-shot leakage, and `reference_passes` (each task's code, outcome and transcript checks run against its reference solution). A reference that fails its own checks means the task is broken, not the agent.
+- `validate --deep`: schema and cross-file errors, stale judges, few-shot leakage, and `reference_passes` (each task's code, outcome and transcript checks run against its reference solution). A reference that fails its own checks means the task is broken, not the agent. No error lines for a rule means it passed. A file count of 0 means you audited nothing.
 - `doctor`: stale or untested judges, broken and flaky tasks, saturation, graduation candidates, unlabelled traces, and the next step.
 - `coverage`: spec, surface, risk, traffic, code and frontend maps with depth (guarded, checked, planned, none). An uncovered item that production traces use is a top finding. High-severity failure modes with no counting check are top findings. Coverage v1 does not measure production traffic, code lines or the frontend; do not claim it does.
 
@@ -54,7 +56,7 @@ Look at the files behind each finding. A checklist run without reading the artif
 ### 3. Judge validation
 
 - For each judge, read `calibration.json` `status`. Only `trusted` counts in scores and gates. `untested`, `dev` and `stale` judges are excluded; say how many checks that removes.
-- Is the test interval wide? A trusted judge with 12 test labels has a TPR interval too wide to lean on.
+- Is the test interval wide? Count the Pass and Fail labels in the test split (`matrix` in `calibration.json`). A trusted judge with about 10 per class has a TPR interval too wide to lean on.
 - Few-shot examples must come from the train split. `validate` reports `no_leakage` and `few_shot_from_train`.
 - If the team reports judge "accuracy" or "agreement" anywhere outside litmustest (a slide, a README), flag it: with class imbalance, accuracy hides a judge that never says Fail. litmustest measures TPR and TNR.
 - Fix: `validate-evaluator`. Never edit `calibration.json` by hand; `litmustest calibrate` writes it.
@@ -62,7 +64,7 @@ Look at the files behind each finding. A checklist run without reading the artif
 ### 4. Human review
 
 - Who labels? Read `annotator` across `evals/labels/*.jsonl`. One annotator with no domain role, or labels only from an outsourced pool, is a finding. A second annotator on a sample gives agreement.
-- Do reviewers see the full trace? Open a few files under `evals/datasets/traces/`. If every trace is one user turn and one agent turn, the source had no `messages` or `tool_calls` and reviewers are judging outputs only. Fix the source or the conversion script.
+- Do reviewers see the full trace? Open a few files under `evals/datasets/traces/`. If every trace has a single chat span and no `execute_tool` spans, the source had no `messages` or `tool_calls` and reviewers are judging outputs only. Fix the source or the conversion script.
 - Can they judge it as shown? Start `litmustest serve` and look at the review queue. If the trace shape needs rendering the queue lacks, that is `build-review-interface`.
 
 ### 5. Labeled data

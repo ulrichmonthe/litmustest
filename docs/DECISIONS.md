@@ -115,7 +115,7 @@ The fork carries `.claude-plugin`, `.codex-plugin` and `.agents/plugins`. The sk
 - [ ] Decide
 - [ ] Add "Codex: untested" to the README until Phase 2
 
-**Outcome:** Decided 2026-10-29, as the recommendation. The plugin targets Claude Code. `plugin/.codex-plugin/plugin.json` ships and is untested. Codex was not tested in Phase 2 as planned; it moves to after the first public release. The README says "untested" without a phase.
+**Outcome:** Decided 2026-10-29, as the recommendation. The plugin targets Claude Code. `plugin/.codex-plugin/plugin.json` ships and is untested. Codex was not tested in Phase 2 as planned; it moves to after the first public release. The README says "untested" without a phase. On 2026-11-11 the manifests were checked against Codex's published plugin documentation and corrected (the marketplace file moved to the repo root, where its `./plugin` path resolves; the manifest gained `skills` and `interface`); `docs/CODEX.md` has the findings and the test checklist. Still not run on Codex.
 
 ## 6. Where run transcripts are stored
 

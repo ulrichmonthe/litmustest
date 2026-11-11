@@ -9,6 +9,8 @@ description: Create varied synthetic inputs for an AI product with dimensions an
 
 You help the team create realistic test inputs that aim at the places the product is likely to fail, run them through the product, and land the traces in `evals/` as a review batch. Then a person reads them in the review queue.
 
+**Where the evals directory is.** The commands here are written for `evals/` at the repository root. Find the directory that holds `litmustest.yaml` first. If it is somewhere else (the sample repo keeps it at `examples/support-agent/evals`), add `--dir <evals dir>` to every `litmustest` command and read the `evals/...` paths below as inside that directory. A command pointed at a directory that is not there fails; it never reports a clean result. `litmustest <command> --help` prints that command's flags.
+
 Three rules from `CLAUDE.md` bind you:
 
 1. `evals/` in git is the source of truth. Traces enter it through `litmustest ingest`, never by hand.
@@ -49,11 +51,11 @@ You are the model; you can do both steps yourself. Keep the prompts and the gene
 
 ## Phase 5: Filter
 
-Drop and regenerate queries that read awkwardly, do not match their tuple, or repeat another query. Show the user the final list with its tuples and let them strike anything unrealistic. Aim for about 100 inputs; that is a rough point where new traces stop revealing new failures.
+Drop and regenerate queries that read awkwardly, do not match their tuple, or repeat another query. Show the user the final list with its tuples and let them strike anything unrealistic. Aim for about 100 inputs for a broad first set; that is a rough point where new traces stop revealing new failures. To fill one gap (one persona in one scenario), 20 to 30 well-aimed inputs are enough.
 
 ## Phase 6: Run them through the product
 
-Run every input through the real product, not a mock, and capture the full trace: input, every message, every tool call with arguments and results, retrieved context, and the final output. Write one JSON object per line in the trace adapter shape (`trace.jsonl_adapter` in `docs/SCHEMAS.md`):
+Run every input through the real product, not a mock, and capture the full trace: input, every message, every tool call with arguments and results, retrieved context, and the final output. Write one JSON object per line in the trace adapter shape (`trace.jsonl_adapter` in `docs/SCHEMAS.md` in the litmustest repository):
 
 ```json
 {"id": "syn_refunds_v1_0001",
@@ -71,7 +73,7 @@ Run every input through the real product, not a mock, and capture the full trace
 - Prefix ids with `syn_<set>_` and set `metadata.synthetic: true` and the tuple, so synthetic traces stay distinguishable from production ones in the queue and in every count.
 - Write the file outside `evals/`, for example `traces/synthetic/<set>.jsonl`. The adapter shape is ingest input and is never stored under `evals/`.
 
-If the product's agent already runs under `agent.command` in `litmustest.yaml`, you can reuse that entry point in a small driver script. Keep the script in the repo and say so.
+If the product's agent already runs under `agent.command` in `litmustest.yaml`, you can reuse that entry point in a small driver script. Keep the script in the repo and say so. `agent.command` is usually bound to a task id; when it is, call the agent's own entry point from the driver instead. Use the product's fixture data (real account ids and emails from its seed data) and the input format it expects, or every trace will be the same identity failure. If the product cannot run here (no model key), stop after the inputs and hand the file to the user. Never write the traces yourself.
 
 ## Phase 7: Ingest as a review batch
 
