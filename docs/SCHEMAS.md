@@ -459,6 +459,7 @@ evals/runs/<run id>.json. What one run of one or more suites produced, small eno
 | `transcript_ref` | string |  |  | Address of the raw transcript in the configured store. |
 | `triage` | object |  |  | Why this trial failed, as triaged by a person. The runner writes a suggestion; the Transcript view confirms or overrides. |
 | `excluded_checks` | array of [name](#name) |  | unique | Judge checks that did not count because the judge was not trusted. |
+| `explanation` | object |  |  | Claude's plain-language reading of why this trial failed, written by `litmustest explain` or the Transcript view. Advice for the reader, never a verdict: it does not change pass, checks or gates. |
 
 ###### `triage`
 
@@ -469,6 +470,17 @@ evals/runs/<run id>.json. What one run of one or more suites produced, small eno
 | `at` | [timestamp](#timestamp) | yes |  |  |
 | `note` | string |  | max length 1000 |  |
 | `suggested` | `agent` · `grader` · `task` · `infra` |  |  | What the runner suggested before a person confirmed or overrode it. |
+
+###### `explanation`
+
+| Field | Type | Required | Constraints | Description |
+| --- | --- | --- | --- | --- |
+| `summary` | string | yes | min length 1, max length 1200 | Two or three sentences: what the test tried, what happened, what it means. |
+| `cause` | string |  | max length 500 | The most likely reason, naming the step. |
+| `fix` | string |  | max length 500 | The concrete change that would make it pass. |
+| `confidence` | `high` · `medium` · `low` |  |  |  |
+| `model` | [model_id](#model_id) | yes |  |  |
+| `at` | [timestamp](#timestamp) | yes |  |  |
 
 #### `judge_corrections` (each item)
 

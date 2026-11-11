@@ -184,3 +184,14 @@ describe("structured saves", () => {
     const o = await api("/api/overview"); expect(o.status).toBe(200); expect(o.body.verdict.lead).toBe("No runs yet."); expect(o.body.modes.source).toBe("labels");
   });
 });
+
+describe("pending count", () => {
+  it("follows git status, so outside edits raise it and reverts clear it", async () => {
+    const n = (await api("/api/health")).body.pending as number;
+    const f = join(cwd, "evals", "failure_modes", "zz_probe.yaml");
+    writeFileSync(f, "name: zz_probe\ndefinition: A probe written by an editor, not the server.\nseverity: low\ncreated: 2026-10-28\n");
+    expect((await api("/api/health")).body.pending).toBe(n + 1);
+    execFileSync("rm", [f]);
+    expect((await api("/api/health")).body.pending).toBe(n);
+  });
+});
