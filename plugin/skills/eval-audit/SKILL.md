@@ -31,7 +31,7 @@ Add `--json` to any of them if you want to parse the output. Read all three befo
 
 - `validate --deep`: schema and cross-file errors, stale judges, few-shot leakage, and `reference_passes` (each task's code, outcome and transcript checks run against its reference solution). A reference that fails its own checks means the task is broken, not the agent.
 - `doctor`: stale or untested judges, broken and flaky tasks, saturation, graduation candidates, unlabelled traces, and the next step.
-- `coverage`: spec, surface and risk maps with depth (guarded, checked, planned, none). High-severity failure modes with no counting check are top findings. Coverage v1 does not measure production traffic, code lines or the frontend; do not claim it does.
+- `coverage`: spec, surface, risk, traffic, code and frontend maps with depth (guarded, checked, planned, none). An uncovered item that production traces use is a top finding. High-severity failure modes with no counting check are top findings. Coverage v1 does not measure production traffic, code lines or the frontend; do not claim it does.
 
 ## Phase 3: Inspect the six areas
 

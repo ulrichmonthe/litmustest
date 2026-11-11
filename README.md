@@ -45,7 +45,7 @@ The skills call the `litmustest` CLI, installed separately: `npm install -g litm
 | `litmustest draft-judge` / `draft-check` | Drafts a judge or a code check from labels |
 | `litmustest calibrate <judge>` | Dev runs, then the held-out test once; TPR/TNR with intervals |
 | `litmustest run` | k trials per task, graded, with error bars; infra failures excluded |
-| `litmustest coverage` | How much of the application the evals cover: spec cases, API routes or tools, and failure modes, each guarded, checked, planned or none (v1 scope in docs/COVERAGE.md) |
+| `litmustest coverage` | How much of the application the evals cover: spec cases, API routes or tools, failure modes, production traffic, code lines and pages, each guarded, checked, planned or none (docs/COVERAGE.md) |
 | `litmustest explain` | Plain-language reasons for failed trials: what was tested, which step went wrong, what kind of failure, what would make it pass; Claude's reading is saved in the run summary |
 | `litmustest explain <term>` | What a term means, why it matters, what good looks like, and what it means in this repo with the next step; the dashboard's ? popovers and the PR comment use the same glossary (`docs/EXPLAINER.md`) |
 | `litmustest compare A B` | Paired deltas, flips, failure-mode and cost deltas |

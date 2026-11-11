@@ -274,7 +274,7 @@
     "coverage": {
       "type": "object",
       "additionalProperties": false,
-      "description": "Maps of the application that `litmustest coverage` measures the eval suite against. v1 measures three maps: spec (test-case ids in your docs), surface (API routes or tool names the trials actually call) and risk (failure modes by severity, always on). It does not measure production traffic, code lines or the frontend.",
+      "description": "Maps of the application that `litmustest coverage` measures the eval suite against: spec (test-case ids in your docs), surface (API routes or tool names the trials actually call), risk (failure modes by severity, always on), traffic (the surface items production traces used, on when surface is set and traces are ingested), code (lines that ran during the suites, from a report your process writes) and frontend (pages the trials opened).",
       "properties": {
         "spec": {
           "type": "object",
@@ -348,6 +348,68 @@
               "minimum": 1,
               "maximum": 6,
               "description": "How many path segments make an area for the chart. Default 2 (/api/play)."
+            }
+          }
+        },
+        "code": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "report"
+          ],
+          "description": "Code that ran while the suites ran. litmustest instruments nothing: your agent's own process has to write the report (for example with c8, nyc or coverage.py's lcov output) during `litmustest run`.",
+          "properties": {
+            "report": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Path to an lcov tracefile or an Istanbul JSON report (coverage-final.json or coverage-summary.json), relative to the repository root."
+            },
+            "ignore": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "description": "Files to leave out. A trailing * matches a prefix."
+            },
+            "group_depth": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 6,
+              "description": "How many leading path segments make an area. Default 1."
+            }
+          }
+        },
+        "frontend": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "The product's pages. A page counts as exercised when a trial in the latest run opened its URL (a tool call whose url or path matches); `covers:` can also claim one.",
+          "properties": {
+            "routes": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "description": "Page routes, e.g. /settings or /orders/{id}."
+            },
+            "scan": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "description": "Globs of source files to scan: Next.js app/ and pages/ folders by file name, React Router and Vue Router files by their path declarations."
+            },
+            "ignore": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "description": "Routes to leave out. A trailing * matches a prefix."
             }
           }
         }

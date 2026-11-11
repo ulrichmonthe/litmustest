@@ -1,4 +1,4 @@
-// GET /api/coverage: the three maps, the gaps in order, and the coverage each run recorded, for trends.
+// GET /api/coverage: the maps, the gaps in order, and the coverage each run recorded, for trends.
 import { computeCoverage } from "../coverage.ts";
 import { gaps } from "../coverage_cli.ts";
 import { loadFiles } from "./overview.ts";
