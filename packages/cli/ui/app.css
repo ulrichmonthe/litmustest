@@ -410,3 +410,8 @@ body.panel-open .page { flex-basis: 360px; }
 .panel-head h2 { flex: 1 1 100%; }
 .panel-tools { margin-left: auto; }
 .explain-panel .chip { font-family: var(--font-sans); }
+
+/* A rate with its 95% interval beside it; counts and rates link to the tasks behind them. */
+.rate, .count-link { white-space: nowrap; }
+.rate-ci { color: var(--ink-muted); font-size: 0.85em; font-weight: 400; }
+.filter-note { margin: 0; }

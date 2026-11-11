@@ -1,5 +1,6 @@
 // Transcript routes: list runs and trials, read one trial with its grades and a suggested triage, confirm or override
 // the triage into the run summary, and dispute a judge's verdict, which turns the trial into a labelled trace.
+import { wilson } from "../stats.ts";
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { parse as parseYaml } from "yaml";
@@ -25,7 +26,8 @@ export function transcriptsIndex(app: App, runId?: string): Reply {
   const run = runId ? runs.find((r) => r.run_id === runId) : runs[0];
   if (!run) return { status: 200, body: { runs: [], run: null, tasks: [] } };
   const store = storeDir(app);
-  const tasks = Object.entries(run.tasks as Record<string, Obj>).map(([id, t]) => { const trials = (t.trials as Obj[]) ?? []; return { id, suite: t.suite, strict_pass: t.strict_pass, weighted: t.weighted, flaky: Boolean(t.flaky), likely_broken: Boolean(t.likely_broken), trials: trials.map((x, i) => ({ n: i + 1, pass: x.pass, infra_error: x.infra_error, infra_error_kind: x.infra_error_kind, failed_checks: x.failed_checks ?? [], triage: x.triage ?? null, available: existsSync(join(store, String(run.run_id), id, String(i + 1), "trial.json")) })) }; }).sort((a, b) => Number(a.strict_pass) - Number(b.strict_pass) || a.id.localeCompare(b.id));
+  const modeOf = new Map(f.tasks.map((t) => [String(t.id), new Map(((t.checks as Obj[]) ?? []).filter((c) => c.failure_mode).map((c) => [String(c.id), String(c.failure_mode)]))]));
+  const tasks = Object.entries(run.tasks as Record<string, Obj>).map(([id, t]) => { const trials = (t.trials as Obj[]) ?? []; const scored = trials.filter((x) => !x.infra_error); const w = wilson(scored.filter((x) => x.pass).length, scored.length); return { id, suite: t.suite, strict_pass: t.strict_pass, ci: { low: Math.round(w.low), high: Math.round(w.high) }, failed_modes: [...new Set(trials.flatMap((x) => (x.failed_checks as string[]) ?? []).map((c) => modeOf.get(id)?.get(c)).filter(Boolean))], weighted: t.weighted, flaky: Boolean(t.flaky), likely_broken: Boolean(t.likely_broken), trials: trials.map((x, i) => ({ n: i + 1, pass: x.pass, infra_error: x.infra_error, infra_error_kind: x.infra_error_kind, failed_checks: x.failed_checks ?? [], triage: x.triage ?? null, available: existsSync(join(store, String(run.run_id), id, String(i + 1), "trial.json")) })) }; }).sort((a, b) => Number(a.strict_pass) - Number(b.strict_pass) || a.id.localeCompare(b.id));
   return { status: 200, body: { runs: runs.map((r) => ({ run_id: r.run_id, commit: r.commit, branch: r.branch, started_at: r.started_at })), run: { run_id: run.run_id, commit: run.commit, branch: run.branch, started_at: run.started_at, trials: run.trials }, tasks } };
 }
 
