@@ -32,7 +32,7 @@ claude plugin marketplace add ulrichmonthe/litmustest
 claude plugin install litmustest
 ```
 
-The skills call the `litmustest` CLI, installed separately: `npm install -g litmustest` once it is published. Codex manifests ship but are untested.
+The skills call the `litmustest` CLI, installed separately: `npm install -g litmustest` once it is published. Codex manifests ship but are untested: they were checked against Codex's plugin documentation, not run (`docs/CODEX.md`).
 
 ## Commands
 

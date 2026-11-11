@@ -254,6 +254,14 @@ describe("human-only and plumbing", () => {
     expect(JSON.parse(readFileSync(join(home, "litmustest", "prefs.json"), "utf8"))).toEqual({ plain_language: false });
     expect(spawnSync(process.execPath, [MAIN, "prefs", "theme=true", "--dir", join(viaCli, "evals")], { encoding: "utf8", env: { ...process.env, XDG_CONFIG_HOME: home } }).status).toBe(1);
   });
+  it("a command's --help prints its own usage, a missing evals directory is an error, and validate takes --dir", () => {
+    const run = (...args: string[]) => spawnSync(process.execPath, [MAIN, ...args], { encoding: "utf8", cwd: tmpdir() });
+    const h = run("calibrate", "--help"); expect(h.status).toBe(0); expect(h.stdout).toMatch(/^Usage:\n {2}litmustest calibrate <judge>/); expect(h.stdout).not.toMatch(/litmustest serve/);
+    expect(run("explain", "--help").stdout.match(/^ {2}litmustest explain/gm)).toHaveLength(2);
+    for (const cmd of ["doctor", "coverage", "graduate"]) { const r = run(cmd); expect(r.status, cmd).toBe(1); expect(r.stderr).toMatch(new RegExp(`${cmd}: no evals directory at .*Pass --dir`)); }
+    expect(run("validate", "--dir", EXAMPLE).stdout).toMatch(/^OK: \d+ files, 0 errors/m);
+    expect(run("validate", "--dir").status).toBe(2);
+  });
   it("a reader that closes the pipe early is not a crash (litmustest explain | head)", async () => {
     const child = spawn(process.execPath, [MAIN, "explain", "--no-model", "--all", "--dir", EXAMPLE], { stdio: ["ignore", "pipe", "pipe"] });
     let stderr = ""; child.stderr.on("data", (c) => (stderr += c));

@@ -7,6 +7,8 @@ description: Read a litmustest run summary and `litmustest compare A B` honestly
 
 You are reading one run, or comparing two, and saying what the numbers support and what they do not. The output of this skill is a short written analysis in the conversation. It writes nothing under `evals/`.
 
+**Where the evals directory is.** The commands here are written for `evals/` at the repository root. Find the directory that holds `litmustest.yaml` first. If it is somewhere else (the sample repo keeps it at `examples/support-agent/evals`), add `--dir <evals dir>` to every `litmustest` command and read the `evals/...` paths below as inside that directory. A command pointed at a directory that is not there fails; it never reports a clean result. `litmustest <command> --help` prints that command's flags.
+
 Three rules from `CLAUDE.md` bind you:
 
 1. `evals/` in git is the source of truth. Read `evals/runs/<run id>.json` and the task and suite files; do not trust numbers from anywhere else.
@@ -35,7 +37,7 @@ Then read `evals/runs/<run id>.json`. Per suite:
 | `excluded_judges` | Judges whose verdicts did not count (stale, untested, below target) | Name them. The pass rate does not include what they would have caught. |
 | `unknown_rate` | Judge verdicts that answered Unknown | Unknown counts as not passed and goes to the review queue. |
 
-Per task, `flaky` and `likely_broken` come from the detectors. A likely broken task measures the task, not the agent. `coverage` in the summary is the snapshot `litmustest coverage` would print for this run.
+Per task, `flaky` and `likely_broken` come from the detectors. A likely broken task measures the task, not the agent. `coverage` in the summary is the snapshot `litmustest coverage` would print for this run. It may be absent; then `litmustest coverage` reports against the latest run only, so say that no coverage change is available instead of guessing. Infra failures are excluded, so scored trials per task can differ between the runs (4 against 5): state it, and do not call the comparison unfair unless `trials` itself differs.
 
 ## Phase 2: Compare two runs
 
@@ -49,7 +51,7 @@ A is the baseline, B the candidate. The dashboard shows the same thing at `http:
 Read it in this order:
 
 1. **Suite deltas.** Each is a paired bootstrap over the tasks both runs share. "significant" means the interval excludes zero; "within noise" means it does not. A +9 point delta that is within noise is not an improvement. Say "no detectable change", not "slightly better".
-2. **Gates.** The verdict for B per suite. `max_drop_pts` only fails on a significant drop. `report_only` suites (capability, usually) never fail the build.
+2. **Gates.** The verdict for B per suite. `max_drop_pts` only fails on a significant drop. `report_only` suites (capability, usually) never fail the build. A gate that fails for the same reason in A and B (a pass rate under `min_pass_rate` in both) is a standing failure, not something the change caused; say so. `compare` exits 1 when a gate fails for B: that is the verdict, not an error.
 3. **Flips.** Broke, Fixed, Flaky, by majority verdict across trials. One task going 2/4 to 1/5 is weak evidence on its own; many flips in one direction in one suite is the signal. Every Broke flip in a regression suite needs a reading: hand those to `triage-failures`.
 4. **Failed checks by failure mode.** Which modes moved. Tie a suite drop to a mode when you can.
 5. **Cost, tokens, latency, infra.** A pass-rate gain that doubled the cost is a trade-off, not a win.

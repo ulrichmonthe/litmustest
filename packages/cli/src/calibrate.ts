@@ -100,6 +100,10 @@ export async function calibrate(o: CalibrateOptions): Promise<CalibrateResult> {
       if (testValid && !o.force) throw new Error(`the test set already ran for this prompt and model on ${testObj!.ran_at}; edit the judge or pass --force`);
     }
     const verdicts = await judgeTraces({ evalsDir: o.evalsDir, judge, traceIds: ids, labelsByTrace: labels, ask: o.ask, concurrency: o.concurrency, onVerdict: (v, d, t) => o.onProgress?.(d, t, v) });
+    // Every verdict a model error means the model was never reached (no key, no network). That is not a measurement:
+    // recording it would overwrite the last real numbers and, on the test split, spend the one test run.
+    const failed = verdicts.filter((v) => v.result === "Unknown" && v.critique.startsWith("model error:"));
+    if (verdicts.length && failed.length === verdicts.length) throw new Error(`the judge's model could not be reached for any of the ${verdicts.length} traces (${failed[0]!.critique.replace(/^model error:\s*/, "").split("\n")[0]!.slice(0, 160)}); nothing was recorded. Set ANTHROPIC_API_KEY (or ANTHROPIC_AUTH_TOKEN) and run it again`);
     const pairs = verdicts.map((v) => ({ human: labels.get(v.trace_id)!.label, judge: v.result }));
     const matrix = matrixOf(pairs);
     const ci = bootstrapRates(pairs, 1000, o.seed ?? 1);

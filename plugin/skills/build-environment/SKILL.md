@@ -7,6 +7,8 @@ description: Connect a product's agent to the litmustest runner. Set agent.comma
 
 You are wiring the team's agent into the runner so that `litmustest run` can call it once per trial and grade what it did. The output of this skill is an `agent:` block in `evals/litmustest.yaml` and, usually, a small trial script in the product repo. Both stay uncommitted. A person commits them.
 
+**Where the evals directory is.** The commands here are written for `evals/` at the repository root. Find the directory that holds `litmustest.yaml` first. If it is somewhere else (the sample repo keeps it at `examples/support-agent/evals`), add `--dir <evals dir>` to every `litmustest` command and read the `evals/...` paths below as inside that directory. A command pointed at a directory that is not there fails; it never reports a clean result. `litmustest <command> --help` prints that command's flags.
+
 Three rules from `CLAUDE.md` bind you:
 
 1. `evals/` in git is the source of truth. The runner reads `agent.command` from `litmustest.yaml` and nothing else.
@@ -32,7 +34,7 @@ For each trial the runner:
 4. Waits up to `runs.resources.timeout_s`, then kills it.
 5. Reads `<trial_dir>/trial.json` and grades it.
 
-The script must leave `trial.json` in the `reference_solution` shape (`docs/SCHEMAS.md`): `output`, `state`, `tool_calls`, `transcript`, and ideally `usage` and `latency_ms`. `state` is the end-state snapshot outcome checks read, keyed the way `expect` paths address it (`refunds.status` reads `state.refunds.status`). The runner does not read your database itself: the script takes the snapshot after the agent finishes and writes it into `state`. The outcome check's `backend` field does not change this today.
+The script must leave `trial.json` in the `reference_solution` shape (`docs/SCHEMAS.md` in the litmustest repository): `output`, `state`, `tool_calls`, `transcript`, and ideally `usage` and `latency_ms`. `state` is the end-state snapshot outcome checks read, keyed the way `expect` paths address it (`refunds.status` reads `state.refunds.status`). The runner does not read your database itself: the script takes the snapshot after the agent finishes and writes it into `state`. The outcome check's `backend` field does not change this today.
 
 Any of these is an infra error, excluded from the agent's score and reported separately: a timeout, a non-zero exit (classified `oom`, `network` or `harness` from stderr), no `trial.json`, or a `trial.json` that does not validate. stdout and stderr are kept next to it as `stdout.txt` and `stderr.txt`.
 
@@ -70,7 +72,11 @@ litmustest validate --deep
 litmustest run --dry-run --id dryrun_env
 ```
 
-`--dry-run` grades every reference solution instead of calling the agent. It proves the checks, the refs and the grading path work before any model is called. Every task should pass; one that fails is a task problem, not an environment problem (use `define-task`). The dry run writes `evals/runs/dryrun_env.json`; tell the user to discard it from the Pending changes tray.
+`--dry-run` grades every reference solution instead of calling the agent. It proves the checks, the refs and the grading path work before any model is called. Every code, outcome and transcript check should pass; one that fails is a task problem, not an environment problem (use `define-task`). The dry run still asks the judges: without a model key they answer Unknown and every task with a judge check shows strict pass 0%, so read `failed_checks` and `grades.json`, not the headline. The dry run writes `evals/runs/dryrun_env.json`; tell the user to discard it from the Pending changes tray.
+
+A missing model key in a real trial shows up as an infra error tagged `network`; read `stderr.txt` before blaming the network. Transcripts live under `storage.transcripts.path`, which is relative to the parent of the evals directory.
+
+**Auditing an environment that already exists.** Check three things. Each trial works on its own copy of the data under `{trial_dir}`. Anything the script generates on first use (a seed database) exists before trials run in parallel. And the `state` snapshot the script writes holds everything the outcome checks need to tell a right end state from a wrong one: which record changed, not only that one did.
 
 Then one real trial on one task:
 

@@ -9,6 +9,8 @@ description: Make sure reviewers can read and label traces well. litmustest alre
 
 Reviewers judge better and faster when a trace looks like what it is. litmustest already has a review queue. Your first job is to get the team using it; your second, only if needed, is a custom view for a trace shape the queue cannot show well.
 
+**Where the evals directory is.** The commands here are written for `evals/` at the repository root. Find the directory that holds `litmustest.yaml` first. If it is somewhere else (the sample repo keeps it at `examples/support-agent/evals`), add `--dir <evals dir>` to every `litmustest` command and read the `evals/...` paths below as inside that directory. A command pointed at a directory that is not there fails; it never reports a clean result. `litmustest <command> --help` prints that command's flags.
+
 Three rules from `CLAUDE.md` bind you:
 
 1. `evals/` in git is the source of truth. Labels live in `evals/labels/*.jsonl` and nowhere else: no CSV, no SQLite, no browser storage of labels.
@@ -21,7 +23,7 @@ Three rules from `CLAUDE.md` bind you:
 litmustest serve
 ```
 
-The queue is at http://127.0.0.1:4242. It works through review batches written by `litmustest ingest` and already does what the course asks of an annotation tool:
+The queue is at http://127.0.0.1:4242. It works through review batches written by `litmustest ingest` and already does what the course asks of an annotation tool: If 4242 is taken, pass `--port`, and check that the address you hand a reviewer is your server.
 
 - One trace at a time with the full path: user turns, agent turns, and each tool call with its arguments, result and errors.
 - A header from trace metadata (scenario, persona, turn and tool-call counts, model).
@@ -30,7 +32,7 @@ The queue is at http://127.0.0.1:4242. It works through review batches written b
 - Each save appends one validated line to `evals/labels/<batch>.jsonl` with the annotator's name, and shows in the Pending changes tray. Labels are append-only; a correction is a new line.
 - Sampling stays outside the view: `litmustest ingest` and `litmustest sample` write the batches.
 
-Ask the reviewer to label five traces and tell you what slowed them down. Most problems are in the data, not the view: a source with no `messages` or `tool_calls` shows only the final answer. Fix the source or its conversion script and re-ingest before building anything.
+Ask the reviewer to label five traces and tell you what slowed them down. Most problems are in the data, not the view: a source with no `messages` or `tool_calls` shows only the final answer. Fix the source or its conversion script and re-ingest before building anything. If the user has already said what is hard to read, that is the reviewer's feedback: open one such trace in the queue, write down the specific gap, and go to Phase 2.
 
 ## Phase 2: Decide whether a custom view is needed
 
@@ -47,7 +49,7 @@ Not good reasons: styling preferences, wanting a different layout of the same te
 
 How it fits rule 1: the custom view is a reader and a client. It owns no data.
 
-- Reads: `GET /api/batches` (list), `GET /api/batches/<name>` (items with existing labels), `GET /api/traces/<id>` (the trace, its turns view and labels).
+- Reads: `GET /api/batches` (list), `GET /api/batches/<name>` (items with existing labels), `GET /api/traces/<id>` (`trace`, `view`, `labels`, `expected_tools`).
 - Writes: only `POST /api/labels` with `{"batch", "trace_id", "failure_mode": "overall", "label": "Pass"|"Fail"|"Skip", "note", "annotator"}`. The server validates it against the label schema, checks the trace exists, appends it, and puts it in the Pending changes tray. Use a failure-mode name instead of `overall` only for a mode that exists under `evals/failure_modes/`.
 - Never write files under `evals/` from the view, never keep its own label store, never sample.
 
@@ -73,7 +75,7 @@ Feedback and navigation:
 Testing writes labels, so never test against the team's `evals/`. Copy it to a scratch directory, make that a git repository (the server needs one), and serve the copy on another port:
 
 ```bash
-cp -R evals <scratch>/evals && cd <scratch> && git init -q && git add -A && git commit -qm scratch
+cp -R <evals dir> <scratch>/evals && cd <scratch> && git init -q && git add -A && git commit -qm scratch
 litmustest serve --dir <scratch>/evals --port 4243
 ```
 

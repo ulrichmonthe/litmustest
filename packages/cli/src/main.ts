@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { alertTerm, meaningBlock, muted, plainLines, termList, termText } from "./glossary_cli.ts";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { explainRun, explainText } from "./explain_run.ts";
 import { computeCoverage } from "./coverage.ts";
 import { coverageText, underThresholds } from "./coverage_cli.ts";
@@ -192,7 +192,7 @@ Usage:
       person who made it. Needs the LITMUSTEST_APP_* variables; see
       docs/HOSTED.md.
 
-  litmustest validate [path] [--deep] [--json] [--quiet]
+  litmustest validate [path] [--dir path] [--deep] [--json] [--quiet]
       Validate an evals/ directory (default: ./evals) against the schemas and
       the cross-file rules. --deep also runs each task's code, outcome and
       transcript checks against its reference solution. Exit 1 on any error.
@@ -207,6 +207,10 @@ function main(argv: string[]): number {
   const [cmd, ...rest] = argv;
   if (!cmd || cmd === "--help" || cmd === "-h" || cmd === "help") { process.stdout.write(HELP); return 0; }
   if (cmd === "--version" || cmd === "-v") { process.stdout.write(VERSION + "\n"); return 0; }
+  // `litmustest <command> --help` prints that command's part of the usage, not an "unknown flag" error.
+  if (rest.includes("--help") || rest.includes("-h")) { const part = usageOf(cmd); if (part) { process.stdout.write(part); return 0; } }
+  // Commands that only read used to answer "nothing needs attention" for a directory that is not there.
+  if (["doctor", "coverage", "graduate", "compare"].includes(cmd)) { const i = rest.indexOf("--dir"); const dir = resolve(i >= 0 && rest[i + 1] ? rest[i + 1]! : "evals"); if (!existsSync(join(dir, "litmustest.yaml"))) { process.stderr.write(`${cmd}: no evals directory at ${dir} (no litmustest.yaml). Pass --dir <evals dir>, or run litmustest init.\n`); return 1; } }
   const wrote = writeCommand(cmd, rest); if (wrote !== undefined) return wrote;
   if (cmd === "init") return runInit(rest);
   if (cmd === "ingest") return runIngest(rest);
@@ -224,10 +228,13 @@ function main(argv: string[]): number {
   if (cmd === "ci") { runCi(rest); return 0; }
   if (cmd !== "validate") { process.stderr.write(`unknown command '${cmd}'\n\n${HELP}`); return 2; }
 
+  // validate takes the directory as an argument; --dir is accepted too, because every other command spells it that way.
+  const di = rest.indexOf("--dir"); const dirFlag = di >= 0 ? rest[di + 1] : undefined; if (di >= 0) rest.splice(di, 2);
+  if (di >= 0 && !dirFlag) { process.stderr.write("validate: --dir needs a path\n"); return 2; }
   const flags = new Set(rest.filter((a) => a.startsWith("--")));
   const unknown = [...flags].filter((f) => !["--deep", "--json", "--quiet"].includes(f));
   if (unknown.length) { process.stderr.write(`unknown flag ${unknown.join(", ")}\n`); return 2; }
-  const path = resolve(rest.find((a) => !a.startsWith("--")) ?? "evals");
+  const path = resolve(dirFlag ?? rest.find((a) => !a.startsWith("--")) ?? "evals");
 
   const result = validateEvals(path, { deep: flags.has("--deep") });
 
@@ -247,6 +254,12 @@ function main(argv: string[]): number {
   const infos = result.problems.length - result.errors - result.warnings;
   process.stdout.write(`${result.errors ? "FAIL" : "OK"}: ${result.files} files, ${result.errors} errors, ${result.warnings} warnings${infos ? `, ${infos} notes` : ""}\n`);
   return result.errors ? 1 : 0;
+}
+
+/** The usage paragraphs of one command, cut from HELP. */
+function usageOf(cmd: string): string | undefined {
+  const parts = HELP.split(/\n(?= {2}litmustest )/).filter((p) => p.startsWith(`  litmustest ${cmd} `) || p.startsWith(`  litmustest ${cmd}\n`));
+  return parts.length ? `Usage:\n${parts.map((p) => p.replace(/\n\nSee docs\/SPEC\.md[\s\S]*$/, "").trimEnd()).join("\n\n")}\n` : undefined;
 }
 
 function opts(rest: string[], known: string[]): { values: Map<string, string>; flags: Set<string>; positional: string[] } {
