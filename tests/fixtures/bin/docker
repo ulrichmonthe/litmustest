@@ -1,0 +1,29 @@
+#!/usr/bin/env node
+// A fake `docker` for runner tests. It records every invocation as one JSON line in $FAKE_DOCKER_LOG and, for `run`,
+// executes the command on this machine with the container paths of each -v mount mapped back to the host.
+import { appendFileSync, existsSync, readFileSync, writeFileSync } from "node:fs";
+import { spawn } from "node:child_process";
+import { join } from "node:path";
+const argv = process.argv.slice(2); const log = process.env.FAKE_DOCKER_LOG;
+if (log) appendFileSync(log, JSON.stringify(argv) + "\n");
+const pidFile = (name) => join(process.env.FAKE_DOCKER_STATE ?? "/tmp", `${name}.pid`);
+if (argv[0] === "version") { if (process.env.FAKE_DOCKER_DOWN) { console.error("Cannot connect to the Docker daemon"); process.exit(1); } console.log("27.0.0"); process.exit(0); }
+if (argv[0] === "build") process.exit(process.env.FAKE_DOCKER_BUILD_FAILS ? 1 : 0);
+if (argv[0] === "kill") { const f = pidFile(argv[1]); if (existsSync(f)) { try { process.kill(Number(readFileSync(f, "utf8")), "SIGKILL"); } catch { /* gone */ } } process.exit(0); }
+if (argv[0] !== "run") process.exit(2);
+const takes = new Set(["--name", "--cpus", "--memory", "--network", "-v", "-w", "-e"]);
+const mounts = []; const env = {}; let name = "c"; let i = 1;
+for (; i < argv.length; i++) {
+  const a = argv[i]; if (!a.startsWith("-")) break;
+  if (!takes.has(a)) continue; const v = argv[++i];
+  if (a === "-v") { const [host, cont] = v.split(":"); mounts.push([cont, host]); }
+  if (a === "-e") { const eq = v.indexOf("="); if (eq < 0) env[v] = process.env[v] ?? ""; else env[v.slice(0, eq)] = v.slice(eq + 1); }
+  if (a === "--name") name = v;
+}
+const command = argv[i + 3]; // image, sh, -lc, command
+if (process.env.FAKE_DOCKER_EXIT) process.exit(Number(process.env.FAKE_DOCKER_EXIT));
+const map = (s) => { for (const [cont, host] of mounts) if (s === cont || s.startsWith(cont + "/")) return host + s.slice(cont.length); return s; };
+for (const k of Object.keys(env)) env[k] = map(env[k]);
+const child = spawn("sh", ["-c", command.split(" ").map(map).join(" ")], { env: { ...process.env, ...env }, stdio: "inherit" });
+writeFileSync(pidFile(name), String(child.pid));
+child.on("close", (code) => process.exit(code ?? 137));

@@ -17,8 +17,8 @@ runs:
   resources:
     timeout_s: 180
 agent:
-  command: node examples/support-agent/src/run_trial.ts --task {task} --trial-dir
-    {trial_dir}
+  # cwd is relative to the folder that holds evals/, so the command is too
+  command: node src/run_trial.ts --task {task} --trial-dir {trial_dir}
   cwd: .
 judges:
   default_model: claude-sonnet-5-5

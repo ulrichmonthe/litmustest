@@ -207,7 +207,7 @@
                 },
                 "transcript_ref": {
                   "type": "string",
-                  "description": "Address of the raw transcript in the configured store."
+                  "description": "Address of the raw transcript in the store it was written to: local:<run>/<task>/<n>, s3://bucket/prefix/<run>/<task>/<n>, gs://..., langfuse:<run>/<task>/<n> or braintrust:<project>/<run>/<task>/<n>. The last three segments are always run, task and trial."
                 },
                 "triage": {
                   "type": "object",
@@ -699,6 +699,40 @@
             "maxLength": 1000,
             "description": "Why the flip was expected."
           }
+        }
+      }
+    },
+    "budget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "limit_usd",
+        "spent_usd",
+        "trials_skipped"
+      ],
+      "description": "Present only when runs.budget_usd stopped the run early. Skipped trials are not in `tasks` and count toward no score.",
+      "properties": {
+        "limit_usd": {
+          "type": "number",
+          "minimum": 0,
+          "description": "runs.budget_usd at run time."
+        },
+        "spent_usd": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Recorded cost when the runner stopped starting trials."
+        },
+        "trials_skipped": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Trials that were planned and never started."
+        },
+        "tasks_skipped": {
+          "type": "array",
+          "items": {
+            "$ref": "common.json#/$defs/name"
+          },
+          "description": "Tasks with no trial at all in this run."
         }
       }
     }

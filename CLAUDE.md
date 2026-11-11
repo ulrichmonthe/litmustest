@@ -28,7 +28,7 @@ plugin/                   # the plugin: .claude-plugin/plugin.json (name litmust
                           # modified upstream skills carry the Apache 2.0 attribution comment
 schemas/                  # JSON Schema 2020-12 for every file under evals/; $id versioned under /v1/
 packages/cli/             # the `litmustest` npm package (TypeScript, Node >= 22); schemas copied in at publish
-examples/support-agent/   # the sample repo: agent, trace generator, seed evals, Harbor task (Part B)
+examples/support-agent/   # the sample repo: agent, trace generator, seed evals, a Dockerfile for the container environments
 tests/                    # vitest: schemas/examples/<schema>/{valid,invalid}.*, fixtures/{good,bad}/evals
 scripts/gen-schema-docs.ts  # writes docs/SCHEMAS.md from the schema descriptions
 scripts/gen-tokens-css.ts   # writes packages/cli/ui/tokens.css from brand/tokens.json
@@ -36,6 +36,8 @@ packages/cli/ui/          # the dashboard: static HTML, CSS and one ES module, n
 packages/cli/src/server/  # app (routes and validated writes), pending (the tray), overview (read models), judges, discover_route, promote (trace to task, expected flips, PR comment)
 packages/cli/src/{stats,judge_run,calibrate,draft}.ts  # error bars and judge-error correction; running a judge; the calibration workflow; drafting graders
 packages/cli/src/{run,compare,ci}.ts  # the runner (agent.command per trial, grading, summaries); paired comparison and gates; the CI entry
+packages/cli/src/{environments,outcome}.ts  # where a trial's command runs (inprocess, docker, harbor; the last two tested against fakes only); how an outcome check reads the end state (trial.state, or the runner's own sql, fs and http readers)
+packages/cli/src/storage/  # where raw transcripts live: TranscriptStore with local, s3, gcs (one SigV4 signer over fetch), braintrust and langfuse; remote backends are tested against fakes only. Readers go through a read-through cache under .litmustest/cache/
 packages/cli/src/{coverage,coverage_cli}.ts, server/coverage_route.ts  # coverage: spec, surface, risk, traffic, code and frontend maps with depth; docs/COVERAGE.md says what it does not measure
 packages/cli/src/{explain,explain_run}.ts  # why a trial failed: a template from the data (no model) and Claude's reading, stored as trials[n].explanation; advice only, never a verdict
 packages/cli/src/{sample,graduate}.ts, adapters/platforms.ts  # the production sampler; graduation, saturation and doctor; Langfuse and Braintrust pull adapters
@@ -58,7 +60,7 @@ evals/
   datasets/{traces,synthetic}/
   batches/<name>.yaml      # review batches sampled by `litmustest ingest`
   suites/{regression,capability,quality}.yaml
-  runs/                   # summaries committed; raw transcripts git-ignored
+  runs/                   # summaries committed; raw transcripts in the store named by storage.transcripts (local and git-ignored by default)
 ```
 
 `npm test` runs everything; `npm run build` compiles the CLI; `npm run docs:schemas` regenerates `docs/SCHEMAS.md` and `npm run docs:tokens` regenerates `packages/cli/ui/tokens.css` (never edit either by hand); `npm run validate -- <evals dir> [--deep]` runs the validator from source; `node packages/cli/dist/main.js serve --dir <evals dir>` starts the local server and dashboard on http://127.0.0.1:4242.
@@ -92,7 +94,7 @@ evals/
 
 - One PR per phase milestone. Each PR is reviewed against `docs/ACCEPTANCE.md` before merge.
 - A skill writes files under `evals/` and stops; the Pending changes tray shows every uncommitted change there, and a person commits. `litmustest discover` is the model-backed step of error discovery; it proposes and writes only with `--apply`.
-- The runner's contract: `agent.command` runs once per trial in a fresh directory and must leave `trial.json` in the reference-solution shape, including the end state in `state` (the agent's own script snapshots it; the runner reads only `trial.json`). Only trusted judges count; infra failures are excluded and reported.
+- The runner's contract: `agent.command` runs once per trial in a fresh directory and must leave `trial.json` in the reference-solution shape, including the end state in `state` (the agent's own script snapshots it; an outcome check with `read` has the runner read the state itself from the trial directory or over HTTP). Only trusted judges count; infra failures are excluded and reported.
 - Judges: one failure mode each, few-shot from the train split only, critique before verdict, Unknown allowed. `litmustest calibrate` is the only writer of `calibration.json`, with one exception below. A judge counts in gates only while `status: trusted`.
 - Never hand-edit `calibration.json`; it is written by `litmustest calibrate` only. The one exception is the server marking a trusted calibration `stale` when the judge's prompt or model changes; the API refuses direct writes to it.
 - The dashboard is a client of the CLI and the files. If something works in the dashboard but not the CLI, that is a bug.

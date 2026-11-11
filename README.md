@@ -44,12 +44,12 @@ The skills call the `litmustest` CLI, installed separately: `npm install -g litm
 | `litmustest discover` | Groups reviewers' notes into failure-mode files, as a diff |
 | `litmustest draft-judge` / `draft-check` | Drafts a judge or a code check from labels |
 | `litmustest calibrate <judge>` | Dev runs, then the held-out test once; TPR/TNR with intervals |
-| `litmustest run` | k trials per task, graded, with error bars; infra failures excluded |
+| `litmustest run` | k trials per task, graded, with error bars; infra failures excluded. Trials run in process, in a docker container or as a Harbor job (`runs.environment`; the two container environments are tested against fakes only, not yet run for real). Outcome checks can have the runner read the end state itself (SQLite, files, HTTP). `runs.budget_usd` stops the run when the recorded cost reaches it |
 | `litmustest coverage` | How much of the application the evals cover: spec cases, API routes or tools, failure modes, production traffic, code lines and pages, each guarded, checked, planned or none (docs/COVERAGE.md) |
 | `litmustest explain` | Plain-language reasons for failed trials: what was tested, which step went wrong, what kind of failure, what would make it pass; Claude's reading is saved in the run summary |
 | `litmustest explain <term>` | What a term means, why it matters, what good looks like, and what it means in this repo with the next step; the dashboard's ? popovers and the PR comment use the same glossary (`docs/EXPLAINER.md`) |
 | `litmustest compare A B` | Paired deltas, flips, failure-mode and cost deltas |
-| `litmustest ci` | Gated suites, PR comment, non-zero on a crossed gate |
+| `litmustest ci` | Gated suites, PR comment, non-zero on a crossed gate. `--write-workflow` scaffolds the GitHub Action; it uploads the transcripts as a build artifact unless `storage.transcripts` names a remote store |
 | `litmustest sample` | The production sampler: new traces since the last batch, on a schedule |
 | `litmustest graduate` | Capability tasks that passed every trial for 3 runs move to regression |
 | `litmustest doctor` | Eval health and the next step |

@@ -1,0 +1,28 @@
+#!/usr/bin/env node
+// A fake `harbor` for runner tests: `harbor run -p <task> -a oracle -o <jobs> --job-name <name>` the way the real CLI
+// lays a job out. It runs solution/solve.sh and tests/test.sh on this machine with /logs and /solution mapped to the
+// trial directory, and writes agent/, verifier/, artifacts/ and result.json. Invocations go to $FAKE_HARBOR_LOG.
+import { appendFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { join } from "node:path";
+const argv = process.argv.slice(2); const log = process.env.FAKE_HARBOR_LOG;
+if (argv[0] === "--version") { console.log("harbor 0.0.0-fake"); process.exit(0); }
+const flag = (n) => { const i = argv.indexOf(n); return i >= 0 ? argv[i + 1] : undefined; };
+const task = flag("-p"), jobs = flag("-o"), job = flag("--job-name");
+const toml = readFileSync(join(task, "task.toml"), "utf8");
+if (log) appendFileSync(log, JSON.stringify({ argv, toml, solve: readFileSync(join(task, "solution", "solve.sh"), "utf8") }) + "\n");
+if (argv[0] !== "run" || flag("-a") !== "oracle" || !/^schema_version = "1\.4"/m.test(toml) || !/^name = "[a-z0-9-]+\/[A-Za-z0-9-]+"/m.test(toml)) { console.error("fake harbor: unexpected invocation or task.toml"); process.exit(1); }
+const trial = join(jobs, job, "litmustest-task__abc1234");
+for (const d of ["agent", "verifier", "artifacts"]) mkdirSync(join(trial, d), { recursive: true });
+const local = (f) => readFileSync(f, "utf8").replaceAll("/logs/", trial + "/").replaceAll("/solution/", join(task, "solution") + "/");
+let exception = null;
+if (process.env.FAKE_HARBOR_TIMEOUT) exception = { exception_type: "AgentTimeoutError", exception_message: "Agent execution timed out", exception_traceback: "", occurred_at: new Date().toISOString() };
+else {
+  const r = spawnSync("sh", ["-c", local(join(task, "solution", "solve.sh"))], { encoding: "utf8", env: process.env });
+  writeFileSync(join(trial, "agent", "oracle.txt"), (r.stdout ?? "") + (r.stderr ?? ""));
+  if (r.status !== 0) writeFileSync(join(trial, "agent", "exit-code.txt"), String(r.status));
+  spawnSync("sh", ["-c", local(join(task, "tests", "test.sh"))], { encoding: "utf8" });
+}
+let reward = 0; try { reward = Number(readFileSync(join(trial, "verifier", "reward.txt"), "utf8")); } catch { /* verifier did not run */ }
+writeFileSync(join(trial, "result.json"), JSON.stringify({ task_name: "litmustest-task", trial_name: "litmustest-task__abc1234", verifier_result: exception ? null : { rewards: { reward } }, exception_info: exception }));
+console.log(`Results written to ${join(jobs, job, "result.json")}`);

@@ -1,15 +1,15 @@
 # Decision Memos
 
-As of 2026-10-29. All six are recorded. #2, #3, #5 and #6 were decided by what v0.1 ships, not by the evidence their checklists ask for; each outcome says what is still owed. Record the outcome at the bottom of each memo.
+As of 2026-11-11. All six are recorded. #2, #3, #5 and #6 were decided by what v0.1 ships, not by the evidence their checklists ask for; each outcome says what is still owed. Record the outcome at the bottom of each memo.
 
 | # | Decision | Recommendation | Blocks | Status |
 | --- | --- | --- | --- | --- |
 | 1 | The name | **Renamed to `litmustest`.** | Package/repo names, wordmark, CLAUDE.md | Decided 2026-10-27 |
-| 2 | The runner | **Wrap, don't build.** Harbor for containers; pluggable storage. | Phase 3 architecture | Interim 2026-10-29: in-process only |
+| 2 | The runner | **Wrap, don't build.** Harbor for containers; pluggable storage. | Phase 3 architecture | Decided 2026-11-11 on paper: inprocess, docker and a Harbor wrapper; a real container run is owed |
 | 3 | Trace format | **OpenTelemetry GenAI conventions** internally; JSONL adapter. | Phase 1 ingest | Decided 2026-10-29 |
 | 4 | License and credit | **Keep Apache 2.0**; credit the course. | Phase 1 release | Decided 2026-10-27 |
 | 5 | Target agents | **Claude Code first**; Codex untested until Phase 2. | Test matrix | Decided 2026-10-29 |
-| 6 | Run storage | **Summaries in git, transcripts local**, optional object store. | Phase 3 runner, CI | Interim 2026-10-29: local only |
+| 6 | Run storage | **Summaries in git, transcripts local**, optional object store. | Phase 3 runner, CI | Decided 2026-11-11: five backends behind one interface; CI uploads a build artifact by default |
 
 ## 1. The name
 
@@ -53,7 +53,20 @@ Confirm before committing: Harbor's task format can carry our checks (or map at 
 - [ ] Lead engineer runs one sample task through Harbor (half a day)
 - [ ] Decide on that evidence
 
-**Outcome:** Interim, 2026-10-29. v0.1 ships one environment, `inprocess`: `agent.command` runs once per trial in a fresh directory on the same machine. `runs.environment: harbor` or `docker` fails with "not implemented yet (decision #2)". The Harbor spike has not been run, so "wrap, don't build" is still the plan but not yet confirmed. Owed: the half-day Harbor spike, then either a Harbor environment or a recorded reason to build a container runner.
+**Outcome:** Decided 2026-11-11, on paper. The runner has an `Environment` seam (`packages/cli/src/environments.ts`) with three implementations. The earlier interim outcome (2026-10-29, in-process only) is replaced.
+
+- `inprocess`: `agent.command` as a child process in its own process group, so a timeout kills the whole tree.
+- `docker`: `docker run --rm` per trial, trial directory at `/trial`, `evals/` read-only at `/evals`, `--cpus` and `--memory` from `runs.resources`, `docker kill` on timeout. Config under `runs.docker`.
+- `harbor`: a wrapper, not a rebuild. The spike was done by reading Harbor's source (`harbor-framework/harbor`, `main`, 2026-11-11), not by running it. What it found:
+  - A Harbor task is a directory (`task.toml` with `schema_version = "1.4"`, `instruction.md`, `environment/`, `solution/solve.sh`, `tests/test.sh`). Its built-in `oracle` agent uploads `solution/` and runs `solve.sh` inside the task's container. `/logs/artifacts` in the container is mounted back to `<jobs dir>/<job>/<trial>/artifacts` on the host.
+  - That is enough to carry our contract (run one command, leave `trial.json`): per trial the wrapper writes a task whose `solve.sh` is the agent command with `LITMUSTEST_TRIAL_DIR=/logs/artifacts`, runs `harbor run -p <task> -a oracle -n 1 -k 1`, and copies the artifacts back into the trial directory. The task's `[environment]` carries `docker_image`, `cpus` and `memory_mb`; `[agent] timeout_sec` carries the timeout. Harbor's verifier only records whether `trial.json` exists. Our checks stay ours and are graded by litmustest, so Harbor's task format does not need to express them.
+  - Harbor has no generic "run this command" agent; anything other than `oracle` needs a Python `BaseAgent` class. Using `oracle` as the command runner avoids shipping Python, at the cost of using it for something other than its stated purpose (reference solutions).
+  - Harbor does not mount host directories, so `evals/` is not visible in the container: the task file rides along as `/solution/task.yaml`, and anything else must be in the image.
+  - `harbor run` appears to exit 0 even when a trial fails, so the wrapper reads the trial's `result.json` (`exception_info`) and `agent/exit-code.txt` rather than the exit code.
+  - License and laptop use (the other two things to confirm) were not checked beyond the default backend being local Docker.
+- The example's hand-written Harbor task (`examples/support-agent/environments/harbor/`) was removed: it used keys Harbor's `task.toml` does not have (`[agent] command`, `[verifier] command`), hard-coded one task, and its test read a different path than its instruction named. The wrapper generates the task per trial instead; `examples/support-agent/environments/Dockerfile` is the image for both container environments.
+
+Not confirmed: `docker` and `harbor` are not installed where this was built. Both environments are tested against fake binaries that record their arguments and run the command locally (`tests/environments.test.ts`). Everything said about Harbor's runtime behaviour is inferred from its source. Owed: one real trial through each (the "half a day" in the first checkbox, still unticked), and Harbor's license.
 
 ## 3. Trace format
 
@@ -69,10 +82,10 @@ We add one derived, never-stored view: an ordered list of turns and tool calls, 
 
 JSONL adapter (Phase 1): each line has at least `id`, `input`, `output`; optionally `messages`, `tool_calls`. Warns about what it could not fill.
 
-- [ ] Confirm the conventions cover tool results and multi-turn user simulation
+- [x] Confirm the conventions cover tool results and multi-turn user simulation
 - [ ] Write the JSONL adapter spec with the schemas
 
-**Outcome:** Decided 2026-10-29, as the recommendation. `ingest` reads OpenTelemetry GenAI spans (`gen_ai.*` attributes) and plain JSONL (`id`, `input`, `output`, optional `messages`, `tool_calls`); Langfuse and Braintrust pulls map to the JSONL shape first. The review queue, the transcript page and the judges read the derived turn view (`trace_view.ts`), and labels reference trace ids. Owed: the first checkbox. Tool results are carried, but multi-turn user simulation has not been tried against the conventions.
+**Outcome:** Decided 2026-10-29, as the recommendation. `ingest` reads OpenTelemetry GenAI spans (`gen_ai.*` attributes) and plain JSONL (`id`, `input`, `output`, optional `messages`, `tool_calls`); Langfuse and Braintrust pulls map to the JSONL shape first. The review queue, the transcript page and the judges read the derived turn view (`trace_view.ts`), and labels reference trace ids. Multi-turn checked 2026-11-11 (B3): the conventions carry it once every model call's `gen_ai.input.messages` holds the conversation so far, which is what they ask for. The JSONL adapter, the example's trace builder and the trace built from a disputed trial now do that. The turn view recovers user turns by their place in that history, never by matching text, so a customer who answers "yes" twice keeps both turns; a call that follows one ending in tool calls with no text adds no user turn. Langfuse and Braintrust generations that resend the history map the same way. The example has one two-round task (`vat_invoice_followup_business`), driven by `input.simulate` in the task file. Not yet tried: a live multi-turn run of the example, which needs a model key, and recorded multi-turn payloads from a real Langfuse or Braintrust account.
 
 ## 4. License and credit
 
@@ -120,4 +133,12 @@ Summaries are small and diffable: git. Transcripts are evidence, not code: a sta
 - [ ] Confirm the storage interface (write run, read trial, list runs) supports three backends
 - [ ] Decide the CI default (local is useless there)
 
-**Outcome:** Interim, 2026-10-29. Summaries go in git under `evals/runs/`. Transcripts and grades go to a local, git-ignored store (`.litmustest/transcripts/` beside `evals/`, or `storage.transcripts.path`). Only `storage.transcripts.backend: local` is implemented; the schema lists `s3`, `gcs`, `braintrust`, `langfuse` and `langsmith`, but they are not wired. In CI the transcripts stay on the runner, so PR comments link to tasks, not transcripts. Owed: one object-store backend and the CI default.
+**Outcome:** Decided 2026-11-11. The interim outcome (2026-10-29, local only) is replaced.
+
+- Summaries go in git under `evals/runs/`. Each trial's `transcript_ref` is the address in the store it was written to; its last three segments are always run, task and trial.
+- The interface (`packages/cli/src/storage/`, `TranscriptStore`: `put`, `get`, `has`, `ref`) has five backends, which answers the first checkbox: `local` (a git-ignored directory, the default), `s3` and `gcs` (one object per file, signed with a SigV4 signer over `fetch`, no SDK; `gcs` through its S3-compatible XML API with HMAC keys), and `braintrust` and `langfuse` (one trace per trial tagged with run, task and trial, each file a span). `langsmith` is refused with a "not written yet" error and waits on the LangSmith adapter.
+- With a remote backend the runner works in a local cache (`.litmustest/cache/transcripts/`), uploads `trial.json`, `grades.json`, `stdout.txt` and `stderr.txt` after grading, and warns (without changing a score) when an upload fails. Readers fetch what is missing once and then read the cache. Listing does not ask the store anything: a trial counts as available when its ref names a remote store. Surface coverage counts calls from the transcripts that are on the machine.
+- Credentials come from the environment only, never from `litmustest.yaml`.
+- **CI default:** `litmustest ci --write-workflow` reads the backend. With `local` (the default) the workflow uploads the transcript directory as a build artifact, `litmustest-transcripts`, kept 14 days, and the PR comment lists each broken or newly flaky task with its path inside that artifact and a link to the run's artifacts. With a remote backend the workflow passes that backend's credentials from repository secrets and the comment links to the object or trace. A build artifact was chosen over requiring a bucket because it needs no setup and no secret; it expires, so a team that needs transcripts for longer sets a remote backend.
+
+Not confirmed: there are no cloud credentials or CLIs where this was built. `s3`, `gcs`, `braintrust` and `langfuse` are tested against in-memory fakes of each service's HTTP surface. The SigV4 signer reproduces the three example signatures AWS publishes in the S3 API reference, which is real evidence for S3; the GCS, Braintrust (`/v1/project_logs/{id}/insert`, `/btql`) and Langfuse (`/api/public/ingestion`, `/api/public/traces/{id}`) request shapes follow their public documentation and have not met a live account. The generated workflow has not run in GitHub Actions. Owed: one real run against each remote backend, and one CI run of the workflow.

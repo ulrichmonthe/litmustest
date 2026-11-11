@@ -11,8 +11,8 @@ import { existsSync, globSync, readFileSync, readdirSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { parse as parseYaml } from "yaml";
 import { loadFiles } from "./server/overview.ts";
-import { storeDirFor } from "./server/transcripts.ts";
 import { traceView } from "./trace_view.ts";
+import { localRoot } from "./storage/index.ts";
 
 type Obj = Record<string, unknown>;
 export type Depth = "none" | "planned" | "checked" | "guarded";
@@ -186,7 +186,7 @@ export function computeCoverage(evalsDir: string, opts: { run?: Obj; files?: Ret
   let cached: { byTask: Map<string, Obj[]>; readAny: boolean } | undefined;
   const calls = () => {
     if (cached) return cached;
-    const byTask = new Map<string, Obj[]>(); let readAny = false; const store = storeDirFor(evalsDir);
+    const byTask = new Map<string, Obj[]>(); let readAny = false; const store = localRoot(evalsDir);
     if (run) for (const t of tasks) {
       const n = (((run.tasks as Record<string, Obj> | undefined)?.[t.id]?.trials as Obj[]) ?? []).length;
       for (let i = 1; i <= n; i++) {
@@ -217,7 +217,7 @@ export function computeCoverage(evalsDir: string, opts: { run?: Obj; files?: Ret
     const add = (route: string, t: (typeof tasks)[number], via: CoveringTask["via"]) => { const r = ix.get(route); if (r && !r.tasks.some((x) => x.id === t.id)) r.tasks.push({ id: t.id, suite: t.suite, status: t.status, via }); };
     // calls made by the latest run's trials, from the transcript store
     for (const t of tasks) for (const c of calls().byTask.get(t.id) ?? []) { const r = matchRoute(routes, c); if (r) add(r, t, "called"); }
-    if (run && !calls().readAny) warnings.push(`No transcripts for ${String(run.run_id)} in ${storeDirFor(evalsDir)}; surface coverage counts covers: lists only. Run the suites on this machine to count real calls.`);
+    if (run && !calls().readAny) warnings.push(`No transcripts for ${String(run.run_id)} in ${localRoot(evalsDir)}; surface coverage counts covers: lists only. Run the suites on this machine to count real calls.`);
     surfaceRoutes = routes;
     for (const t of tasks) for (const c of t.covers) if (ix.has(c)) { add(c, t, "covers"); used.add(c); }
     surface = build("surface", "Surface", raw);

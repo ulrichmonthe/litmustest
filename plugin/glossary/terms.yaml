@@ -1201,8 +1201,8 @@
 
 - id: task_status
   term: Task status
-  aliases: [passing, failing, mixed]
-  short: "How a [[task]] did over its recent runs: passing every time, failing every time, or mixed."
+  aliases: [passing, failing, mixed, not run, no runs]
+  short: "How a [[task]] did over its recent runs: passing every time, failing every time, mixed, or not run yet."
   why: One run can be luck; the status looks across runs before calling a task fixed or broken.
   related: [flaky, likely_broken, graduation]
   learn_more: master-class#ch-8

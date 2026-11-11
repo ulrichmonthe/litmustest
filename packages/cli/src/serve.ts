@@ -68,10 +68,10 @@ async function handle(app: App, req: IncomingMessage, res: ServerResponse, ask?:
     if (path === "/api/doctor" && req.method === "GET") return send(app.doctor());
     if (path === "/api/transcripts" && req.method === "GET") return send(transcriptsIndex(app, q("run")));
     let tm: RegExpExecArray | null;
-    if ((tm = /^\/api\/transcripts\/([^/]+)\/([^/]+)\/(\d+)$/.exec(path)) && req.method === "GET") return send(trial(app, decodeURIComponent(tm[1]!), decodeURIComponent(tm[2]!), Number(tm[3])));
+    if ((tm = /^\/api\/transcripts\/([^/]+)\/([^/]+)\/(\d+)$/.exec(path)) && req.method === "GET") return send(await trial(app, decodeURIComponent(tm[1]!), decodeURIComponent(tm[2]!), Number(tm[3])));
     if ((tm = /^\/api\/transcripts\/([^/]+)\/([^/]+)\/(\d+)\/triage$/.exec(path)) && req.method === "POST") return send(setTriage(app, decodeURIComponent(tm[1]!), decodeURIComponent(tm[2]!), Number(tm[3]), body));
     if ((tm = /^\/api\/transcripts\/([^/]+)\/([^/]+)\/(\d+)\/explain$/.exec(path)) && req.method === "POST") return send(await explainRoute(app, decodeURIComponent(tm[1]!), decodeURIComponent(tm[2]!), Number(tm[3]), hooks.explainAsk ?? ask));
-    if ((tm = /^\/api\/transcripts\/([^/]+)\/([^/]+)\/(\d+)\/dispute$/.exec(path)) && req.method === "POST") return send(dispute(app, decodeURIComponent(tm[1]!), decodeURIComponent(tm[2]!), Number(tm[3]), body));
+    if ((tm = /^\/api\/transcripts\/([^/]+)\/([^/]+)\/(\d+)\/dispute$/.exec(path)) && req.method === "POST") return send(await dispute(app, decodeURIComponent(tm[1]!), decodeURIComponent(tm[2]!), Number(tm[3]), body));
     if (path === "/api/compare" && req.method === "GET") return send(app.compare(need(q("a"), "a"), need(q("b"), "b")));
     if (path === "/api/compare/expected" && req.method === "POST") return send(setExpectedFlip(app, body));
     if (path === "/api/compare/comment" && req.method === "POST") return send(commentRoute(app, body));
