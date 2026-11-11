@@ -35,19 +35,32 @@ export function kindOf(rel: string): string | undefined {
   return undefined;
 }
 
+/** What hosted mode swaps: the git and pending layer, who is acting, and how a pull request is opened. The disk stays. */
+export interface Backend { git?: Git; pending?: Pending; identity?: () => string; openPr?: (title?: string, body?: string) => Reply; onWrote?: (rels: string[]) => void }
+
 export class App {
   readonly evalsDir: string;
   readonly git: Git;
   readonly pending: Pending;
+  private backend: Backend;
   private schemas = new SchemaSet();
   private listeners = new Set<Listener>();
   private validation: ValidateResult | undefined;
 
-  constructor(evalsDir: string) {
+  constructor(evalsDir: string, backend: (evalsDir: string) => Backend = () => ({})) {
     if (!existsSync(join(resolve(evalsDir), "litmustest.yaml"))) throw new Error(`${resolve(evalsDir)}/litmustest.yaml not found; run litmustest init first`);
     this.evalsDir = realpathSync(resolve(evalsDir));
-    this.git = new Git(this.evalsDir);
-    this.pending = new Pending(this.git, this.evalsDir);
+    this.backend = backend(this.evalsDir);
+    this.git = this.backend.git ?? new Git(this.evalsDir);
+    this.pending = this.backend.pending ?? new Pending(this.git, this.evalsDir);
+  }
+
+  /** The one post-write path. Every writer that leaves a file under evals/ ends here: putFile, putFiles, appendLabel,
+   *  and the routes whose writers work on the files directly (calibrate, the two drafts, dispute). Locally it tracks
+   *  the files for the Pending tray; in hosted mode the backend also commits them to the pull-request branch. */
+  wrote(absPaths: string[]): void {
+    for (const p of absPaths) this.pending.track(p);
+    this.backend.onWrote?.(absPaths.map((p) => this.git.rel(p)));
   }
 
   subscribe(l: Listener): () => void { this.listeners.add(l); return () => this.listeners.delete(l); }
@@ -71,7 +84,7 @@ export class App {
   health(): Reply {
     const v = this.validate();
     let annotator = "";
-    try { annotator = this.git.run(["config", "user.name"]).trim(); } catch { /* unset */ }
+    try { annotator = this.backend.identity ? this.backend.identity() : this.git.run(["config", "user.name"]).trim(); } catch { /* unset */ }
     const project = (() => { try { return String((parseYaml(readFileSync(join(this.evalsDir, "litmustest.yaml"), "utf8")) as Obj).project ?? ""); } catch { return ""; } })();
     return { status: 200, body: { evals: this.evalsDir, repo: this.git.root, project, branch: this.git.branch(), head: this.git.head(), annotator, errors: v.errors, warnings: v.warnings, pending: this.pending.count() } };
   }
@@ -171,8 +184,7 @@ export class App {
       return { status: 422, body: { error: "invalid", message: `${rel} would break the evals directory`, problems: fresh } };
     }
     this.validation = after;
-    this.pending.track(abs);
-    for (const s of side) this.pending.track(s.abs);
+    this.wrote([abs, ...side.map((x) => x.abs)]);
     this.emit({ type: "saved", path: rel, hash: sha256(content), side_effects: side.map((s) => s.rel) });
     const problems = after.problems.filter((p) => p.file === rel || side.some((s) => s.rel === p.file));
     return { status: 200, body: { path: rel, hash: sha256(content), status: "saved to branch", branch: this.git.branch(), problems, side_effects: side.map((s) => s.rel) } };
@@ -196,7 +208,7 @@ export class App {
     const fresh = after.problems.filter((p) => p.level === "error" && !baseline.has(`${p.file}|${p.message}`));
     if (fresh.length) { for (const p of prepared) { if (p.before === undefined) rmSync(p.abs); else writeFileSync(p.abs, p.before); } this.invalidate(); return { status: 422, body: { error: "invalid", message: "the change would break the evals directory", problems: fresh } }; }
     this.validation = after;
-    for (const p of prepared) this.pending.track(p.abs);
+    this.wrote(prepared.map((p) => p.abs));
     this.emit({ type: "saved", path: prepared[0]?.rel, side_effects: prepared.slice(1).map((p) => p.rel) });
     return { status: 200, body: { files: prepared.map((p) => ({ path: p.rel, hash: sha256(p.content) })), status: "saved to branch", branch: this.git.branch() } };
   }
@@ -247,7 +259,7 @@ export class App {
     const abs = join(this.evalsDir, "labels", `${safe}.jsonl`);
     mkdirSync(dirname(abs), { recursive: true });
     appendFileSync(abs, JSON.stringify(full) + "\n");
-    this.pending.track(abs); this.invalidate();
+    this.wrote([abs]); this.invalidate();
     this.emit({ type: "label", path: `labels/${safe}.jsonl`, label: full });
     void v;
     return { status: 200, body: { path: `labels/${safe}.jsonl`, label: full } };
@@ -267,6 +279,7 @@ export class App {
     return { status: 200, body: { branch, commit, message: msg, files: st.files.map((f) => f.path) } };
   }
   openPr(title?: string, body?: string): Reply {
+    if (this.backend.openPr) return this.backend.openPr(title, body);
     const branch = this.git.branch();
     if (!branch.startsWith("evals/")) throw new HttpError(400, "commit to an evals/ branch first");
     if (this.pending.state().files.length) throw new HttpError(400, "commit or discard pending changes first");

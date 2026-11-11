@@ -12,6 +12,7 @@ import { validateEvals, type Problem } from "./validate.ts";
 import { initEvals } from "./init.ts";
 import { ingest } from "./ingest.ts";
 import { serve } from "./serve.ts";
+import { Hosted, hostedFromEnv } from "./server/hosted.ts";
 import { discover } from "./discover.ts";
 import { App } from "./server/app.ts";
 import { calibrate } from "./calibrate.ts";
@@ -181,7 +182,15 @@ Usage:
       Local server over evals/: reads with content hashes, validated writes
       that land on an evals/<slug> branch, the Pending changes API (commit,
       open PR, discard), append-only labels, batches and traces for the
-      review queue, and server-sent events from the file watcher.
+      review queue, and server-sent events from the file watcher. Listens
+      on this machine only.
+
+  litmustest serve --hosted --repo owner/name [--dir evals] [--port 4242] [--host 0.0.0.0] [--workdir path] [--base main]
+      Hosted mode, for a team with no local checkout: the server clones the
+      repository as a GitHub App, people sign in with GitHub, and every save
+      is a commit on an evals/<slug> pull-request branch authored by the
+      person who made it. Needs the LITMUSTEST_APP_* variables; see
+      docs/HOSTED.md.
 
   litmustest validate [path] [--deep] [--json] [--quiet]
       Validate an evals/ directory (default: ./evals) against the schemas and
@@ -466,11 +475,24 @@ function runDiscover(rest: string[]): void {
 
 function runServe(rest: string[]): void {
   try {
-    const { values } = opts(rest, ["--dir", "--port", "--host"]);
-    serve({ evalsDir: values.get("--dir") ?? "evals", port: values.has("--port") ? Number(values.get("--port")) : undefined, host: values.get("--host") })
+    const hosted = rest.includes("--hosted");
+    const { values } = opts(rest.filter((a) => a !== "--hosted"), ["--dir", "--port", "--host", "--repo", "--workdir", "--base"]);
+    const port = values.has("--port") ? Number(values.get("--port")) : undefined;
+    if (hosted) {
+      const repo = values.get("--repo") ?? process.env.LITMUSTEST_REPO; if (!repo) throw new Error("--hosted needs --repo owner/name (or LITMUSTEST_REPO)");
+      Hosted.start(hostedFromEnv(repo, { dir: values.get("--dir"), workDir: values.get("--workdir"), base: values.get("--base") }))
+        .then((h) => serve({ evalsDir: h.evalsDir, port, host: values.get("--host"), hosted: h }))
+        .then((r) => process.stdout.write(`litmustest hosting ${repo} on ${r.url} (clone at ${r.app.git.root}); saves land on evals/ pull-request branches\n`))
+        .catch((e: Error) => { process.stderr.write(`serve: ${e.message}\n`); process.exitCode = 1; });
+      return;
+    }
+    for (const f of ["--repo", "--workdir", "--base"]) if (values.has(f)) throw new Error(`${f} goes with --hosted`);
+    serve({ evalsDir: values.get("--dir") ?? "evals", port, host: values.get("--host") })
       .then((r) => process.stdout.write(`litmustest serving ${r.app.evalsDir} on ${r.url} (branch ${r.app.git.branch()})\n`))
       .catch((e: Error) => { process.stderr.write(`serve: ${e.message}\n`); process.exitCode = 1; });
   } catch (e) { process.stderr.write(`serve: ${(e as Error).message}\n`); process.exitCode = 1; }
 }
 
-process.exitCode = main(process.argv.slice(2));
+// Commands that finish later set process.exitCode themselves; a 0 returned now must not hide a failure they already recorded.
+const code = main(process.argv.slice(2));
+if (code !== 0 || process.exitCode === undefined) process.exitCode = code;

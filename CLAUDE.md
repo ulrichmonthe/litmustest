@@ -35,6 +35,7 @@ scripts/gen-tokens-css.ts   # writes packages/cli/ui/tokens.css from brand/token
 packages/cli/ui/          # the dashboard: static HTML, CSS and one ES module, no build step; served by `litmustest serve`
 packages/cli/src/server/  # app (routes and validated writes), pending (the tray), overview (read models), judges, discover_route, promote (trace to task, expected flips, PR comment)
 packages/cli/src/{stats,judge_run,calibrate,draft}.ts  # error bars and judge-error correction; running a judge; the calibration workflow; drafting graders
+packages/cli/src/server/hosted.ts  # hosted mode: GitHub App auth, a server-side clone, HostedGit and HostedPending, sign-in, a commit and push per save; built, not deployed (docs/HOSTED.md)
 packages/cli/src/write_cli.ts  # the dashboard's writes as commands (label, triage, dispute, mode, set, pending, prefs, promote, flip), each a call into the App method its route uses; tests/parity.test.ts maps every write route to its command
 packages/cli/src/{run,compare,ci}.ts  # the runner (agent.command per trial, grading, summaries); paired comparison and gates; the CI entry
 packages/cli/src/{coverage,coverage_cli}.ts, server/coverage_route.ts  # coverage v1: spec, surface and risk maps with depth; docs/COVERAGE.md says what it does not measure
@@ -69,6 +70,7 @@ evals/
 - Plain text files, JSON Schema for every file type (`docs/SCHEMAS.md`). Validate on every write. Add a valid and an invalid example under `tests/schemas/examples/` with every schema change.
 - Trace shape: OpenTelemetry GenAI conventions internally; a JSONL adapter for plain logs; Langfuse and Braintrust pull adapters map to the JSONL shape first. Labels reference trace ids, never positions.
 - A change that spans files (a graduation moves a task and edits two suite lists) goes through `App.putFiles`, which validates once and reverts all together.
+- Every writer that leaves a file under `evals/` ends in `App.wrote(paths)`: locally it feeds the Pending tray, in hosted mode it commits to the pull-request branch. Never call `pending.track` anywhere else (`tests/hosted.test.ts` checks).
 - Pin judge model ids to one exact id (`claude-opus-5-5`, or a dated snapshot where the provider issues them). Never a floating alias such as `-latest`; calibration records the id it measured and a change marks the judge stale.
 - Identifiers are `snake_case` and are what the dashboard shows in mono.
 - Words a person reads about evals come from `plugin/glossary/terms.yaml`. A new header, pill or metric needs a term (the smoke test's lint fails otherwise), and an explanation never types a number: it prints a fact.
@@ -85,6 +87,7 @@ evals/
 | Colours, type, spacing, voice, component rules | `docs/BRAND.md`, `brand/tokens.json`, `brand/logos/` |
 | What "done" means per phase | `docs/ACCEPTANCE.md` |
 | What coverage measures, and what v1 does not | `docs/COVERAGE.md` |
+| Hosted mode: the GitHub App, environment, deploy notes, what is untested | `docs/HOSTED.md` |
 | The explainer: glossary format, template rules, surfaces | `docs/EXPLAINER.md` |
 | Phase 1 brief: schemas and sample repo | `docs/FIRST-BRIEF.md` |
 | How we compare with the two sources | `docs/COMPARISON.md` |

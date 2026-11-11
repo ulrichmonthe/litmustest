@@ -8,7 +8,7 @@ Install name is `litmustest`, no hyphen. The `litmus-test` packages on npm and P
 
 ## Status
 
-Pre-release. Phases 1 to 3 are complete and Phase 4 is in progress (hosted mode is not started). Nothing is published to npm yet.
+Pre-release. Phases 1 to 3 are complete and Phase 4 is in progress (hosted mode is built and tested against a fake GitHub API, but not deployed: see `docs/HOSTED.md`). Nothing is published to npm yet.
 
 ## What is here
 
@@ -41,6 +41,7 @@ The skills call the `litmustest` CLI, installed separately: `npm install -g litm
 | `litmustest init` | Scaffolds `evals/`, detects a JSONL trace source |
 | `litmustest ingest <file>` | Normalizes traces, clusters, samples a review batch |
 | `litmustest serve` | The dashboard: review queue, failure modes, judges, overview, run compare, transcripts |
+| `litmustest serve --hosted --repo owner/name` | The same dashboard for a team: GitHub sign-in, every save a commit on a pull-request branch. Built, not deployed (`docs/HOSTED.md`) |
 | `litmustest discover` | Groups reviewers' notes into failure-mode files, as a diff |
 | `litmustest draft-judge` / `draft-check` | Drafts a judge or a code check from labels |
 | `litmustest calibrate <judge>` | Dev runs, then the held-out test once; TPR/TNR with intervals |
