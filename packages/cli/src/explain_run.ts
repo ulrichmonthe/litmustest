@@ -5,7 +5,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { SchemaSet } from "./schemas.ts";
 import { loadFiles } from "./server/overview.ts";
-import { loadTrial } from "./server/transcripts.ts";
+import { loadTrial, pullTrial } from "./server/transcripts.ts";
 import { explainTemplate, explainWithClaude, type TemplateExplanation } from "./explain.ts";
 import type { Ask } from "./discover.ts";
 
@@ -31,6 +31,7 @@ export async function explainRun(opts: { evalsDir: string; runId?: string; tasks
   const worker = async () => {
     while (next < targets.length) {
       const ix = next++; const { task, n } = targets[ix]!;
+      try { await pullTrial(opts.evalsDir, String(run.run_id), task, n); } catch { /* explain from what the summary holds */ }
       const { explainInput, t } = loadTrial(opts.evalsDir, String(run.run_id), task, n);
       const item: ExplainRunItem = { task, n, template: explainTemplate(explainInput) };
       if (opts.model !== false) {

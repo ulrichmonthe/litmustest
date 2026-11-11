@@ -13,13 +13,14 @@ import { passRateWithJudgeError, type Matrix } from "./stats.ts";
 import { judgeStatus, loadFiles } from "./server/overview.ts";
 import type { TraceView } from "./trace_view.ts";
 import { openEnvironment, splitCommand, type TrialRef } from "./environments.ts";
+import { openStore, type StoreOptions } from "./storage/index.ts";
 import { getPath, gradeOutcome, OutcomeInfraError, type Fetch } from "./outcome.ts";
 export { getPath, splitCommand };
 
 type Obj = Record<string, unknown>;
 export interface Grade { check: string; type: string; pass: boolean | null; reason: string; weight: number; failure_mode?: string; step?: number; critique?: string; verdict?: string; excluded?: string; /** outcome checks: the value seen at each expect key, and who read it (trial = the agent's own snapshot) */ observed?: Obj; reader?: "trial" | "sql" | "fs" | "http" }
 export interface TrialResult { task: string; n: number; pass: boolean; failed_checks: string[]; unknown_checks: string[]; excluded_checks: string[]; infra_error: boolean; infra_error_kind?: "timeout" | "oom" | "harness" | "network" | "other"; infra_message?: string; tokens?: number; latency_ms?: number; cost_usd?: number; transcript_ref: string; grades: Grade[]; weighted: number | null; dir: string }
-export interface RunOptions { evalsDir: string; suites?: string[]; tasks?: string[]; trials?: number; concurrency?: number; judgeAsk?: JudgeAsk; runId?: string; now?: Date; python?: string; onProgress?: (e: { task: string; n: number; total: number; done: number; result?: TrialResult }) => void; dryRun?: boolean; agentCommand?: string; timeoutMs?: number; /** for outcome checks with backend http */ fetch?: Fetch }
+export interface RunOptions { evalsDir: string; suites?: string[]; tasks?: string[]; trials?: number; concurrency?: number; judgeAsk?: JudgeAsk; runId?: string; now?: Date; python?: string; onProgress?: (e: { task: string; n: number; total: number; done: number; result?: TrialResult }) => void; dryRun?: boolean; agentCommand?: string; timeoutMs?: number; /** for outcome checks with backend http */ fetch?: Fetch; /** fetch and environment for a remote transcript store */ storage?: StoreOptions }
 export interface RunResult { run_id: string; path: string; summary: Obj; trials: TrialResult[]; transcripts_dir: string; warnings: string[]; gates?: Obj }
 
 const nowIso = (d: Date) => d.toISOString().replace(/\.\d{3}Z$/, "Z");
@@ -52,8 +53,8 @@ export async function run(o: RunOptions): Promise<RunResult> {
   for (const s of suiteNames) if (!f.suites.some((x) => x.name === s)) throw new Error(`no suite '${s}' under suites/`);
   const tasks = f.tasks.filter((t) => suiteNames.includes(String(t.suite)) && (!o.tasks?.length || o.tasks.includes(String(t.id))));
   if (!tasks.length) throw new Error(`no tasks in suite${suiteNames.length > 1 ? "s" : ""} ${suiteNames.join(", ")}`);
-  const storeRel = String(((config.storage as Obj | undefined)?.transcripts as Obj | undefined)?.path ?? ".litmustest/transcripts");
-  const store = resolve(repo, storeRel); const runDir = join(store, runId); mkdirSync(runDir, { recursive: true });
+  // each trial works in the store's local directory; a remote store gets the trial's files after grading
+  const store = openStore(evalsDir, o.storage); const runDir = join(store.root, runId); mkdirSync(runDir, { recursive: true });
   const runsCfg = (config.runs as Obj | undefined) ?? {};
   const environment = openEnvironment(envName, { repo, evalsDir, runId, project: config.project as string | undefined, runs: runsCfg });
   if (!o.dryRun) { await environment.setup(); warnings.push(...environment.warnings()); }
@@ -77,8 +78,8 @@ export async function run(o: RunOptions): Promise<RunResult> {
       // the budget stops new trials from starting; the ones already running finish and are counted
       if (budget > 0 && spent >= budget) { skipped += work.length - next; next = work.length; break; }
       const w = work[next++]!; const t = w.task; const id = String(t.id);
-      const dir = join(runDir, id, String(w.n)); rmSync(dir, { recursive: true, force: true }); mkdirSync(dir, { recursive: true });
-      const ref = `local:${runId}/${id}/${w.n}`;
+      const dir = store.dir(runId, id, w.n); rmSync(dir, { recursive: true, force: true }); mkdirSync(dir, { recursive: true });
+      const ref = store.ref(runId, id, w.n);
       let result: TrialResult;
       const tref: TrialRef = { run: runId, task: id, n: w.n, dir }; const hostTaskFile = taskFile(t);
       // paths as the command sees them: the host's own in process, /trial and /evals inside a container
@@ -174,6 +175,13 @@ export async function run(o: RunOptions): Promise<RunResult> {
     suites[s] = { pass_rate: pr.rate, ci: pr.ci, pass_at_1: scored.length ? +((100 * scored.filter((r) => r.pass).length) / scored.length).toFixed(1) : 0, pass_hat_k: +((100 * allPass) / ids.length).toFixed(1), k, n_tasks: ids.length, n_trials: trs.length, infra_errors: trs.length - scored.length, unknown_rate: unknownRate, excluded_judges: [...new Set(trs.flatMap((r) => r.excluded_checks.map((c) => { const chk = (tasks.find((t) => t.id === r.task)!.checks as Obj[]).find((x) => x.id === c); return String(chk?.judge ?? chk?.failure_mode ?? c); })))] };
   }
   for (const r of results) { const ts = taskSummaries[r.task]!; writeFileSync(join(r.dir, "grades.json"), JSON.stringify({ run_id: runId, task: r.task, trial: r.n, pass: r.pass, infra_error: r.infra_error, infra_error_kind: r.infra_error_kind, infra_message: r.infra_message, grades: r.grades, triage_suggested: suggestTriage(r, Boolean(ts.likely_broken)) }, null, 2)); }
+  if (store.remote) {
+    // upload after grading, a few at a time; a failed upload keeps the local copy and is reported, it does not change a score
+    let up = 0; const failed: string[] = [];
+    const uploader = async () => { while (up < results.length) { const r = results[up++]!; try { await store.push(runId, r.task, r.n); } catch (e) { failed.push(`${r.task}#${r.n}: ${(e as Error).message}`); } } };
+    await Promise.all(Array.from({ length: Math.min(8, results.length) }, uploader));
+    if (failed.length) warnings.push(`${failed.length} of ${results.length} transcripts were not uploaded to ${store.backend} and exist only in ${store.root} (${failed[0]})`);
+  }
   let commit = "0000000"; let branch: string | undefined;
   try { commit = execFileSync("git", ["rev-parse", "--short", "HEAD"], { cwd: repo, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim(); branch = execFileSync("git", ["rev-parse", "--abbrev-ref", "HEAD"], { cwd: repo, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim(); } catch { /* not a repo, or no commits yet */ }
   const infraCount = results.filter((r) => r.infra_error).length;

@@ -207,7 +207,7 @@
                 },
                 "transcript_ref": {
                   "type": "string",
-                  "description": "Address of the raw transcript in the configured store."
+                  "description": "Address of the raw transcript in the store it was written to: local:<run>/<task>/<n>, s3://bucket/prefix/<run>/<task>/<n>, gs://..., langfuse:<run>/<task>/<n> or braintrust:<project>/<run>/<task>/<n>. The last three segments are always run, task and trial."
                 },
                 "triage": {
                   "type": "object",

@@ -1,0 +1,8 @@
+# an unknown backend, an empty bucket, and a credential in the file (keys come from the environment only)
+project: support_agent
+sources: { traces: { format: jsonl, path: logs/traces/*.jsonl } }
+runs: { trials: 5 }
+judges: { default_model: claude-sonnet-4-5-20250929 }
+gates: { regression: { min_pass_rate: 95 } }
+storage:
+  transcripts: { backend: azure, bucket: "", secret_access_key: nope }

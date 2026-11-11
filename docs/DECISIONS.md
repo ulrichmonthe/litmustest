@@ -9,7 +9,7 @@ As of 2026-11-11. All six are recorded. #2, #3, #5 and #6 were decided by what v
 | 3 | Trace format | **OpenTelemetry GenAI conventions** internally; JSONL adapter. | Phase 1 ingest | Decided 2026-10-29 |
 | 4 | License and credit | **Keep Apache 2.0**; credit the course. | Phase 1 release | Decided 2026-10-27 |
 | 5 | Target agents | **Claude Code first**; Codex untested until Phase 2. | Test matrix | Decided 2026-10-29 |
-| 6 | Run storage | **Summaries in git, transcripts local**, optional object store. | Phase 3 runner, CI | Interim 2026-10-29: local only |
+| 6 | Run storage | **Summaries in git, transcripts local**, optional object store. | Phase 3 runner, CI | Decided 2026-11-11: five backends behind one interface; CI uploads a build artifact by default |
 
 ## 1. The name
 
@@ -133,4 +133,12 @@ Summaries are small and diffable: git. Transcripts are evidence, not code: a sta
 - [ ] Confirm the storage interface (write run, read trial, list runs) supports three backends
 - [ ] Decide the CI default (local is useless there)
 
-**Outcome:** Interim, 2026-10-29. Summaries go in git under `evals/runs/`. Transcripts and grades go to a local, git-ignored store (`.litmustest/transcripts/` beside `evals/`, or `storage.transcripts.path`). Only `storage.transcripts.backend: local` is implemented; the schema lists `s3`, `gcs`, `braintrust`, `langfuse` and `langsmith`, but they are not wired. In CI the transcripts stay on the runner, so PR comments link to tasks, not transcripts. Owed: one object-store backend and the CI default.
+**Outcome:** Decided 2026-11-11. The interim outcome (2026-10-29, local only) is replaced.
+
+- Summaries go in git under `evals/runs/`. Each trial's `transcript_ref` is the address in the store it was written to; its last three segments are always run, task and trial.
+- The interface (`packages/cli/src/storage/`, `TranscriptStore`: `put`, `get`, `has`, `ref`) has five backends, which answers the first checkbox: `local` (a git-ignored directory, the default), `s3` and `gcs` (one object per file, signed with a SigV4 signer over `fetch`, no SDK; `gcs` through its S3-compatible XML API with HMAC keys), and `braintrust` and `langfuse` (one trace per trial tagged with run, task and trial, each file a span). `langsmith` is refused with a "not written yet" error and waits on the LangSmith adapter.
+- With a remote backend the runner works in a local cache (`.litmustest/cache/transcripts/`), uploads `trial.json`, `grades.json`, `stdout.txt` and `stderr.txt` after grading, and warns (without changing a score) when an upload fails. Readers fetch what is missing once and then read the cache. Listing does not ask the store anything: a trial counts as available when its ref names a remote store. Surface coverage counts calls from the transcripts that are on the machine.
+- Credentials come from the environment only, never from `litmustest.yaml`.
+- **CI default:** `litmustest ci --write-workflow` reads the backend. With `local` (the default) the workflow uploads the transcript directory as a build artifact, `litmustest-transcripts`, kept 14 days, and the PR comment lists each broken or newly flaky task with its path inside that artifact and a link to the run's artifacts. With a remote backend the workflow passes that backend's credentials from repository secrets and the comment links to the object or trace. A build artifact was chosen over requiring a bucket because it needs no setup and no secret; it expires, so a team that needs transcripts for longer sets a remote backend.
+
+Not confirmed: there are no cloud credentials or CLIs where this was built. `s3`, `gcs`, `braintrust` and `langfuse` are tested against in-memory fakes of each service's HTTP surface. The SigV4 signer reproduces the three example signatures AWS publishes in the S3 API reference, which is real evidence for S3; the GCS, Braintrust (`/v1/project_logs/{id}/insert`, `/btql`) and Langfuse (`/api/public/ingestion`, `/api/public/traces/{id}`) request shapes follow their public documentation and have not met a live account. The generated workflow has not run in GitHub Actions. Owed: one real run against each remote backend, and one CI run of the workflow.

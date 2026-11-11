@@ -8,7 +8,7 @@ import { existsSync, globSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { parse as parseYaml } from "yaml";
 import { loadFiles } from "./server/overview.ts";
-import { storeDirFor } from "./server/transcripts.ts";
+import { localRoot } from "./storage/index.ts";
 
 type Obj = Record<string, unknown>;
 export type Depth = "none" | "planned" | "checked" | "guarded";
@@ -192,7 +192,7 @@ export function computeCoverage(evalsDir: string, opts: { run?: Obj; files?: Ret
     const ix = new Map(raw.map((r) => [r.id, r]));
     const add = (route: string, t: (typeof tasks)[number], via: CoveringTask["via"]) => { const r = ix.get(route); if (r && !r.tasks.some((x) => x.id === t.id)) r.tasks.push({ id: t.id, suite: t.suite, status: t.status, via }); };
     // calls made by the latest run's trials, from the transcript store
-    const store = storeDirFor(evalsDir); let readAny = false;
+    const store = localRoot(evalsDir); let readAny = false; // the local store, or the cache of a remote one: what is on this machine
     if (run) for (const t of tasks) {
       const n = (((run.tasks as Record<string, Obj> | undefined)?.[t.id]?.trials as Obj[]) ?? []).length;
       for (let i = 1; i <= n; i++) {
