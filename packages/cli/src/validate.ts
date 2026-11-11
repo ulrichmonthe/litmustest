@@ -8,7 +8,7 @@ import { SchemaSet } from "./schemas.ts";
 
 export type Level = "error" | "warning" | "info";
 export interface Problem { level: Level; file: string; message: string; rule?: string }
-export interface ValidateOptions { deep?: boolean; python?: string }
+export interface ValidateOptions { deep?: boolean; python?: string; /** With deep: run the reference checks for this one task only. */ deepOnly?: string }
 export interface ValidateResult {
   root: string;
   problems: Problem[];
@@ -188,7 +188,7 @@ export function validateEvals(root: string, opts: ValidateOptions = {}): Validat
         if (!existsSync(fn)) add("error", f, `check '${id}': fn '${raw.fn}' not found`, "code_fn_exists");
       }
     }
-    if (opts.deep && ref) deepCheck(root, l, ref, add, opts.python ?? "python3");
+    if (opts.deep && ref && (!opts.deepOnly || opts.deepOnly === String(l.data.id))) deepCheck(root, l, ref, add, opts.python ?? "python3");
   }
 
   // ---- suite membership

@@ -35,9 +35,18 @@ export async function ci(o: CiOptions): Promise<CiResult> {
   let posted = false;
   if (o.comment) {
     const pr = o.prNumber ?? prFromEnv();
-    if (pr) { try { execFileSync("gh", ["pr", "comment", pr, ...(o.repo ? ["--repo", o.repo] : []), "--body", markdown], { stdio: ["ignore", "pipe", "pipe"] }); posted = true; } catch (e) { return { run_id: runId, base, comparison: c, passed: g.passed, markdown, posted: false, reason: `could not post: ${(e as Error).message.split("\n")[0]}` }; } }
+    if (pr) { const r = postPrComment(markdown, { pr, repo: o.repo }); if (!r.posted) return { run_id: runId, base, comparison: c, passed: g.passed, markdown, posted: false, reason: r.reason }; posted = true; }
   }
   return { run_id: runId, base, comparison: c, passed: g.passed, markdown, posted };
+}
+/** Post markdown as a comment on a pull request with the gh CLI. Never throws: a failure comes back as a reason. */
+export function postPrComment(markdown: string, o: { pr: string; repo?: string; cwd?: string }): { posted: boolean; reason?: string } {
+  try { execFileSync("gh", ["pr", "comment", o.pr, ...(o.repo ? ["--repo", o.repo] : []), "--body", markdown], { stdio: ["ignore", "pipe", "pipe"], ...(o.cwd ? { cwd: o.cwd } : {}) }); return { posted: true }; }
+  catch (e) { return { posted: false, reason: `could not post: ${(e as Error).message.split("\n")[0]}` }; }
+}
+/** The number of the pull request open for the current branch, if gh knows one. */
+export function currentPr(cwd: string): string | undefined {
+  try { const n = execFileSync("gh", ["pr", "view", "--json", "number", "-q", ".number"], { cwd, stdio: ["ignore", "pipe", "pipe"], encoding: "utf8" }).trim(); return /^\d+$/.test(n) ? n : undefined; } catch { return undefined; }
 }
 function prFromEnv(): string | undefined {
   const ref = process.env.GITHUB_REF ?? ""; const m = /refs\/pull\/(\d+)\//.exec(ref); if (m) return m[1];

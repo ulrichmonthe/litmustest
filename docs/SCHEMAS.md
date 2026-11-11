@@ -41,6 +41,7 @@ evals/litmustest.yaml. Where traces come from, how runs execute, how judges are 
 | `ci` | object |  |  |  |
 | `agent` | object |  |  | How the runner starts the agent for one trial. The command runs once per trial in a fresh trial directory and must leave <trial_dir>/trial.json in the reference_solution shape (output, state, tool_calls, transcript, optional usage and latency_ms). Placeholders: {task}, {task_file}, {trial_dir}, {trial}, {evals}; the same values arrive as LITMUSTEST_TASK, LITMUSTEST_TASK_FILE, LITMUSTEST_TRIAL_DIR, LITMUSTEST_TRIAL, LITMUSTEST_INPUT (JSON) and LITMUSTEST_EVALS. |
 | `coverage` | object |  |  | Maps of the application that `litmustest coverage` measures the eval suite against. v1 measures three maps: spec (test-case ids in your docs), surface (API routes or tool names the trials actually call) and risk (failure modes by severity, always on). It does not measure production traffic, code lines or the frontend. |
+| `explain` | object |  |  | The explainer (docs/EXPLAINER.md). |
 
 #### `sources`
 
@@ -146,6 +147,13 @@ evals/litmustest.yaml. Where traces come from, how runs execute, how judges are 
 | `items` | array of string |  | min 1 items, unique | An explicit list: "METHOD /path" or tool names. |
 | `ignore` | array of string |  |  | Items to leave out, matched exactly or by a trailing *. |
 | `group_depth` | integer |  | ≥ 1, ≤ 6 | How many path segments make an area for the chart. Default 2 (/api/play). |
+
+#### `explain`
+
+| Field | Type | Required | Constraints | Description |
+| --- | --- | --- | --- | --- |
+| `learn_more_url` | string |  | uri | Base URL of the Master Class guide. Learn more links go to <url>#ch-<n>; without it the chapter is named but not linked. |
+| `plain_language_default` | boolean |  | default `true` | Whether Plain language starts on for someone who has not chosen. Each person's own choice lives in ~/.config/litmustest/prefs.json, not here. |
 
 ## failure_mode
 
@@ -445,6 +453,7 @@ evals/runs/<run id>.json. What one run of one or more suites produced, small eno
 | `suite_names` | array of [name](#name) |  |  | Suites this run covered, in order. |
 | `agent_command` | string |  |  |  |
 | `coverage` | object |  |  | Coverage when this run finished, from `litmustest coverage` (v1: spec, surface and risk maps). Items by depth: none, planned (only capability or unpassed tasks), checked (a passing task), guarded (a passing regression task). |
+| `expected_flips` | array of object |  |  | Flips against an earlier run that a person marked as expected, from Run compare. An expected flip explains a change in the comparison's verdict; it never waives a gate. |
 
 #### `suites` (each value)
 
@@ -559,6 +568,17 @@ evals/runs/<run id>.json. What one run of one or more suites produced, small eno
 | `checked` | integer | yes | ≥ 0 |  |
 | `guarded` | integer | yes | ≥ 0 |  |
 | `uncovered` | array of string |  | max 1000 items | Item ids with no task, for diffs between runs. |
+
+#### `expected_flips` (each item)
+
+| Field | Type | Required | Constraints | Description |
+| --- | --- | --- | --- | --- |
+| `task` | [name](#name) | yes |  | The task that flipped. |
+| `change` | `Broke` · `Fixed` · `Flaky` | yes |  | How the task's majority result changed. |
+| `vs` | string | yes |  | The run id this run was compared against. |
+| `by` | string | yes |  | Who marked it. |
+| `at` | [timestamp](#timestamp) | yes |  |  |
+| `note` | string |  | max length 1000 | Why the flip was expected. |
 
 ## trace
 

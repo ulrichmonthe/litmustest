@@ -7,7 +7,7 @@ import { loadFiles } from "./server/overview.ts";
 
 type Obj = Record<string, unknown>;
 export interface SuiteDelta { name: string; kind: string; n_tasks: number; a: number; b: number; delta: number; ci: { low: number; high: number }; significant: boolean; note: string; flips: number; a_ci: Obj; b_ci: Obj; gate: Obj | null; gate_result?: { passed: boolean; reasons: string[] } }
-export interface Flip { task: string; suite: string; change: "Broke" | "Fixed" | "Flaky"; a: string; b: string; check: string | null; transcript_ref?: string }
+export interface Flip { task: string; suite: string; change: "Broke" | "Fixed" | "Flaky"; a: string; b: string; check: string | null; transcript_ref?: string; transcript?: string; expected?: boolean; note?: string }
 export interface CoverageDelta { map: string; a: number; b: number; delta: number; total_a: number; total_b: number; newly_uncovered: string[] }
 export interface Comparison { coverage?: CoverageDelta[]; a: Obj; b: Obj; suites: SuiteDelta[]; flips: Flip[]; modes: { name: string; severity?: string; a: number; b: number; delta: number }[]; cost: { a: number; b: number; delta: number; tokens_a: number; tokens_b: number; latency_a: number; latency_b: number; infra_a: number; infra_b: number }; verdict: { tone: "good" | "bad" | "neutral"; text: string }; common_tasks: number }
 
@@ -36,6 +36,13 @@ export function compareRuns(evalsDir: string, aId: string, bId: string, opts: { 
     else if (ma === "pass" && mb === "fail") flips.push({ task: t, suite: String(bt.suite), change: "Broke", a: `${ta.filter((x) => x.pass).length} / ${ta.length}`, b: `${tb.filter((x) => x.pass).length} / ${tb.length}`, check, transcript_ref: ref });
     else if (ma === "fail" && mb === "pass") flips.push({ task: t, suite: String(bt.suite), change: "Fixed", a: `${ta.filter((x) => x.pass).length} / ${ta.length}`, b: `${tb.filter((x) => x.pass).length} / ${tb.length}`, check: null, transcript_ref: ref });
   }
+  // Where to read each flip, and whether a person marked it expected (stored on run B; it explains a change, it does not waive a gate).
+  const expected = ((b.expected_flips as Obj[] | undefined) ?? []).filter((x) => x.vs === aId);
+  for (const x of flips) {
+    const all = (bTasks[x.task]!.trials as Obj[]) ?? []; const firstFail = all.findIndex((tr) => !tr.pass && !tr.infra_error);
+    x.transcript = `#/transcripts/${encodeURIComponent(bId)}/${encodeURIComponent(x.task)}/${(firstFail < 0 ? 0 : firstFail) + 1}`;
+    const e = expected.find((y) => y.task === x.task); if (e) { x.expected = true; if (e.note) x.note = String(e.note); }
+  }
   const suites: SuiteDelta[] = suiteNames.map((name) => {
     const ids = common.filter((t) => bTasks[t]!.suite === name && aTasks[t]!.suite === name);
     const pa = ids.map((t) => trialsOf(a, t).map((x) => Boolean(x.pass))), pb = ids.map((t) => trialsOf(b, t).map((x) => Boolean(x.pass)));
@@ -55,7 +62,7 @@ export function compareRuns(evalsDir: string, aId: string, bId: string, opts: { 
   const avg = (run: Obj, k: string) => { const ts = Object.values(run.tasks as Record<string, Obj>).flatMap((x) => (x.trials as Obj[]) ?? []).filter((t) => t[k] !== undefined); return ts.length ? Math.round(ts.reduce((acc, t) => acc + Number(t[k]), 0) / ts.length) : 0; };
   const cost = { a: Number(a.cost_usd ?? 0), b: Number(b.cost_usd ?? 0), delta: +(Number(b.cost_usd ?? 0) - Number(a.cost_usd ?? 0)).toFixed(4), tokens_a: sum(a, "tokens"), tokens_b: sum(b, "tokens"), latency_a: avg(a, "latency_ms"), latency_b: avg(b, "latency_ms"), infra_a: Number(a.infra_error_rate ?? 0), infra_b: Number(b.infra_error_rate ?? 0) };
   // verdict
-  const broke = flips.filter((x) => x.change === "Broke"); const regBroke = broke.filter((x) => suites.find((s) => s.name === x.suite)?.kind === "regression");
+  const broke = flips.filter((x) => x.change === "Broke"); const regBroke = broke.filter((x) => !x.expected && suites.find((s) => s.name === x.suite)?.kind === "regression");
   const better = suites.filter((s) => s.significant && s.delta > 0), worse = suites.filter((s) => s.significant && s.delta < 0);
   let verdict: Comparison["verdict"];
   if (regBroke.length || worse.length) verdict = { tone: "bad", text: `B ${better.length ? `is better on ${better.map((s) => s.name).join(", ")} and ` : ""}${worse.length ? `worse on ${worse.map((s) => s.name).join(", ")}` : `breaks ${regBroke.length} regression task${regBroke.length > 1 ? "s" : ""}`}. Fix ${regBroke.length ? `the ${regBroke.length} broken task${regBroke.length > 1 ? "s" : ""}` : "that"} before merging.` };
@@ -92,7 +99,7 @@ export function comparisonMarkdown(c: Comparison, opts: { title?: string; gates?
   const sign = (n: number) => (n > 0 ? `+${n}` : `${n}`);
   const lines = [`### ${opts.title ?? "litmustest"}: ${String(c.b.run_id)} vs ${String(c.a.run_id)}`, "", `**${c.verdict.text}**`, "", "| Suite | A | B | Δ (95% CI) | | Gate |", "| --- | ---: | ---: | ---: | --- | --- |"];
   for (const s of c.suites) { lines.push(`| ${s.name} | ${s.a}% | ${s.b}% | ${sign(s.delta)} (${sign(s.ci.low)}…${sign(s.ci.high)}) | ${s.note} | ${s.gate_result ? (s.gate_result.passed ? (s.gate?.report_only ? "report only" : "✅") : `❌ ${s.gate_result.reasons.join("; ")}`) : s.gate ? "" : "none"} |`); const x = opts.explain?.(s.name); if (x) lines.push(x); }
-  if (c.flips.length) { lines.push("", `**${c.flips.length} task${c.flips.length > 1 ? "s" : ""} flipped** (majority verdict across trials)`, "", "| Task | Suite | A → B | Change | Failing check in B |", "| --- | --- | --- | --- | --- |"); for (const x of c.flips.slice(0, 25)) lines.push(`| \`${x.task}\` | ${x.suite} | ${x.a} → ${x.b} | ${x.change} | ${x.check ? `\`${x.check}\`` : "—"} |`); if (c.flips.length > 25) lines.push(`| … | | | ${c.flips.length - 25} more | |`); }
+  if (c.flips.length) { lines.push("", `**${c.flips.length} task${c.flips.length > 1 ? "s" : ""} flipped** (majority verdict across trials)`, "", "| Task | Suite | A → B | Change | Failing check in B |", "| --- | --- | --- | --- | --- |"); for (const x of c.flips.slice(0, 25)) lines.push(`| \`${x.task}\` | ${x.suite} | ${x.a} → ${x.b} | ${x.change}${x.expected ? " (expected)" : ""} | ${x.check ? `\`${x.check}\`` : "—"} |`); if (c.flips.length > 25) lines.push(`| … | | | ${c.flips.length - 25} more | |`); const exp = c.flips.filter((x) => x.expected); if (exp.length) lines.push("", `${exp.length} flip${exp.length > 1 ? "s" : ""} marked expected by a person: ${exp.map((x) => `\`${x.task}\`${x.note ? ` (${x.note})` : ""}`).join(", ")}. An expected flip explains a change; it does not waive a gate.`); }
   if (c.modes.length) { lines.push("", "**Failed checks by failure mode**", "", "| Mode | A | B | Δ |", "| --- | ---: | ---: | ---: |"); for (const m of c.modes.slice(0, 10)) lines.push(`| \`${m.name}\` | ${m.a} | ${m.b} | ${sign(m.delta)} |`); }
   if (c.coverage?.length) {
     lines.push("", "**Coverage** (checked or guarded; report only)", "", "| Map | A | B | Δ | Items |", "| --- | ---: | ---: | ---: | ---: |");

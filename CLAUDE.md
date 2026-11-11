@@ -33,7 +33,7 @@ tests/                    # vitest: schemas/examples/<schema>/{valid,invalid}.*,
 scripts/gen-schema-docs.ts  # writes docs/SCHEMAS.md from the schema descriptions
 scripts/gen-tokens-css.ts   # writes packages/cli/ui/tokens.css from brand/tokens.json
 packages/cli/ui/          # the dashboard: static HTML, CSS and one ES module, no build step; served by `litmustest serve`
-packages/cli/src/server/  # app (routes and validated writes), pending (the tray), overview (read models), judges, discover_route
+packages/cli/src/server/  # app (routes and validated writes), pending (the tray), overview (read models), judges, discover_route, promote (trace to task, expected flips, PR comment)
 packages/cli/src/{stats,judge_run,calibrate,draft}.ts  # error bars and judge-error correction; running a judge; the calibration workflow; drafting graders
 packages/cli/src/{run,compare,ci}.ts  # the runner (agent.command per trial, grading, summaries); paired comparison and gates; the CI entry
 packages/cli/src/{coverage,coverage_cli}.ts, server/coverage_route.ts  # coverage v1: spec, surface and risk maps with depth; docs/COVERAGE.md says what it does not measure
