@@ -362,6 +362,11 @@
           "type": "string",
           "format": "uri",
           "description": "Base URL of the Master Class guide. Learn more links go to <url>#ch-<n>; without it the chapter is named but not linked."
+        },
+        "plain_language_default": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether Plain language starts on for someone who has not chosen. Each person's own choice lives in ~/.config/litmustest/prefs.json, not here."
         }
       }
     }

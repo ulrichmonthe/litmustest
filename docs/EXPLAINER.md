@@ -118,7 +118,7 @@ pass@1 and pass^k are stored without an interval. The `suite` and `task` facts a
 | Explain panel (tier 2) | Click, tap or Enter opens a 320px panel docked on the right; the page reflows beside it. Below 900px it is a bottom sheet, at most 60% of the screen. It shows the term, what it means, what it means here, the next step, why it matters, related terms and Learn more (linked when `explain.learn_more_url` is set). Another term updates it in place; the close button, Escape or `?` close it and return focus; it follows you across screens and clears to page mode when the new screen lacks its term |
 | Explain this page | `?` (outside a text field) or "Explain this page" opens the panel in page mode: the first three terms from `plugin/glossary/pages.yaml` that the screen shows, each with its sentence |
 | Next steps as actions | A next step's `action` names dashboard commands. Screens register their own buttons' handlers as commands (`command(id, …)` in `app.js`), and the panel renders available ones as buttons that call the same handler; a step on another screen is a link, never a link to the screen you are on. Every disabled button has a trigger beside it whose next step says what unblocks it |
-| Plain language | A per-viewer toggle in Settings, stored in the browser and on by default: the "here" sentence shows under each card |
+| Plain language | Each person's choice, in Settings and in the panel header. On, the "here" sentence sits under each card's number; off, it is only in the panel. Saved in `$XDG_CONFIG_HOME/litmustest/prefs.json` (else `~/.config/…`) through `/api/prefs`, falling back to browser storage where the server keeps none; never in `evals/`. A repo sets the default for newcomers with `explain.plain_language_default` (on when unset). The first panel a newcomer opens offers, once, "Turn off Plain language" |
 | API | `GET /api/glossary` (layer 1, merged); `POST /api/glossary/here` with `[{id, source, ctx}]` returns the rendered sentences |
 | CLI | `litmustest explain <term>` prints layer 1 and, when an `evals/` exists, the "here" sentence for every matching context. `explain` with no term keeps its old job (explaining failed trials). |
 | CLI rows | `--plain` on `run`, `compare`, `calibrate` and `doctor` prints the "here" sentence under each row. Not `--explain`: on `run` that already means "ask Claude about the failed trials". |
@@ -126,7 +126,7 @@ pass@1 and pass^k are stored without an interval. The `suite` and `task` facts a
 
 ## Decisions on the PRD's open questions
 
-- Plain language defaults on for every viewer; it is a viewer preference, not a repo setting.
+- Plain language is each person's choice, stored outside the repo; a repo may set the default for newcomers (`explain.plain_language_default`, on when unset).
 - Repo glossary entries add terms and never override plugin terms. Failure modes are the way a repo defines its own words.
 - "Why?" is not built yet (see Layers).
 - Copy: written to the PRD's seed list; the five-person comprehension test decides rewrites.
