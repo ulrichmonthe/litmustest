@@ -37,6 +37,6 @@ Checks on save: schema valid; one failure mode, Pass and Fail defined; a clear p
 ## Known gaps in the mockups
 
 - No empty, loading or error states drawn for any screen.
-- No dark theme drawn; tokens exist for it in `../brand/tokens.json`.
+- No dark theme drawn. The dashboard has one all the same: the tokens in `../brand/tokens.json` carry both themes, Settings switches between system, light and dark, and `tests/contrast.test.ts` holds every text token to 4.5:1 in both.
 - Seven of eight screens still use Inter/JetBrains Mono and the older nav; the rework uses Geist/Geist Mono and the current nav rules. Treat the rework as canonical.
-- No mobile layout beyond "it wraps".
+- No mobile layout drawn. Below 900px the dashboard's nav is one bar (brand, current page, pending count, Menu) and the items open under it; wide code scrolls sideways inside its block.

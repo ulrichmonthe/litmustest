@@ -69,7 +69,7 @@ A warm neutral ground, one accent, a status set, and one dark band.
 - **The status set** (`good`, `warn`, `bad`, `neutral-tint`) is the only place meaning lives in colour, and every use is paired with a word. `good` and `bad` differ in lightness as well as hue so they survive colour-blindness. `warn` means "needs attention", not "error".
 - **`planned`** (violet) appears only in roadmap and comparison material, to mark what is designed but not built. It never appears in the product.
 
-Contrast: every text token meets 4.5:1 on the ground its usage note names, in both themes. `ink-faint` is the only token allowed below 7:1 and it is restricted to 12px and up.
+Contrast: every text token meets 4.5:1 on the ground its usage note names, in both themes. `ink-faint` is the only token allowed below 7:1 and it is restricted to 12px and up. The verdict-strip dot uses `slate-good`, `slate-bad` or `slate-neutral`, which hold 3:1 on `slate` in both themes. `tests/contrast.test.ts` enforces all of this.
 
 ## Typography
 
@@ -89,7 +89,7 @@ Inter and JetBrains Mono are the fallbacks and are acceptable where Geist cannot
 
 ## Layout
 
-- A 220px nav on the left with a `line-soft` right border, one page on the right. Page padding is `space-6` on desktop and `space-4` on phones, and the page content sits in a 1180px column centred in whatever is left. The nav stacks above the page below 900px.
+- A 220px nav on the left with a `line-soft` right border, one page on the right. Page padding is `space-6` on desktop and `space-4` on phones, and the page content sits in a 1180px column centred in whatever is left. Below 900px the nav is one bar above the page: the mark, the current page, the pending count and a Menu button that opens the items and the tray.
 - Nav items are `ink` at 500 with no icon. The current page is 600 in `blue-ink` on `blue-tint` and carries `aria-current="page"`. A count beside a nav item is the number alone, in mono on `neutral-tint`; the item's own label says what it counts.
 - Every page opens with a breadcrumb (`Run #41 / regression / task / Trial 3 of 5`) above its title, so a deep link still tells the reader where they are.
 - Cards are `surface` with a `line` border, `radius-lg` and `space-5` padding. No shadows anywhere; depth comes from the border and the ground. Rows inside a card divide with `line-soft`; a card's own sub-panel uses `radius-md` and a `line` border, dashed when its content is informational only (a stale judge's verdict, for example).

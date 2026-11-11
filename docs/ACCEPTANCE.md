@@ -53,6 +53,6 @@ As of 2026-10-27. Derived from the 25-chapter "litmustest Master Class" guide, w
 - [ ] Every number in the dashboard links to the tasks behind it; every task to its transcript.
 - [ ] No number is shown without its margin of error.
 - [x] Every control is a real button/link/input, ≥ 44px, keyboard reachable, with a visible focus ring. (`tests/ui_smoke.test.ts` measures every control on every route in Chrome and fails under 44px; links in running text are exempt. Focus rings come from one `:focus-visible` rule.)
-- [ ] Text contrast ≥ 4.5:1 on its ground in both themes.
+- [x] Text contrast ≥ 4.5:1 on its ground in both themes. (`tests/contrast.test.ts` computes every text token on each ground it is used on from `brand/tokens.json`; `ink-faint` and light `warn` were darkened or lightened to pass. Marks that are not text hold 3:1.)
 - [ ] The same action works from the CLI and the dashboard; the dashboard is a client of the files.
 - [x] The plugin ships the 14 skills of the spec, each writing into the schema and stopping before a commit. (`tests/skills.test.ts` checks names, the Apache header on the nine course ports, and every `litmustest` command and flag against `--help`. No skill has yet been run end to end in a real session.)
