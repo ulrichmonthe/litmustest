@@ -1,5 +1,6 @@
 // Run one task once in a fresh environment and write the trial in reference-solution shape, plus its trace.
 //   node src/run_trial.ts --task duplicate_charge_frustrated [--multi] [--out .litmustest/trials] [--trial-dir <dir>]
+// A task whose input has simulate: { max_rounds } runs with a simulated customer for up to that many rounds.
 // Under litmustest run, --trial-dir (or LITMUSTEST_TRIAL_DIR) names the fresh directory the trial must write trial.json into.
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
@@ -17,7 +18,7 @@ const taskId = flag("--task") ?? process.env.LITMUSTEST_TASK;
 if (!taskId) { console.error("usage: node src/run_trial.ts --task <task id> [--multi] [--out dir]"); process.exit(2); }
 
 const taskFile = join(here, "..", "evals", "tasks", ...(await findTask(taskId)));
-const task = parseYaml(readFileSync(taskFile, "utf8")) as { id: string; input: { persona: Persona; from: string; message: string; goal?: string } };
+const task = parseYaml(readFileSync(taskFile, "utf8")) as { id: string; input: { persona: Persona; from: string; message: string; goal?: string; simulate?: { max_rounds?: number } } };
 const opening = `From: ${task.input.from}\n\n${task.input.message}`;
 const stamp = new Date().toISOString().replace(/[:.]/g, "-");
 const trialDir = flag("--trial-dir") ?? process.env.LITMUSTEST_TRIAL_DIR;
@@ -28,7 +29,8 @@ console.log(`fresh database at ${path}`);
 const t0 = Date.now();
 const rec = await runAgent({
   id: `trial_${task.id}_${stamp}`, db, message: opening, persona: task.input.persona,
-  simulate: args.includes("--multi") ? { goal: task.input.goal ?? task.input.message, maxRounds: 4 } : undefined,
+  // A task asks for a simulated customer in its input (simulate.max_rounds); --multi forces one for any task.
+  simulate: task.input.simulate || args.includes("--multi") ? { goal: task.input.goal ?? task.input.message, maxRounds: task.input.simulate?.max_rounds ?? 4 } : undefined,
 });
 const trial = {
   task: task.id,

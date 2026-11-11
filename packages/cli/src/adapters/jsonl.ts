@@ -26,7 +26,8 @@ export function jsonlLineToTrace(line: Obj, opts: { ingestedAt?: Date; lineNo?: 
   // group into agent turns: each assistant message closes a turn; tool messages in between are results
   const spans: Obj[] = [];
   const iso = (ms: number) => new Date(ms).toISOString();
-  let t = t0; let turn = 0; let pendingUser: Obj[] = []; let callIx = 0;
+  // Each chat span's input is the conversation so far (OTel GenAI): earlier user, assistant and tool messages, then the new user turn.
+  let t = t0; let turn = 0; let pendingUser: Obj[] = []; let callIx = 0; const history: Obj[] = [];
   const byTurn = new Map<number, Obj[]>();
   for (const c of toolCalls) { const k = typeof c.turn === "number" ? c.turn : 0; byTurn.set(k, [...(byTurn.get(k) ?? []), c]); }
   const root = "s_root";
@@ -42,14 +43,16 @@ export function jsonlLineToTrace(line: Obj, opts: { ingestedAt?: Date; lineNo?: 
     const text = asText(m.content); if (text) parts.push({ type: "text", content: text });
     spans.push({ span_id: spanId, parent_span_id: root, name: `chat ${model ?? "unknown"}`, kind: "client", start_time: iso(start), end_time: iso(t),
       attributes: { "gen_ai.operation.name": "chat", ...(model ? { "gen_ai.request.model": model, "gen_ai.response.model": model } : {}),
-        "gen_ai.input.messages": pendingUser.length ? pendingUser : [{ role: "user", parts: [{ type: "text", content: asText(line.input) }] }],
+        "gen_ai.input.messages": turn === 0 && !pendingUser.length ? [{ role: "user", parts: [{ type: "text", content: asText(line.input) }] }] : [...history, ...pendingUser],
         "gen_ai.output.messages": [{ role: "assistant", parts: parts.length ? parts : [{ type: "text", content: "" }], finish_reason: calls.length ? "tool_call" : "stop" }] } });
+    history.push(...(turn === 0 && !pendingUser.length ? [{ role: "user", parts: [{ type: "text", content: asText(line.input) }] }] : pendingUser), { role: "assistant", parts: parts.length ? parts : [{ type: "text", content: "" }] });
     pendingUser = [];
     for (const c of calls) {
       const s = t; t += 100;
       const ok = !(c.result && typeof c.result === "object" && "error" in (c.result as Obj));
       spans.push({ span_id: `s_tool_${c.id ?? spanId}_${calls.indexOf(c)}`, parent_span_id: spanId, name: `execute_tool ${c.name}`, kind: "internal", start_time: iso(s), end_time: iso(t), status: { code: ok ? "ok" : "error" },
         attributes: { "gen_ai.operation.name": "execute_tool", "gen_ai.tool.name": String(c.name), ...(c.id ? { "gen_ai.tool.call.id": String(c.id) } : {}), "gen_ai.tool.call.arguments": c.arguments ?? {}, "gen_ai.tool.call.result": c.result ?? null } });
+      history.push({ role: "tool", parts: [{ type: "tool_call_response", ...(c.id ? { id: String(c.id) } : {}), response: c.result ?? null }] });
     }
     turn++;
   }

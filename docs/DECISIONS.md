@@ -82,10 +82,10 @@ We add one derived, never-stored view: an ordered list of turns and tool calls, 
 
 JSONL adapter (Phase 1): each line has at least `id`, `input`, `output`; optionally `messages`, `tool_calls`. Warns about what it could not fill.
 
-- [ ] Confirm the conventions cover tool results and multi-turn user simulation
+- [x] Confirm the conventions cover tool results and multi-turn user simulation
 - [ ] Write the JSONL adapter spec with the schemas
 
-**Outcome:** Decided 2026-10-29, as the recommendation. `ingest` reads OpenTelemetry GenAI spans (`gen_ai.*` attributes) and plain JSONL (`id`, `input`, `output`, optional `messages`, `tool_calls`); Langfuse and Braintrust pulls map to the JSONL shape first. The review queue, the transcript page and the judges read the derived turn view (`trace_view.ts`), and labels reference trace ids. Owed: the first checkbox. Tool results are carried, but multi-turn user simulation has not been tried against the conventions.
+**Outcome:** Decided 2026-10-29, as the recommendation. `ingest` reads OpenTelemetry GenAI spans (`gen_ai.*` attributes) and plain JSONL (`id`, `input`, `output`, optional `messages`, `tool_calls`); Langfuse and Braintrust pulls map to the JSONL shape first. The review queue, the transcript page and the judges read the derived turn view (`trace_view.ts`), and labels reference trace ids. Multi-turn checked 2026-11-11 (B3): the conventions carry it once every model call's `gen_ai.input.messages` holds the conversation so far, which is what they ask for. The JSONL adapter, the example's trace builder and the trace built from a disputed trial now do that. The turn view recovers user turns by their place in that history, never by matching text, so a customer who answers "yes" twice keeps both turns; a call that follows one ending in tool calls with no text adds no user turn. Langfuse and Braintrust generations that resend the history map the same way. The example has one two-round task (`vat_invoice_followup_business`), driven by `input.simulate` in the task file. Not yet tried: a live multi-turn run of the example, which needs a model key, and recorded multi-turn payloads from a real Langfuse or Braintrust account.
 
 ## 4. License and credit
 
