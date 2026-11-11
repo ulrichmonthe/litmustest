@@ -7,6 +7,7 @@ import { parse as parseYaml } from "yaml";
 import { App, HttpError, type Reply } from "./server/app.ts";
 import { dispute, setTriage } from "./server/transcripts.ts";
 import { prefsRoute, putPrefsRoute } from "./server/prefs.ts";
+import { commentRoute, promoteTrace, setExpectedFlip } from "./server/promote.ts";
 
 type Obj = Record<string, unknown>;
 interface Args { values: Map<string, string[]>; flags: Set<string>; positional: string[]; one: (k: string) => string | undefined }
@@ -218,6 +219,33 @@ function runPrefs(rest: string[]): number {
   return report("prefs", r, (b) => `${Object.entries(b).filter(([k]) => k !== "path").map(([k, v]) => `${k}: ${String(v)}`).join("\n")}\n(${String(b.path)}; yours, never in evals/)`, a.flags.has("--json"));
 }
 
+function runPromote(rest: string[]): number {
+  const a = parse(rest, ["--dir", "--suite", "--id"], ["--json"]);
+  const [trace] = a.positional; if (!trace) throw new Usage("usage: litmustest promote <trace> [--suite regression] [--id task_id]");
+  const r = promoteTrace(open(a), trace, { ...(a.one("--suite") ? { suite: a.one("--suite") } : {}), ...(a.one("--id") ? { id: a.one("--id") } : {}) });
+  return report("promote", r, (b) => {
+    const files = (b.files as { path: string }[]).map((f) => f.path); const probs = (b.reference_problems as string[]) ?? []; const ungraded = (b.ungraded_modes as string[]) ?? [];
+    return [`promoted ${trace} to task ${String(b.task)} in ${String(b.suite)} (pending on ${String(b.branch)}): ${files.join(", ")}`,
+      `  checks: ${(b.checks as string[]).join(", ")}`,
+      ...ungraded.map((m) => `  no grader yet for ${m}: draft one with litmustest draft-judge ${m} or draft-check ${m}`),
+      ...(probs.length ? ["  the reference was drafted from what the agent did and does not pass its own checks yet; edit it to what the agent should have done:", ...probs.map((p) => `    ${p}`)] : ["  the drafted reference passes its checks"])].join("\n");
+  }, a.flags.has("--json"));
+}
+
+function runFlip(rest: string[]): number {
+  const a = parse(rest, ["--dir", "--note", "--by"], ["--json", "--expected", "--undo"]);
+  const [runA, runB, task] = a.positional;
+  if (!runA || !runB || !task || a.flags.has("--expected") === a.flags.has("--undo")) throw new Usage("usage: litmustest flip <A> <B> <task> --expected [--note s] [--by name] | flip <A> <B> <task> --undo");
+  const app = open(a);
+  const r = setExpectedFlip(app, { a: runA, b: runB, task, expected: a.flags.has("--expected"), note: a.one("--note"), by: a.one("--by") ?? (who(app) || "cli") });
+  return report("flip", r, (b) => `${task} between ${runA} and ${runB}: ${a.flags.has("--expected") ? "marked expected" : "no longer marked expected"}. ${saved(b)}. An expected flip explains a change; it does not waive a gate.`, a.flags.has("--json"));
+}
+
+/** compare A B --comment [--pr N]: post the comparison to the pull request, as the Run compare page's button does. */
+export function postComparison(evalsDir: string, a: string, b: string, pr?: string): number {
+  return report("compare", commentRoute(new App(evalsDir), { a, b, ...(pr ? { pr } : {}) }), (body) => `posted the comparison of ${a} and ${b} on pull request ${String(body.pr)}`);
+}
+
 /** discover --apply [--only a,b]: save the proposed failure-mode files through the validated write, one line per file. */
 export function applyProposals(app: App, proposals: { path: string; content: string }[], only?: string[]): string[] {
   const nameOf = (path: string) => path.replace(/^.*\//, "").replace(/\.yaml$/, ""); const lines: string[] = [];
@@ -230,7 +258,7 @@ export function applyProposals(app: App, proposals: { path: string; content: str
   return lines;
 }
 
-const COMMANDS: Record<string, (rest: string[]) => number> = { label: runLabel, triage: runTriage, dispute: runDispute, mode: runMode, set: runSet, pending: runPending, prefs: runPrefs };
+const COMMANDS: Record<string, (rest: string[]) => number> = { label: runLabel, triage: runTriage, dispute: runDispute, mode: runMode, set: runSet, pending: runPending, prefs: runPrefs, promote: runPromote, flip: runFlip };
 
 /** Run a write command; undefined when `cmd` is not one of them. Exit 2 is a usage error, 1 a refused write. */
 export function writeCommand(cmd: string, rest: string[]): number | undefined {

@@ -21,7 +21,7 @@ import { compareRuns, comparisonMarkdown, evaluateGates } from "./compare.ts";
 import { ci, writeWorkflow } from "./ci.ts";
 import { sample, SAMPLER_WORKFLOW } from "./sample.ts";
 import { applyGraduations, doctor, graduationProposals } from "./graduate.ts";
-import { applyProposals, writeCommand } from "./write_cli.ts";
+import { applyProposals, postComparison, writeCommand } from "./write_cli.ts";
 
 // `litmustest explain | head` closes the pipe early; that is the reader being done, not an error.
 process.stdout.on("error", (e: NodeJS.ErrnoException) => { if (e.code === "EPIPE") process.exit(0); throw e; });
@@ -84,11 +84,12 @@ Usage:
       change; --no-model prints the template only and writes nothing. One
       trial per task unless --all; --force re-explains. Needs a model token.
 
-  litmustest compare <A> <B> [--dir evals] [--json] [--markdown] [--explain]
+  litmustest compare <A> <B> [--dir evals] [--json] [--markdown] [--explain] [--comment] [--pr N]
       Paired comparison of two run summaries over their common tasks: per-suite
       delta with a bootstrap interval, significant or within noise; the flip
       list (Broke, Fixed, Flaky); failed checks by failure mode; cost, tokens,
-      latency and infra deltas; and the gate verdict for B.
+      latency and infra deltas; and the gate verdict for B. --comment posts
+      it on the branch's pull request, or --pr N (needs gh).
 
   litmustest ci [--dir evals] [--suite s]... [--base run_id] [--base-branch main] [--comment] [--pr N] [--write-workflow]
       Run the gated suites, compare with the base run (the latest on the base
@@ -147,6 +148,15 @@ Usage:
       Disagree with a judge's verdict on a trial: the trial becomes a trace
       and your label is appended for that judge's failure mode. Human-only,
       like label.
+
+  litmustest promote <trace> [--suite regression] [--id task_id] [--dir evals] [--json]
+      Turn a reviewed trace into a task: the task file, a reference drafted
+      from what the agent did, and the suite entry, as one pending change.
+      Prints the checks the drafted reference fails, for a person to fix.
+
+  litmustest flip <A> <B> <task> --expected [--undo] [--note s] [--by name] [--dir evals] [--json]
+      Mark a task that flipped between runs A and B as expected (or --undo).
+      It explains the change in the comparison; it never waives a gate.
 
   litmustest mode new|set|merge|retire <name> [into] [--definition s] [--severity high|med|low] [--owner o] [--dir evals] [--json]
       Create or edit a failure mode, merge it into another, or retire it.
@@ -237,7 +247,7 @@ function opts(rest: string[], known: string[]): { values: Map<string, string>; f
     if (!a.startsWith("--")) { positional.push(a); continue; }
     if (!known.includes(a)) throw new Error(`unknown flag ${a}`);
     const next = rest[i + 1];
-    if (["--force", "--json", "--apply", "--if-due", "--write-workflow"].includes(a) || next === undefined || next.startsWith("--")) flags.add(a); else { values.set(a, next); i++; }
+    if (["--force", "--json", "--apply", "--if-due", "--write-workflow", "--comment"].includes(a) || next === undefined || next.startsWith("--")) flags.add(a); else { values.set(a, next); i++; }
   }
   return { values, flags, positional };
 }
@@ -276,10 +286,11 @@ function runIngest(rest: string[]): number {
 
 function runCompare(rest: string[]): number {
   try {
-    const { values, flags, positional } = opts(rest, ["--dir", "--json", "--markdown", "--explain"]);
+    const { values, flags, positional } = opts(rest, ["--dir", "--json", "--markdown", "--explain", "--comment", "--pr"]);
     const [a, b] = positional; if (!a || !b) { process.stderr.write("compare: two run ids are required\n"); return 2; }
     const dir = resolve(values.get("--dir") ?? "evals");
     const c = compareRuns(dir, a, b); const g = evaluateGates(c);
+    if (flags.has("--comment")) return postComparison(dir, a, b, values.get("--pr"));
     if (flags.has("--json")) { process.stdout.write(JSON.stringify({ ...c, gates_passed: g.passed }, null, 2) + "\n"); return 0; }
     const explain = flags.has("--explain") ? (suite: string) => muted(plainLines(dir, [{ id: "gate", source: "delta", ctx: { a, b, suite } }])) : undefined;
     process.stdout.write(comparisonMarkdown(c, { explain }) + "\n");

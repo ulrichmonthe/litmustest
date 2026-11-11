@@ -35,7 +35,7 @@ scripts/gen-tokens-css.ts   # writes packages/cli/ui/tokens.css from brand/token
 packages/cli/ui/          # the dashboard: static HTML, CSS and one ES module, no build step; served by `litmustest serve`
 packages/cli/src/server/  # app (routes and validated writes), pending (the tray), overview (read models), judges, discover_route, promote (trace to task, expected flips, PR comment)
 packages/cli/src/{stats,judge_run,calibrate,draft}.ts  # error bars and judge-error correction; running a judge; the calibration workflow; drafting graders
-packages/cli/src/write_cli.ts  # the dashboard's writes as commands (label, triage, dispute, mode, set, pending, prefs), each a call into the App method its route uses; tests/parity.test.ts maps every write route to its command
+packages/cli/src/write_cli.ts  # the dashboard's writes as commands (label, triage, dispute, mode, set, pending, prefs, promote, flip), each a call into the App method its route uses; tests/parity.test.ts maps every write route to its command
 packages/cli/src/{run,compare,ci}.ts  # the runner (agent.command per trial, grading, summaries); paired comparison and gates; the CI entry
 packages/cli/src/{coverage,coverage_cli}.ts, server/coverage_route.ts  # coverage v1: spec, surface and risk maps with depth; docs/COVERAGE.md says what it does not measure
 packages/cli/src/{explain,explain_run}.ts  # why a trial failed: a template from the data (no model) and Claude's reading, stored as trials[n].explanation; advice only, never a verdict

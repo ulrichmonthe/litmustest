@@ -48,7 +48,7 @@ The skills call the `litmustest` CLI, installed separately: `npm install -g litm
 | `litmustest coverage` | How much of the application the evals cover: spec cases, API routes or tools, and failure modes, each guarded, checked, planned or none (v1 scope in docs/COVERAGE.md) |
 | `litmustest explain` | Plain-language reasons for failed trials: what was tested, which step went wrong, what kind of failure, what would make it pass; Claude's reading is saved in the run summary |
 | `litmustest explain <term>` | What a term means, why it matters, what good looks like, and what it means in this repo with the next step; the dashboard's ? popovers and the PR comment use the same glossary (`docs/EXPLAINER.md`) |
-| `litmustest compare A B` | Paired deltas, flips, failure-mode and cost deltas |
+| `litmustest compare A B` | Paired deltas, flips, failure-mode and cost deltas; `--comment` posts it on the pull request |
 | `litmustest ci` | Gated suites, PR comment, non-zero on a crossed gate |
 | `litmustest sample` | The production sampler: new traces since the last batch, on a schedule |
 | `litmustest graduate` | Capability tasks that passed every trial for 3 runs move to regression |
@@ -56,6 +56,8 @@ The skills call the `litmustest` CLI, installed separately: `npm install -g litm
 | `litmustest validate` | Every file against its schema and the cross-file rules |
 | `litmustest label` / `dispute` | A person's label on a trace, or a disagreement with a judge's verdict, from a terminal. Human-only: refused without a terminal unless `--annotator` names who decided |
 | `litmustest triage` | Confirm or override why a trial failed |
+| `litmustest promote <trace>` | A reviewed trace becomes a task, a drafted reference and a suite entry, as one pending change |
+| `litmustest flip A B <task> --expected` | Mark a flip between two runs as expected; it explains the change, it never waives a gate |
 | `litmustest mode new\|set\|merge\|retire` | Create, edit, merge or retire a failure mode |
 | `litmustest set <path>` | The validated save behind every dashboard editor: `key=value` on a task, judge or config, or a whole file with `--from` |
 | `litmustest pending` | The Pending changes tray: `status`, `commit`, `pr`, `discard` |

@@ -11,7 +11,7 @@ import { run } from "../packages/cli/src/run.ts";
 import { serve, type Running } from "../packages/cli/src/serve.ts";
 import { App } from "../packages/cli/src/server/app.ts";
 import { applyProposals } from "../packages/cli/src/write_cli.ts";
-vi.setConfig({ testTimeout: 120_000 });
+vi.setConfig({ testTimeout: 120_000, hookTimeout: 120_000 });
 
 const ROOT = join(import.meta.dirname, "..");
 const MAIN = join(ROOT, "packages", "cli", "src", "main.ts");
@@ -36,6 +36,9 @@ const ROUTES: Record<string, { cli: string; flags?: string[] }> = {
   "POST /api/pending/commit": { cli: "pending", flags: ["--message", "--slug"] },
   "POST /api/pending/pr": { cli: "pending", flags: ["--title", "--body"] },
   "POST /api/pending/discard": { cli: "pending", flags: ["--all"] },
+  "POST /api/traces/:name/promote": { cli: "promote", flags: ["--suite", "--id"] },
+  "POST /api/compare/expected": { cli: "flip", flags: ["--expected", "--undo", "--note", "--by"] },
+  "POST /api/compare/comment": { cli: "compare", flags: ["--comment", "--pr"] },
 };
 
 /** The write routes as serve.ts declares them: `path === "/api/x" && req.method === "POST"` and the regex form. */
@@ -82,7 +85,6 @@ const same = () => { const h = changed(viaHttp); expect(Object.keys(h).length).t
 beforeAll(async () => {
   const seed = mkdtempSync(join(tmpdir(), "litmustest-parity-")); const evals = join(seed, "evals");
   cpSync(EXAMPLE, evals, { recursive: true });
-  for (const f of readdirSync(join(evals, "runs"))) execFileSync("rm", [join(evals, "runs", f)]);
   writeFileSync(join(evals, "litmustest.yaml"), readFileSync(join(evals, "litmustest.yaml"), "utf8").replace(/command: .*\n(\s+\{trial_dir\}\n)?/, `command: node ${FAKE}\n`));
   writeFileSync(join(seed, ".gitignore"), ".litmustest/\n");
   const judge = async () => JSON.stringify({ critique: "tone fits", result: "Pass" });
@@ -173,6 +175,31 @@ describe("the same write from the dashboard and from the terminal", () => {
     const tmp = join(mkdtempSync(join(tmpdir(), "litmustest-from-")), "config.yaml"); writeFileSync(tmp, before);
     expect(cli(repo, "set", "litmustest.yaml", "--from", tmp).code).toBe(0);
     expect(readFileSync(join(repo, "evals", "litmustest.yaml"), "utf8")).toBe(before);
+  });
+  it("promote: the task, the drafted reference and the suite entry as one change", async () => {
+    const h = await api("/api/traces/tr_0013/promote", "POST", { suite: "regression" }); expect(h.status, JSON.stringify(h.body)).toBe(200);
+    const r = cli(viaCli, "promote", "tr_0013", "--suite", "regression");
+    expect(r.code, r.err).toBe(0); expect(r.out).toMatch(new RegExp(`promoted tr_0013 to task ${h.body.task} in regression`)); expect(r.out).toMatch(/checks: /);
+    same();
+    expect(cli(viaCli, "promote", "tr_0013").err).toMatch(/already exists/);
+    expect(cli(viaCli, "promote", "tr_0013", "--id", "again", "--suite", "nope").code).toBe(1);
+  });
+  it("flip --expected: stored on run B, and --undo removes it", async () => {
+    const flips = (await (await fetch(`${srv.url}/api/compare?a=run_0040&b=run_0041`)).json()).flips as { task: string }[]; const task = flips[0]!.task;
+    expect((await api("/api/compare/expected", "POST", { a: "run_0040", b: "run_0041", task, note: "prompt change", by: "t" })).status).toBe(200);
+    const r = cli(viaCli, "flip", "run_0040", "run_0041", task, "--expected", "--note", "prompt change");
+    expect(r.code, r.err).toBe(0); expect(r.out).toMatch(/marked expected.*does not waive a gate/);
+    expect(JSON.parse(readFileSync(join(viaCli, "evals", "runs", "run_0041.json"), "utf8")).expected_flips[0]).toMatchObject({ task, vs: "run_0040", by: "t", note: "prompt change" });
+    same();
+    expect(cli(viaCli, "flip", "run_0040", "run_0041", task).code).toBe(2);
+    expect(cli(viaCli, "flip", "run_0040", "run_0041", "not_a_task", "--expected").code).toBe(1);
+    expect((await api("/api/compare/expected", "POST", { a: "run_0040", b: "run_0041", task, expected: false })).status).toBe(200);
+    expect(cli(viaCli, "flip", "run_0040", "run_0041", task, "--undo").code).toBe(0);
+    same();
+  });
+  it("compare --comment: fails with the command to run when gh cannot post", () => {
+    const r = spawnSync(process.execPath, [MAIN, "compare", "run_0040", "run_0041", "--comment", "--pr", "1", "--dir", join(viaCli, "evals")], { encoding: "utf8", cwd: viaCli, env: { ...process.env, PATH: "/usr/bin:/bin", GH_TOKEN: "", GITHUB_TOKEN: "" } });
+    expect(r.status).toBe(1); expect(r.stderr).toMatch(/compare: could not post/); expect(r.stderr).toMatch(/gh pr comment 1/);
   });
   it("graduate --apply --only moves just the named task", async () => {
     expect((await api("/api/graduate", "POST", { tasks: ["vat_invoice_business"] })).status).toBe(200);
