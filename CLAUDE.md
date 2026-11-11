@@ -39,6 +39,7 @@ packages/cli/src/{run,compare,ci}.ts  # the runner (agent.command per trial, gra
 packages/cli/src/{coverage,coverage_cli}.ts, server/coverage_route.ts  # coverage v1: spec, surface and risk maps with depth; docs/COVERAGE.md says what it does not measure
 packages/cli/src/{explain,explain_run}.ts  # why a trial failed: a template from the data (no model) and Claude's reading, stored as trials[n].explanation; advice only, never a verdict
 packages/cli/src/{sample,graduate}.ts, adapters/platforms.ts  # the production sampler; graduation, saturation and doctor; Langfuse and Braintrust pull adapters
+packages/cli/src/{glossary,glossary_facts,glossary_cli}.ts, server/glossary_route.ts  # the explainer: plugin/glossary/terms.yaml rendered from typed facts; docs/EXPLAINER.md is the contract
 docs/, brand/, design/    # spec, decisions, brand book, tokens, logos, mockups
 ```
 
@@ -68,6 +69,7 @@ evals/
 - A change that spans files (a graduation moves a task and edits two suite lists) goes through `App.putFiles`, which validates once and reverts all together.
 - Pin judge model ids to one exact id (`claude-opus-5-5`, or a dated snapshot where the provider issues them). Never a floating alias such as `-latest`; calibration records the id it measured and a change marks the judge stale.
 - Identifiers are `snake_case` and are what the dashboard shows in mono.
+- Words a person reads about evals come from `plugin/glossary/terms.yaml`. A new header, pill or metric needs a term (the smoke test's lint fails otherwise), and an explanation never types a number: it prints a fact.
 - Target Claude Code first; keep the Codex manifest the fork ships, marked untested (DECISIONS.md #5).
 - License: Apache 2.0. Modified upstream skills carry a "Modified from ai-evals-course/evals-skills (Apache 2.0)" header.
 
@@ -81,6 +83,7 @@ evals/
 | Colours, type, spacing, voice, component rules | `docs/BRAND.md`, `brand/tokens.json`, `brand/logos/` |
 | What "done" means per phase | `docs/ACCEPTANCE.md` |
 | What coverage measures, and what v1 does not | `docs/COVERAGE.md` |
+| The explainer: glossary format, template rules, surfaces | `docs/EXPLAINER.md` |
 | Phase 1 brief: schemas and sample repo | `docs/FIRST-BRIEF.md` |
 | How we compare with the two sources | `docs/COMPARISON.md` |
 

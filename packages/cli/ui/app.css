@@ -353,3 +353,29 @@ table.plain td .desc { display: block; font-size: 12px; color: var(--ink-muted);
 .cov-row { display: grid; grid-template-columns: 80px 56px minmax(80px, 1fr) minmax(0, 1.4fr); gap: 12px; align-items: center; color: inherit; min-height: 44px; border-top: 1px solid var(--line-soft); padding-top: 8px; }
 .cov-row .n { font-weight: 600; font-variant-numeric: tabular-nums; font-size: 18px; }
 @media (max-width: 640px) { .cov-row { grid-template-columns: 70px 50px 1fr; } .cov-row .caption { grid-column: 1 / -1; } }
+
+/* Explainer (docs/EXPLAINER.md). A term is never blue (blue is navigation); its underline is dotted. No shadows: depth from the border. */
+.term { text-decoration: underline dotted var(--ink-faint); text-decoration-thickness: 1px; text-underline-offset: 3px; cursor: help; border-radius: var(--radius-sm); }
+.term:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+.qhelp { display: inline-grid; place-items: center; min-width: 44px; min-height: 44px; margin: -12px -10px; padding: 0; background: none; border: 0; cursor: help; color: var(--ink-faint); vertical-align: middle; }
+.qhelp > span { display: inline-grid; place-items: center; width: 18px; height: 18px; border: 1px solid var(--line); border-radius: var(--radius-pill); font-size: 11px; font-weight: 600; line-height: 1; }
+.qhelp:hover > span, .qhelp[aria-expanded="true"] > span { color: var(--ink); border-color: var(--ink-faint); }
+.popover { position: fixed; z-index: 50; width: min(340px, calc(100vw - 16px)); padding: 12px 14px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-md); font-size: 13px; line-height: 20px; color: var(--ink); }
+.popover p { margin: 6px 0 0; }
+.popover .pop-term { font-weight: 600; }
+.popover .here { color: var(--ink); }
+.popover .next, .popover .more { color: var(--ink-muted); }
+.popover .example { color: var(--ink-muted); }
+.plain-line { margin: 10px 0 0; font-size: 13px; line-height: 20px; color: var(--ink-muted); }
+.plain-line:empty { display: none; }
+.plain-line a { margin-left: 2px; }
+.drawer { position: fixed; z-index: 40; top: 0; right: 0; bottom: 0; width: min(420px, 100vw); overflow-y: auto; padding: var(--space-5); background: var(--surface); border-left: 1px solid var(--line); display: flex; flex-direction: column; gap: var(--space-3); }
+.drawer:focus { outline: none; }
+.drawer-list { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 12px; font-size: 13px; line-height: 20px; }
+.drawer-list p { margin: 4px 0 0; }
+.verdict-strip .explain-page { margin-left: auto; }
+.plain-link { color: inherit; }
+.chip-pair { display: inline-flex; align-items: center; gap: 0; }
+.chip-pair .qhelp { margin: 0 -8px 0 -6px; }
+.term .pill { text-decoration: underline dotted currentColor; text-decoration-thickness: 1px; text-underline-offset: 2px; }
+.verdict-strip .explain-page { color: inherit; text-decoration: underline; text-underline-offset: 3px; }

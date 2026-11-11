@@ -13,7 +13,8 @@ const NEW = ["define-task", "build-environment", "triage-failures", "analyze-run
 const help = execFileSync(process.execPath, [join(ROOT, "packages", "cli", "src", "main.ts"), "--help"], { encoding: "utf8" });
 // Each usage line is "  litmustest <command> [flags...]"; the flags on that line are the command's flags.
 const usage = new Map<string, Set<string>>();
-for (const m of help.matchAll(/^ {2}litmustest ([a-z-]+)(.*)$/gm)) usage.set(m[1], new Set([...m[2].matchAll(/--[a-z-]+/g)].map((f) => f[0])));
+// A command can have more than one usage line (explain <term> and explain [--run]); its flags are the union.
+for (const m of help.matchAll(/^ {2}litmustest ([a-z-]+)(.*)$/gm)) usage.set(m[1], new Set([...(usage.get(m[1]) ?? []), ...[...m[2].matchAll(/--[a-z-]+/g)].map((f) => f[0])]));
 const GLOBAL = new Set(["--help", "--version"]);
 
 const skills = readdirSync(SKILLS, { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name).sort();

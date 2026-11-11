@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://litmustest.dev/schemas/v1/glossary.json",
+  "title": "Glossary",
+  "description": "plugin/glossary/terms.yaml (the plugin's terms) and evals/glossary.yaml (a repo's own terms). The explainer's only source of words: the dashboard, the CLI and the PR comment all read it. docs/EXPLAINER.md is the contract; litmustest validate enforces the rules beyond shape.",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": ["id", "term", "short"],
+    "additionalProperties": false,
+    "properties": {
+      "id": { "$ref": "common.json#/$defs/name" },
+      "term": { "type": "string", "minLength": 1, "maxLength": 60, "description": "The term as people read it." },
+      "aliases": { "type": "array", "items": { "type": "string", "minLength": 1 }, "uniqueItems": true, "description": "Other spellings the product or people use. Unique across all terms." },
+      "short": { "type": "string", "minLength": 1, "maxLength": 200, "description": "Layer 1: what it means, in 20 words or fewer. Another term is linked as [[id]]." },
+      "why": { "type": "string", "maxLength": 300, "description": "Why it matters, in one sentence." },
+      "good": { "type": "string", "maxLength": 200, "description": "What good looks like. The only place a template's fixed numbers may come from." },
+      "here": {
+        "type": "array",
+        "description": "Layer 2: what it means here, per source. The first variant for the source whose when holds and whose facts all resolve is shown.",
+        "items": {
+          "type": "object",
+          "required": ["source", "template"],
+          "additionalProperties": false,
+          "properties": {
+            "source": { "type": "string", "enum": ["judge", "suite", "task", "delta", "failure_mode", "run", "queue", "coverage", "pending"] },
+            "when": { "type": "string", "description": "A condition over the source's facts." },
+            "template": { "type": "string", "minLength": 1, "description": "A sentence with {fact | formatter} placeholders." },
+            "next": {
+              "type": "array",
+              "description": "Next steps; the first whose when holds is shown. The last has no when.",
+              "items": {
+                "type": "object",
+                "required": ["say"],
+                "additionalProperties": false,
+                "properties": {
+                  "when": { "type": "string" },
+                  "say": { "type": "string", "minLength": 1 },
+                  "link": { "type": "string", "description": "A dashboard route such as #/judges/{judge}." }
+                }
+              }
+            }
+          }
+        }
+      },
+      "related": { "type": "array", "items": { "$ref": "common.json#/$defs/name" }, "uniqueItems": true },
+      "learn_more": { "type": "string", "pattern": "^master-class#ch-[0-9]+$", "description": "The Master Class chapter with the long form." },
+      "audience": { "type": "array", "items": { "type": "string", "enum": ["everyone", "labeler", "engineer", "reviewer"] }, "uniqueItems": true }
+    }
+  }
+}

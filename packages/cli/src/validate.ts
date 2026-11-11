@@ -1,3 +1,4 @@
+import { validateRepoGlossary } from "./glossary.ts";
 import { createHash } from "node:crypto";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { basename, dirname, join, relative, resolve, sep } from "node:path";
@@ -74,6 +75,10 @@ export function validateEvals(root: string, opts: ValidateOptions = {}): Validat
     if (l.data.name !== stem(f)) add("error", f, `name '${l.data.name}' must equal the file name '${stem(f)}'`, "name_matches_file");
     failureModes.set(String(l.data.name), l);
   }
+
+  // ---- the repo's own glossary terms (docs/EXPLAINER.md); the plugin's are checked by the test suite
+  const glossaryFile = join(root, "glossary.yaml");
+  if (existsSync(glossaryFile) && load(glossaryFile, "glossary")) for (const p of validateRepoGlossary(root)) add("error", glossaryFile, `${p.id}: ${p.message}`, "glossary");
 
   // ---- suites
   const suites = new Map<string, Loaded>();

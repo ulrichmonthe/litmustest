@@ -12,12 +12,13 @@
   "files": [
     "dist",
     "schemas",
+    "glossary",
     "ui",
     "README.md"
   ],
   "scripts": {
     "build": "tsc -b",
-    "prepack": "rm -rf schemas && cp -R ../../schemas schemas"
+    "prepack": "rm -rf schemas glossary && cp -R ../../schemas schemas && cp -R ../../plugin/glossary glossary"
   },
   "dependencies": {
     "ajv": "^8.17.1",

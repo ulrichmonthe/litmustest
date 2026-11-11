@@ -444,6 +444,7 @@ evals/runs/<run id>.json. What one run of one or more suites produced, small eno
 | `judge_corrections` | array of object |  |  | Per judge, the TPR/TNR used to correct its checks' pass rates. |
 | `suite_names` | array of [name](#name) |  |  | Suites this run covered, in order. |
 | `agent_command` | string |  |  |  |
+| `coverage` | object |  |  | Coverage when this run finished, from `litmustest coverage` (v1: spec, surface and risk maps). Items by depth: none, planned (only capability or unpassed tasks), checked (a passing task), guarded (a passing regression task). |
 
 #### `suites` (each value)
 
@@ -517,6 +518,47 @@ evals/runs/<run id>.json. What one run of one or more suites produced, small eno
 | `tpr` | number | yes | ≥ 0, ≤ 100 |  |
 | `tnr` | number | yes | ≥ 0, ≤ 100 |  |
 | `prompt_hash` | [common.json#/$defs/sha256](#commonjson#/$defs/sha256) |  |  |  |
+
+#### `coverage`
+
+| Field | Type | Required | Constraints | Description |
+| --- | --- | --- | --- | --- |
+| `spec` | object |  |  |  |
+| `surface` | object |  |  |  |
+| `risk` | object |  |  |  |
+
+##### `spec`
+
+| Field | Type | Required | Constraints | Description |
+| --- | --- | --- | --- | --- |
+| `total` | integer | yes | ≥ 0 |  |
+| `none` | integer | yes | ≥ 0 |  |
+| `planned` | integer | yes | ≥ 0 |  |
+| `checked` | integer | yes | ≥ 0 |  |
+| `guarded` | integer | yes | ≥ 0 |  |
+| `uncovered` | array of string |  | max 1000 items | Item ids with no task, for diffs between runs. |
+
+##### `surface`
+
+| Field | Type | Required | Constraints | Description |
+| --- | --- | --- | --- | --- |
+| `total` | integer | yes | ≥ 0 |  |
+| `none` | integer | yes | ≥ 0 |  |
+| `planned` | integer | yes | ≥ 0 |  |
+| `checked` | integer | yes | ≥ 0 |  |
+| `guarded` | integer | yes | ≥ 0 |  |
+| `uncovered` | array of string |  | max 1000 items | Item ids with no task, for diffs between runs. |
+
+##### `risk`
+
+| Field | Type | Required | Constraints | Description |
+| --- | --- | --- | --- | --- |
+| `total` | integer | yes | ≥ 0 |  |
+| `none` | integer | yes | ≥ 0 |  |
+| `planned` | integer | yes | ≥ 0 |  |
+| `checked` | integer | yes | ≥ 0 |  |
+| `guarded` | integer | yes | ≥ 0 |  |
+| `uncovered` | array of string |  | max 1000 items | Item ids with no task, for diffs between runs. |
 
 ## trace
 

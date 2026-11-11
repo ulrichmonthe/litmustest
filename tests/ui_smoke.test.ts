@@ -69,3 +69,47 @@ describe("dashboard smoke", () => {
     expect(await visit(s.url, ROUTES)).toEqual({});
   }, 60_000);
 });
+
+// The explainer (docs/EXPLAINER.md): popovers open on click and focus, close on Escape with focus returned,
+// and every header, stat label and pill on the screens is either a glossary term or a plain word on this list.
+const PLAIN = new Set(["a", "b", "a → b", "actual", "agent", "change", "customer", "expected", "fail", "failed", "failing", "passing", "pass", "high", "med", "low", "human", "item", "last runs", "model", "mode", "none", "path", "source", "status", "suite health", "tool", "trend", "used by", "why", "what happened", "what it tests", "what this means", "to make it pass", "judge's critique", "covered by", "has check", "measured", "not measured in v1", "needs labels", "failing check in b", "no grader", "only a judge failed it", "mixed", "high severity", "review queue", "dev tpr / tnr", "test tpr / tnr", "change", "checks"]);
+const ALSO: Record<string, string> = { broke: "flip", fixed: "flip", significant: "confidence_interval", "within noise": "confidence_interval" };
+
+describe("explainer in the browser", () => {
+  it("opens on click and focus, closes on Escape, and every label on the screens is defined", async (ctx) => {
+    if (!browser) return ctx.skip();
+    const cwd = repo((c) => cpSync(EXAMPLE, join(c, "evals"), { recursive: true }));
+    const s = await serve({ evalsDir: join(cwd, "evals"), port: 0, watch: false }); servers.push(s);
+    const names = new Set(((await (await fetch(`${s.url}/api/glossary`)).json()) as { terms: { id: string; term: string; aliases?: string[] }[] }).terms.flatMap((t) => [t.id, t.term, ...(t.aliases ?? [])].map((x) => x.toLowerCase())));
+    const page = await browser!.newPage();
+
+    await page.goto(`${s.url}/#/judges/tone_mismatch`); await page.waitForSelector("button.qhelp");
+    const label = await page.getAttribute("button.qhelp", "aria-label");
+    await page.click("button.qhelp");
+    await page.waitForSelector("#gloss-pop .here:not(.muted)");
+    expect(await page.textContent("#gloss-pop")).toMatch(/tone_mismatch/);
+    await page.keyboard.press("Escape");
+    expect(await page.$("#gloss-pop")).toBeNull();
+    expect(await page.evaluate(() => document.activeElement?.getAttribute("aria-label"))).toBe(label);
+    await page.focus(".term"); await page.waitForSelector("#gloss-pop");
+
+    await page.goto(`${s.url}/#/overview`); await page.waitForSelector(".plain-line:not(:empty)");
+    for (const t of await page.$$eval(".plain-line", (els) => els.map((e) => e.textContent ?? ""))) expect(t).not.toMatch(/\[object|undefined|null|NaN/);
+
+    const undefinedWords = new Set<string>();
+    for (const r of ["overview", "review", "modes", "tasks", "compare", "transcripts", "judges", "judges/tone_mismatch", "coverage", "settings", "pending"]) {
+      await page.goto(`${s.url}/#/${r}`); await page.waitForFunction(() => !/Loading…/.test(document.querySelector("#page")?.textContent ?? ""));
+      await page.waitForTimeout(150);
+      for (const raw of await page.$$eval("#page th, #page .stats > div > span:first-child, #page .pareto-head span, #page .pill, #page .kpis > div > span:first-child, #page .eyebrow", (els) => els.map((e) => e.textContent ?? ""))) {
+        const first = raw.replace(/\?/g, "").split(" · ")[0]!.trim();
+        if (!first || /^[\w-]+:/.test(first) || /^vs /.test(first)) continue;
+        const w = first.replace(/pass\^\d+/i, "pass^k").replace(/(^|\s)\d+(?=\s|$)/g, " ").replace(/\s+/g, " ").trim().toLowerCase();
+        const one = w.replace(/s$/, "");
+        if (!w || PLAIN.has(w) || PLAIN.has(one) || ALSO[w] || names.has(w) || names.has(one)) continue;
+        undefinedWords.add(`${r}: "${first}"`);
+      }
+    }
+    expect([...undefinedWords]).toEqual([]);
+    await page.close();
+  }, 90_000);
+});

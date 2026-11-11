@@ -3,6 +3,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { run, type RunOptions } from "./run.ts";
+import { meaningBlock } from "./glossary_cli.ts";
 import { compareRuns, comparisonMarkdown, evaluateGates, type Comparison } from "./compare.ts";
 import { loadFiles } from "./server/overview.ts";
 
@@ -29,7 +30,8 @@ export async function ci(o: CiOptions): Promise<CiResult> {
   if (!base) return { run_id: runId, passed: true, markdown: `### litmustest: ${runId}\n\nFirst run; nothing to compare against yet.`, reason: "no base run" };
   const c = compareRuns(o.evalsDir, base, runId);
   const g = evaluateGates(c);
-  const markdown = comparisonMarkdown(c, { title: "litmustest" });
+  const meaning = meaningBlock(o.evalsDir, c);
+  const markdown = comparisonMarkdown(c, { title: "litmustest" }) + (meaning ? `\n${meaning}` : "");
   let posted = false;
   if (o.comment) {
     const pr = o.prNumber ?? prFromEnv();
