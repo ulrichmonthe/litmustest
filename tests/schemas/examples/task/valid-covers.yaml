@@ -1,0 +1,14 @@
+id: refund_frustrated_001
+suite: regression
+source: trace:tr_8812
+description: A frustrated customer charged twice asks for a refund.
+input: { persona: frustrated, message: "I was charged twice this month and nobody is helping me." }
+reference_solution: refs/refund_frustrated_001.json
+trials: 5
+checks:
+  - { id: refund_processed, type: outcome, expect: { refunds.status: processed }, weight: 3 }
+  - { id: tone_mismatch, type: judge, failure_mode: tone_mismatch, weight: 1 }
+  - { id: identity_verified, type: code, fn: graders/code/identity_verified.py, weight: 2 }
+  - { id: bounded, type: transcript, path_check: true, max_toolcalls: 8 }
+report: [strict_pass, weighted_score, pass_at_k, pass_hat_k]
+covers: [SYS-LOOP-03, "POST /api/play/join", verify_identity]

@@ -270,6 +270,88 @@
           "description": "Optional command run before each trial to reset external state (a database, a sandbox). Same placeholders."
         }
       }
+    },
+    "coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Maps of the application that `litmustest coverage` measures the eval suite against. v1 measures three maps: spec (test-case ids in your docs), surface (API routes or tool names the trials actually call) and risk (failure modes by severity, always on). It does not measure production traffic, code lines or the frontend.",
+      "properties": {
+        "spec": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "files",
+            "id_pattern"
+          ],
+          "description": "Requirements: every match of id_pattern in these files is one item. A task covers an item through `covers:` or a `source: spec:<id>` (case-insensitive).",
+          "properties": {
+            "files": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "description": "Paths or globs relative to the repository root."
+            },
+            "id_pattern": {
+              "type": "string",
+              "minLength": 1,
+              "description": "A regular expression for one spec id, e.g. SYS-[A-Z]+-\\\\d+."
+            },
+            "area_pattern": {
+              "type": "string",
+              "minLength": 1,
+              "description": "A regular expression with one capture group that picks the area from an id. Default: the id without its trailing number."
+            }
+          }
+        },
+        "surface": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "What the product exposes. Items come from an OpenAPI file, a scan of route decorators, or an explicit list (tool names, for an agent). A route counts as exercised when a trial in the latest run calls it; `covers:` can also claim one.",
+          "properties": {
+            "openapi": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Path to an OpenAPI JSON or YAML file, relative to the repository root."
+            },
+            "scan": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "description": "Globs of source files to scan for route decorators such as @app.get(\"/path\") or router.post('/path')."
+            },
+            "items": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "uniqueItems": true,
+              "description": "An explicit list: \"METHOD /path\" or tool names."
+            },
+            "ignore": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "description": "Items to leave out, matched exactly or by a trailing *."
+            },
+            "group_depth": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 6,
+              "description": "How many path segments make an area for the chart. Default 2 (/api/play)."
+            }
+          }
+        }
+      }
     }
   }
 }
