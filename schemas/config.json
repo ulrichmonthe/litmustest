@@ -108,12 +108,13 @@
           "type": "integer",
           "minimum": 1,
           "maximum": 256,
-          "default": 8
+          "default": 4,
+          "description": "Trials running at the same time."
         },
         "budget_usd": {
           "type": "number",
           "minimum": 0,
-          "description": "Stop the run when spend crosses this."
+          "description": "Stop starting new trials once the run's recorded cost (usage.cost_usd from each trial.json) reaches this. Trials already running finish; the run summary records what was skipped under `budget`. 0 or absent means no limit."
         },
         "environment": {
           "type": "string",
@@ -123,7 +124,7 @@
             "docker"
           ],
           "default": "inprocess",
-          "description": "Where each trial runs. Harbor and docker give a clean container per trial."
+          "description": "Where each trial runs. inprocess: the command is a child process on this machine. docker: a fresh container per trial (see runs.docker). harbor: a one-trial Harbor job per trial (see runs.harbor)."
         },
         "resources": {
           "type": "object",
@@ -131,16 +132,124 @@
           "properties": {
             "cpus": {
               "type": "number",
-              "exclusiveMinimum": 0
+              "exclusiveMinimum": 0,
+              "description": "CPU limit per trial. Applied by docker (--cpus) and harbor; not enforced in process."
             },
             "memory_mb": {
               "type": "integer",
-              "minimum": 128
+              "minimum": 128,
+              "description": "Memory limit per trial in MB. Applied by docker (--memory) and harbor; not enforced in process."
             },
             "timeout_s": {
               "type": "integer",
               "minimum": 1,
-              "default": 600
+              "default": 600,
+              "description": "Seconds before a trial is killed and tagged as an infra error (timeout). In process the whole process group is killed."
+            }
+          }
+        },
+        "docker": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "For environment: docker. Each trial runs as `docker run --rm` with the trial directory mounted at /trial and evals/ mounted read-only at /evals; {trial_dir}, {task_file} and {evals} are filled with those container paths. The command goes to `sh -lc` inside the container. Give image or build.",
+          "oneOf": [
+            {
+              "required": [
+                "image"
+              ]
+            },
+            {
+              "required": [
+                "build"
+              ]
+            }
+          ],
+          "properties": {
+            "image": {
+              "type": "string",
+              "minLength": 1,
+              "description": "An image that already exists locally or can be pulled."
+            },
+            "build": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "context"
+              ],
+              "description": "Build the image once at the start of the run.",
+              "properties": {
+                "context": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Build context, relative to the repo root."
+                },
+                "dockerfile": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Dockerfile path, relative to the repo root. Default: <context>/Dockerfile."
+                }
+              }
+            },
+            "network": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Passed to --network, e.g. none or host."
+            },
+            "mounts": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^[^:]+:[^:]+(:(ro|rw))?$"
+              },
+              "description": "Extra volumes as host:container[:ro]. The host side is relative to the repo root."
+            },
+            "workdir": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Working directory inside the container (-w). Default: the image's own."
+            },
+            "pass_env": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+              },
+              "uniqueItems": true,
+              "description": "Names of environment variables on this machine to pass into the container (an API key, for example). Only the name is written anywhere; the value is read from the environment at run time."
+            }
+          }
+        },
+        "harbor": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "image"
+          ],
+          "description": "For environment: harbor (https://harborframework.com). Each trial is a generated Harbor task run once with Harbor's oracle agent, which runs the agent command inside the task's container. The trial directory is /logs/artifacts; the task file is at /solution/task.yaml; the rest of evals/ is not mounted, so bake what the command needs into the image.",
+          "properties": {
+            "image": {
+              "type": "string",
+              "minLength": 1,
+              "description": "The container image the command runs in (Harbor's [environment] docker_image)."
+            },
+            "backend": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Harbor's environment backend, passed as `harbor run -e`. Default: Harbor's own default (docker)."
+            },
+            "workdir": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Directory the command starts in."
+            },
+            "pass_env": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+              },
+              "uniqueItems": true,
+              "description": "Names of environment variables on this machine to pass into the container (an API key, for example). Only the name is written anywhere; the value is read from the environment at run time."
             }
           }
         }
@@ -243,7 +352,7 @@
     },
     "agent": {
       "type": "object",
-      "description": "How the runner starts the agent for one trial. The command runs once per trial in a fresh trial directory and must leave <trial_dir>/trial.json in the reference_solution shape (output, state, tool_calls, transcript, optional usage and latency_ms). Placeholders: {task}, {task_file}, {trial_dir}, {trial}, {evals}; the same values arrive as LITMUSTEST_TASK, LITMUSTEST_TASK_FILE, LITMUSTEST_TRIAL_DIR, LITMUSTEST_TRIAL, LITMUSTEST_INPUT (JSON) and LITMUSTEST_EVALS.",
+      "description": "How the runner starts the agent for one trial. The command runs once per trial in a fresh trial directory and must leave <trial_dir>/trial.json in the reference_solution shape (output, state, tool_calls, transcript, optional usage and latency_ms). Placeholders: {task}, {task_file}, {trial_dir}, {trial}, {evals}; the same values arrive as LITMUSTEST_TASK, LITMUSTEST_TASK_FILE, LITMUSTEST_TRIAL_DIR, LITMUSTEST_TRIAL, LITMUSTEST_INPUT (JSON) and LITMUSTEST_EVALS. Under docker and harbor the paths are the ones inside the container and the command line goes to a shell there.",
       "required": [
         "command"
       ],

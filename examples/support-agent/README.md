@@ -32,7 +32,7 @@ The Review queue opens on the batch: `j`/`k` move, `p`/`f` label, `n` focuses th
 | `src/seed_evals.ts` | Writes the rest of `evals/`: failure modes, tasks, refs, graders, labels, suites, runs |
 | `traces/support.jsonl` | The plain log a team would have before litmustest (adapter input) |
 | `traces/planted_truth.jsonl` | Which failures were planted in which trace, so calibration numbers can be checked |
-| `environments/harbor/` | A Harbor task for the same agent (untested until decision #2) |
+| `environments/Dockerfile`, `environments/README.md` | One image for `runs.environment: docker` and `harbor` (neither run for real yet) |
 
 ## Planted failure rates
 

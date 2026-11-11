@@ -44,7 +44,7 @@ The skills call the `litmustest` CLI, installed separately: `npm install -g litm
 | `litmustest discover` | Groups reviewers' notes into failure-mode files, as a diff |
 | `litmustest draft-judge` / `draft-check` | Drafts a judge or a code check from labels |
 | `litmustest calibrate <judge>` | Dev runs, then the held-out test once; TPR/TNR with intervals |
-| `litmustest run` | k trials per task, graded, with error bars; infra failures excluded |
+| `litmustest run` | k trials per task, graded, with error bars; infra failures excluded. Trials run in process, in a docker container or as a Harbor job (`runs.environment`; the two container environments are tested against fakes only, not yet run for real). Outcome checks can have the runner read the end state itself (SQLite, files, HTTP). `runs.budget_usd` stops the run when the recorded cost reaches it |
 | `litmustest coverage` | How much of the application the evals cover: spec cases, API routes or tools, and failure modes, each guarded, checked, planned or none (v1 scope in docs/COVERAGE.md) |
 | `litmustest explain` | Plain-language reasons for failed trials: what was tested, which step went wrong, what kind of failure, what would make it pass; Claude's reading is saved in the run summary |
 | `litmustest explain <term>` | What a term means, why it matters, what good looks like, and what it means in this repo with the next step; the dashboard's ? popovers and the PR comment use the same glossary (`docs/EXPLAINER.md`) |

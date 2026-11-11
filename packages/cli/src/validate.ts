@@ -5,6 +5,7 @@ import { basename, dirname, join, relative, resolve, sep } from "node:path";
 import { spawnSync } from "node:child_process";
 import { parse as parseYaml } from "yaml";
 import { SchemaSet } from "./schemas.ts";
+import { compareExpect, readerOf } from "./outcome.ts";
 
 export type Level = "error" | "warning" | "info";
 export interface Problem { level: Level; file: string; message: string; rule?: string }
@@ -172,6 +173,10 @@ export function validateEvals(root: string, opts: ValidateOptions = {}): Validat
         if (!mode) add("error", f, `check '${id}': failure_mode '${fm}' does not exist`, "failure_mode_exists");
         else if (mode.data.retired) add("error", f, `check '${id}': failure_mode '${fm}' is retired${mode.data.merged_into ? ` (merged into ${mode.data.merged_into})` : ""}`, "failure_mode_not_retired");
       }
+      if (raw.type === "outcome" && readerOf(raw) === "sql") {
+        const queries = ((raw.read as Obj).queries as Obj | undefined) ?? {};
+        for (const k of Object.keys((raw.expect as Obj) ?? {})) if (!(k in queries)) add("error", f, `check '${id}': expect key '${k}' has no query under read.queries`, "outcome_query_per_expect");
+      }
       if (raw.type === "judge") {
         const jname = String(raw.judge ?? fm);
         const info = judges.get(jname);
@@ -251,17 +256,6 @@ export function sha256(data: string | Buffer): string {
   return createHash("sha256").update(data).digest("hex");
 }
 
-function getPath(obj: unknown, path: string): unknown {
-  let cur: unknown = obj;
-  for (const part of path.split(".")) {
-    const m = /^([A-Za-z0-9_]+)(?:\[(\d+)\])?$/.exec(part);
-    if (!m || cur === null || typeof cur !== "object") return undefined;
-    cur = (cur as Obj)[m[1]!];
-    if (m[2] !== undefined) cur = Array.isArray(cur) ? cur[Number(m[2])] : undefined;
-  }
-  return cur;
-}
-
 /** --deep: run every check it can against the reference solution. Judge checks need a model and are skipped here. */
 function deepCheck(root: string, task: Loaded, ref: Loaded, add: (l: Level, f: string, m: string, r?: string) => void, python: string) {
   const r = ref.data;
@@ -272,10 +266,9 @@ function deepCheck(root: string, task: Loaded, ref: Loaded, add: (l: Level, f: s
     const fail = (why: string) => add("error", task.file, `deep: check '${id}' fails against ${task.data.reference_solution}: ${why}`, "reference_passes");
     switch (raw.type) {
       case "outcome": {
-        for (const [path, want] of Object.entries(raw.expect as Obj)) {
-          const got = getPath(r.state, path);
-          if (JSON.stringify(got) !== JSON.stringify(want)) fail(`expected ${path} = ${JSON.stringify(want)}, reference state has ${JSON.stringify(got)}`);
-        }
+        // the reference has no trial directory, so a check with a runner-side reader is compared against the reference's state
+        for (const m of compareExpect(raw.expect as Obj, r.state)) fail(`expected ${m.path} = ${JSON.stringify(m.expected)}, reference state has ${JSON.stringify(m.actual)}`);
+        if (readerOf(raw) !== "trial") add("info", task.file, `deep: check '${id}' reads the end state itself at run time (${readerOf(raw)}); here it is compared against the reference's state only`, "outcome_reader_not_run");
         break;
       }
       case "transcript": {

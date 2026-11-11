@@ -1,0 +1,10 @@
+# docker needs exactly one of image or build; a mount needs host:container; harbor needs an image
+version: 1
+project: support_agent
+sources: { traces: { format: jsonl, path: logs/traces/*.jsonl } }
+runs:
+  environment: docker
+  docker: { image: "a:1", build: { context: . }, mounts: [justonepath] }
+  harbor: { backend: docker }
+judges: { default_model: claude-sonnet-4-5-20250929 }
+gates: { regression: { min_pass_rate: 95 } }
