@@ -7,7 +7,7 @@ A small but real target for litmustest: a billing support agent for a subscripti
 ```bash
 git clone https://github.com/ulrichmonthe/litmustest && cd litmustest
 npm install
-npm run example:seed                                   # 300 traces + the evals/ directory, no API key needed
+npm run example:seed                                   # 300 traces, the evals/ directory and the two seeded runs' transcripts, no API key needed
 npm run build
 node packages/cli/dist/main.js ingest examples/support-agent/traces/support.jsonl --dir examples/support-agent/evals
                                                        # clusters the traces and writes a review batch with a coverage report
@@ -55,7 +55,7 @@ Realised counts print when you run `npm run generate-traces`. Because some modes
 - **2 code checks**: `identity_verified_first.py`, `confirmation_sent.py`.
 - **2 judges**: `tone_mismatch` is trusted (test TPR 90 / TNR 100); `missed_refund` is stale because its prompt was edited after its test run, so its verdicts are excluded from gates until it is re-calibrated.
 - **100 labels** over the two judged failure modes, balanced, drawn from the planted truth.
-- **2 run summaries** (`run_0040`, `run_0041`) so `compare` has something to compare.
+- **2 run summaries** (`run_0040`, `run_0041`) so `compare` has something to compare, with a transcript and grades for every trial under `.litmustest/transcripts/` (git-ignored, written by `npm run example:seed`) so the Transcript screen has a timeline to show.
 
 ## Running the suites
 

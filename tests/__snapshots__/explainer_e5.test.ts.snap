@@ -47,7 +47,7 @@ exports[`E5-S2 --explain > compare: one indented sentence under rows with the fl
 
 | Mode | A | B | Δ |
 | --- | ---: | ---: | ---: |
-| \`tone_mismatch\` | 44 | 48 | +4 |
+| \`tone_mismatch\` | 42 | 47 | +5 |
 
 Cost $N → $N (+0.18) · tokens 454733 → 443663 · mean latency 6438 → 6545 ms · infra errors 4% → 1%
 

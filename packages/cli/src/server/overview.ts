@@ -5,6 +5,7 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { parse as parseYaml } from "yaml";
 import { sha256 } from "../validate.ts";
+import { pairedDelta } from "../stats.ts";
 
 type Obj = Record<string, unknown>;
 const readYaml = (p: string) => parseYaml(readFileSync(p, "utf8")) as Obj;
@@ -112,15 +113,20 @@ export function overview(evalsDir: string): Obj {
   const cm = checkModes(f.tasks);
   const threshold = Number((f.config.judges as Obj | undefined)?.trust_threshold ?? 90);
   const latest = f.runs[f.runs.length - 1]; const prev = f.runs[f.runs.length - 2];
-  const suites = f.suites.map((s) => {
+  const order = ["regression", "capability", "quality"];
+  const suites = f.suites.slice().sort((a, b) => (order.indexOf(String(a.kind)) + 1 || 9) - (order.indexOf(String(b.kind)) + 1 || 9)).map((s) => {
     const name = String(s.name);
     const hist = f.runs.map((r) => ((r.suites as Record<string, Obj>)?.[name])).filter(Boolean) as Obj[];
     const cur = (latest?.suites as Record<string, Obj> | undefined)?.[name]; const before = (prev?.suites as Record<string, Obj> | undefined)?.[name];
+    // The same paired delta as `litmustest compare`: per-task differences over the tasks both runs share, bootstrapped over tasks.
     let delta: Obj | undefined;
-    if (cur && before) {
-      const d = Number(cur.pass_rate) - Number(before.pass_rate);
-      const half = ((Number((cur.ci as Obj).high) - Number((cur.ci as Obj).low)) / 2 + (Number((before.ci as Obj).high) - Number((before.ci as Obj).low)) / 2) / Math.SQRT2;
-      delta = { pts: +d.toFixed(1), significant: Math.abs(d) > half, note: Math.abs(d) > half ? "significant" : "within noise" };
+    if (cur && before && latest && prev) {
+      const ids = Object.keys(latest.tasks as Record<string, Obj>).filter((t) => (latest.tasks as Record<string, Obj>)[t]!.suite === name && (prev.tasks as Record<string, Obj>)[t]?.suite === name);
+      const trialsOf = (run: Obj, t: string) => ((((run.tasks as Record<string, Obj>)[t]!.trials as Obj[]) ?? []).filter((x) => !x.infra_error)).map((x) => Boolean(x.pass));
+      if (ids.length) {
+        const d = pairedDelta(ids.map((t) => trialsOf(prev, t)), ids.map((t) => trialsOf(latest, t)));
+        delta = { pts: d.delta, ci: { low: d.ci.low, high: d.ci.high }, significant: d.significant, note: d.significant ? "significant" : "within noise", vs: prev.run_id };
+      }
     }
     return { name, kind: s.kind, description: s.description, n_tasks: ((s.tasks as unknown[]) ?? []).length, current: cur ?? null, delta: delta ?? null, history: hist.map((h) => Number(h.pass_rate)), gate: s.gate ?? (f.config.gates as Record<string, Obj> | undefined)?.[name] ?? null };
   });
