@@ -124,7 +124,7 @@ docker run -p 4242:4242 -v litmustest-data:/data --env-file hosted.env litmustes
 ## What hosted mode does not do yet
 
 - **One branch for everyone.** All signed-in people save to the same open `evals/<slug>` branch and share one pull request. Per-person branches would need a clone or worktree per person.
-- **The tray does not show the commits or the pull-request link.** `GET /api/pending` returns `hosted`, `pr`, `base` and `commits`, but the dashboard's tray still renders only the file list, and its Commit button does nothing useful (every save is already a commit). The dashboard also shows no signed-in name and no sign-out link (`/auth/logout` exists). A session that expires mid-use shows as a failed request; reload to sign in again.
+- **No signed-in name or sign-out link.** The Pending changes page shows the pull request, its commits and what the branch changes, with Discard only (every save is already a commit). The dashboard still shows no signed-in name and no sign-out link (`/auth/logout` exists). A session that expires mid-use shows as a failed request; reload to sign in again.
 - **Transcripts.** The transcript store is a git-ignored local directory, so it is not in the clone: the Transcripts page lists trials as unavailable and a judge's verdict cannot be disputed. This needs a remote transcript store.
 - **Post to PR** on Run compare shells out to `gh`, which the image does not have; it answers `502` with the command.
 - **Runs.** The hosted server does not run the agent. Run summaries arrive through CI commits on the base branch.

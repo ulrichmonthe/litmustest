@@ -7,6 +7,7 @@ import { mkdtempSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import { chromium } from "playwright-core";
 import { initEvals } from "../packages/cli/src/init.ts";
 import { ingest } from "../packages/cli/src/ingest.ts";
 import { serve, type Running } from "../packages/cli/src/serve.ts";
@@ -190,6 +191,21 @@ describe("every save is a commit on a pull-request branch", () => {
     const pr = await http("/api/pending/pr", { method: "POST", cookie: ada, body: {} }); expect(pr.status).toBe(200); expect(pr.body.url).toBe("https://github.com/acme/support/pull/1");
     expect(git(work, "status", "--porcelain", "--", "evals")).toBe(""); // nothing waits uncommitted
   });
+  it("the Pending changes page shows the pull request and its commits, and offers no local commit", async (ctx) => {
+    let browser; try { browser = await chromium.launch({ channel: "chrome" }); } catch (e) { if (process.env.CI) throw e; ctx.skip(); return; }
+    try {
+      const context = await browser.newContext(); const [name, value] = ada.split(/=(.*)/s) as [string, string];
+      await context.addCookies([{ name, value, url: srv.url }]);
+      const page = await context.newPage(); const errors: string[] = []; page.on("pageerror", (e) => errors.push(e.message));
+      await page.goto(`${srv.url}/#/pending`); await page.waitForSelector('section[aria-label="Commits"]');
+      const link = page.locator('section[aria-label="Commits"] a'); expect(await link.textContent()).toBe("Pull request #1"); expect(await link.getAttribute("href")).toBe("https://github.com/acme/support/pull/1");
+      const commits = await page.locator('section[aria-label="Commits"] .row').allTextContents();
+      expect(commits).toHaveLength(2); expect(commits[0]).toContain("Bob"); expect(commits[1]).toContain("evals: failure_modes/tone_mismatch.yaml");
+      expect(await page.locator("button", { hasText: /^Commit/ }).count()).toBe(0); expect(await page.locator("button", { hasText: "Open PR" }).count()).toBe(0);
+      expect(await page.locator("button", { hasText: "Discard" }).isEnabled()).toBe(true);
+      expect(errors).toEqual([]);
+    } finally { await browser.close(); }
+  }, 30_000);
   it("a label is appended under the signed-in name, whatever the request claims", async () => {
     const trace = (readFileSync(join(work, "evals", "batches", "b1.yaml"), "utf8").match(/trace_id: (\S+)/) ?? [])[1]!;
     const r = await http("/api/labels", { method: "POST", cookie: bob, body: { batch: "b1", trace_id: trace, failure_mode: "overall", label: "Fail", annotator: "mallory" } });
