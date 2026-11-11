@@ -27,7 +27,8 @@ write("litmustest.yaml", `# evals/litmustest.yaml for the support-agent example\
   version: 1, project: "support_agent",
   sources: { traces: { format: "jsonl", path: "examples/support-agent/traces/support.jsonl" }, sampler: { every: "manual", size: 60, clusters: 8 } },
   runs: { trials: 5, concurrency: 4, budget_usd: 10, environment: "inprocess", resources: { timeout_s: 180 } },
-  agent: { command: "node examples/support-agent/src/run_trial.ts --task {task} --trial-dir {trial_dir}", cwd: "." },
+  agent: { command: "node src/run_trial.ts --task {task} --trial-dir {trial_dir}", cwd: "." }, // cwd is relative to the folder holding evals/, so the command is too
+  coverage: { surface: { items: ["verify_identity", "fetch_invoices", "fetch_policy", "process_refund", "send_confirmation"] } },
   judges: { default_model: "claude-sonnet-5-5", trust_threshold: 90, stale_on_change: true, correct_for_judge_error: true },
   gates: { regression: { min_pass_rate: 95, max_drop_pts: 2, trusted_judges_only: true }, capability: { report_only: true }, quality: { min_pass_rate: 80, trusted_judges_only: true } },
   storage: { summaries: "evals/runs", transcripts: { backend: "local", path: ".litmustest/transcripts" } },
@@ -131,7 +132,7 @@ judge("tone_mismatch", true);
 judge("missed_refund", false);
 
 // ---- tasks and reference solutions
-interface TaskSpec { id: string; sc: Scenario; persona: Persona; suite: string; source: string; broken?: boolean; flaky?: boolean }
+interface TaskSpec { id: string; sc: Scenario; persona: Persona; suite: string; source: string; broken?: boolean; flaky?: boolean; /** A second round: the simulated customer's follow-up and the ideal answer to it. */ multi?: { follow_up: string; reply: string } }
 const specs: TaskSpec[] = [];
 for (const sc of SCENARIOS) for (const persona of PERSONAS) {
   const id = `${sc.id}_${persona}`;
@@ -150,6 +151,10 @@ specs.push({ id: "refund_ghost_account_frustrated", persona: "frustrated", suite
     tools: [{ name: "verify_identity", args: { email: "dmitri@volkov.example" } }, { name: "fetch_invoices", args: { account_id: "acc_9999" } }, { name: "process_refund", args: { invoice_id: "inv_9999_b", reason: "duplicate charge" } }, { name: "send_confirmation", args: { account_id: "acc_9999", subject: "Refund of duplicate charge" } }],
     reply: "I'm sorry about the double charge. I've refunded the duplicate $19.99 to your card ending 0000 and emailed a confirmation." } });
 specs.find((s) => s.id === "invoice_copy_frustrated")!.flaky = true;
+// one multi-turn capability task: the simulated customer asks a follow-up after the first answer. Not in the seeded runs:
+// running it needs a model for the agent and for the simulated customer.
+specs.push({ id: "vat_invoice_followup_business", sc: SCENARIOS.find((s) => s.id === "vat_invoice")!, persona: "business", suite: "capability", source: "spec:vat-followup",
+  multi: { follow_up: "Thanks. Will every invoice from now on carry the VAT number, or do we have to ask each month?", reply: "Every invoice from now on carries the VAT number and registered name on your account profile, so there is nothing to ask for each month." } });
 
 const RUNNER_READ = new Set(["duplicate_charge_business", "pro_refund_in_window_business"]);
 // the same values snapshot() in db.ts reports, one SELECT per expect key
@@ -175,12 +180,13 @@ for (const s of specs) {
     if (s.sc.refund) checks.push({ id: "confirmed", type: "code", fn: "graders/code/confirmation_sent.py", weight: 1, failure_mode: "skipped_confirmation" });
     if (s.sc.refund) checks.push({ id: "missed_refund", type: "judge", failure_mode: "missed_refund", weight: 2 });
     checks.push({ id: "bounded", type: "transcript", path_check: true, max_toolcalls: s.sc.tools.length + 2, required_tools: ["verify_identity"], failure_mode: "over_searching" });
+    if (s.multi) checks.push({ id: "rounds", type: "transcript", path_check: true, max_turns: 3 });
   }
   checks.push({ id: "tone", type: "judge", failure_mode: "tone_mismatch", weight: 1 });
   const task: Record<string, unknown> = {
     id: s.id, suite: s.suite, source: s.source,
-    description: `${s.persona} customer, ${s.sc.id.replace(/_/g, " ")}.${s.broken ? " Deliberately broken: the account does not exist, so the ideal path is unreachable." : ""}${s.flaky ? " Known flaky: the agent sometimes answers from the first invoice without sending the copy." : ""}${s.sc.id === "cancel_monthly" ? " Capability: the agent has no cancellation tool yet, so this cannot pass until one ships." : ""}`,
-    input: { persona: s.persona, from: s.sc.tools[0]!.args.email, message: s.sc.message[s.persona], goal: s.sc.reply.split(".")[0] },
+    description: `${s.persona} customer, ${s.sc.id.replace(/_/g, " ")}.${s.broken ? " Deliberately broken: the account does not exist, so the ideal path is unreachable." : ""}${s.flaky ? " Known flaky: the agent sometimes answers from the first invoice without sending the copy." : ""}${s.multi ? " Multi-turn: a simulated customer asks a follow-up after the first answer." : ""}${s.sc.id === "cancel_monthly" ? " Capability: the agent has no cancellation tool yet, so this cannot pass until one ships." : ""}`,
+    input: { persona: s.persona, from: s.sc.tools[0]!.args.email, message: s.sc.message[s.persona], goal: s.sc.reply.split(".")[0], ...(s.multi ? { goal: `${s.sc.reply.split(".")[0]}, then ask: ${s.multi.follow_up}`, simulate: { max_rounds: 3 } } : {}) },
     reference_solution: `refs/${s.id}.json`, trials: 5, checks, report: ["strict_pass", "weighted_score", "pass_at_k", "pass_hat_k"],
     tags: [s.sc.id, s.persona],
   };
@@ -191,8 +197,8 @@ for (const s of specs) {
   const state: Record<string, unknown> = { refunds: { count: 0, status: "none", amount_cents: 0 }, tickets: { status: "none" }, confirmations: { sent: 0 } };
   if (s.sc.refund) { const inv = acc?.invoices.find((x) => x.id === s.sc.tools.find((t) => t.name === "process_refund")!.args.invoice_id); state.refunds = { count: 1, status: "processed", amount_cents: inv?.amount_cents ?? 1999 }; }
   if (s.sc.tools.some((t) => t.name === "send_confirmation")) { state.confirmations = { sent: 1 }; state.tickets = { status: "resolved" }; }
-  const transcript = [{ role: "user", content: `From: ${s.sc.tools[0]!.args.email}\n\n${s.sc.message[s.persona]}` }, ...toolCalls.map((c) => ({ role: "tool", tool: c.name, content: JSON.stringify(c.result) })), { role: "agent", content: s.sc.reply }];
-  write(`refs/${s.id}.json`, JSON.stringify({ task: s.id, output: s.sc.reply, state, tool_calls: toolCalls, transcript, note: "Ideal path from the scenario catalog.", author: "ulrich", at: "2026-10-23T12:00:00Z" }, null, 2) + "\n");
+  const transcript = [{ role: "user", content: `From: ${s.sc.tools[0]!.args.email}\n\n${s.sc.message[s.persona]}` }, ...toolCalls.map((c) => ({ role: "tool", tool: c.name, content: JSON.stringify(c.result) })), { role: "agent", content: s.sc.reply }, ...(s.multi ? [{ role: "user", content: s.multi.follow_up }, { role: "agent", content: s.multi.reply }] : [])];
+  write(`refs/${s.id}.json`, JSON.stringify({ task: s.id, output: s.multi?.reply ?? s.sc.reply, state, tool_calls: toolCalls, transcript, note: "Ideal path from the scenario catalog.", author: "ulrich", at: "2026-10-23T12:00:00Z" }, null, 2) + "\n");
 }
 function refResult(name: string, args: Record<string, unknown>, sc: Scenario): unknown {
   const acc = ACCOUNTS.find((a) => a.id === sc.account);
@@ -215,6 +221,7 @@ function runSummary(runId: string, commit: string, day: number, shift: number) {
   rmSync(join(STORE, runId), { recursive: true, force: true });
   const tasks: Record<string, unknown> = {}; const perSuite: Record<string, { pass: number; n: number; all: number }> = {};
   for (const s of specs) {
+    if (s.multi) continue; // needs a model to run; see the spec above
     const base = s.suite === "regression" ? 0.96 : s.suite === "capability" ? 0.55 + shift : 0.8;
     const p = s.broken ? 0 : s.flaky ? 0.5 : base;
     const trials = Array.from({ length: 5 }, (_, i) => {
@@ -231,7 +238,8 @@ function runSummary(runId: string, commit: string, day: number, shift: number) {
     const ps = (perSuite[s.suite] ??= { pass: 0, n: 0, all: 0 }); ps.pass += passed; ps.n += scored.length; ps.all += passed === scored.length && scored.length ? 1 : 0;
   }
   const suites: Record<string, unknown> = {};
-  for (const [name, ps] of Object.entries(perSuite)) { const rate = +(100 * ps.pass / ps.n).toFixed(1); const half = +(1.96 * Math.sqrt(rate * (100 - rate) / ps.n)).toFixed(1); suites[name] = { pass_rate: rate, ci: { low: Math.max(0, +(rate - half).toFixed(1)), high: Math.min(100, +(rate + half).toFixed(1)), method: "bootstrap" }, pass_at_1: rate, pass_hat_k: +(100 * ps.all / taskIds[name]!.length).toFixed(1), k: 5, n_tasks: taskIds[name]!.length, excluded_judges: ["missed_refund"] }; }
+  const ran = (suite: string) => specs.filter((x) => x.suite === suite && !x.multi).length; // tasks this run included
+  for (const [name, ps] of Object.entries(perSuite)) { const rate = +(100 * ps.pass / ps.n).toFixed(1); const half = +(1.96 * Math.sqrt(rate * (100 - rate) / ps.n)).toFixed(1); suites[name] = { pass_rate: rate, ci: { low: Math.max(0, +(rate - half).toFixed(1)), high: Math.min(100, +(rate + half).toFixed(1)), method: "bootstrap" }, pass_at_1: rate, pass_hat_k: +(100 * ps.all / ran(name)).toFixed(1), k: 5, n_tasks: ran(name), excluded_judges: ["missed_refund"] }; }
   const all = Object.values(tasks).flatMap((t) => (t as { trials: { infra_error: boolean; cost_usd: number }[] }).trials);
   write(`runs/${runId}.json`, JSON.stringify({ run_id: runId, commit, branch: "main", started_at: `2026-10-${day}T08:00:00Z`, finished_at: `2026-10-${day}T08:31:00Z`, config_hash: sha(readFileSync(join(EVALS, "litmustest.yaml"), "utf8")), trials: 5, suites, tasks,
     infra_error_rate: +(100 * all.filter((t) => t.infra_error).length / all.length).toFixed(1), cost_usd: +all.reduce((a, t) => a + t.cost_usd, 0).toFixed(2),
@@ -280,7 +288,7 @@ function writeTrial(runId: string, s: TaskSpec, n: number, t: { pass: boolean; f
       default: return { ...base, pass: true, reason: "ok" };
     }
   });
-  out("grades.json", { run_id: runId, task: s.id, trial: n, pass: t.pass, infra_error: false, grades, triage_suggested: ghost ? "task" : "agent" });
+  out("grades.json", { run_id: runId, task: s.id, trial: n, pass: t.pass, infra_error: false, grades, triage_suggested: ghost ? "task" : !t.pass && grades.filter((g) => g.pass === false).every((g) => g.type === "judge") ? "grader" : "agent" }); // as the runner's suggestTriage would
 }
 
 runSummary("run_0040", "9f3c1a2", 24, 0);

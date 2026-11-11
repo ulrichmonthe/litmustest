@@ -98,7 +98,7 @@ export async function run(o: RunOptions): Promise<RunResult> {
           infra.latency_ms = r.ms;
           const tp = join(dir, "trial.json");
           if (r.timedOut) infra = { ...infra, infra_error: true, infra_error_kind: "timeout", infra_message: `killed after ${Math.round(timeoutMs / 1000)}s` };
-          else if (r.code !== 0) infra = { ...infra, infra_error: true, infra_error_kind: r.kind ? r.kind : /\bENOMEM\b|out of memory|\bOOM\b/i.test(r.stderr) ? "oom" : /\bECONNRESET\b|\bETIMEDOUT\b|\bENOTFOUND\b|fetch failed|rate limit|\b429\b|\b5\d\d\b/i.test(r.stderr) ? "network" : "harness", infra_message: firstError(r.stderr) ?? `exit ${r.code ?? r.signal}` };
+          else if (r.code !== 0) infra = { ...infra, infra_error: true, infra_error_kind: r.kind ?? classifyInfra(r.stderr), infra_message: missingCredentials(r.stderr) ? "the agent has no model credentials: set ANTHROPIC_API_KEY (or your provider's key) in the environment litmustest run starts it in" : firstError(r.stderr) ?? `exit ${r.code ?? r.signal}` };
           else if (!existsSync(tp)) infra = { ...infra, infra_error: true, infra_error_kind: "harness", infra_message: "agent exited 0 but wrote no trial.json" };
           else { try { trial = JSON.parse(readFileSync(tp, "utf8")); const errs = schemas.check("reference_solution", { ...trial, task: id }); if (errs.length) infra = { ...infra, infra_error: true, infra_error_kind: "harness", infra_message: `trial.json does not validate: ${errs[0]}` }; } catch (e) { infra = { ...infra, infra_error: true, infra_error_kind: "harness", infra_message: `trial.json unreadable: ${(e as Error).message}` }; } }
           await environment.cleanup(tref);
@@ -215,6 +215,17 @@ function execSafe(cmd: string, args: string[], cwd: string): { pass?: boolean; e
 }
 
 /** Why did this trial fail? infra, task (its reference also fails or it is likely broken), grader (only judge verdicts failed or were Unknown), else agent. */
+const missingCredentials = (stderr: string) => /could not resolve authentication|api[_ ]?key\b.*(missing|not set|required)|authentication_error|invalid x-api-key|\b(status|http)\s*:?\s*40[13]\b/i.test(stderr);
+/**
+ * Why an agent process failed, from its stderr. Missing credentials are a harness problem (the environment, not the
+ * network). 429 and 5xx count as network only when they read as an HTTP status, so a stack trace's line numbers do not.
+ */
+export function classifyInfra(stderr: string): "oom" | "network" | "harness" {
+  if (missingCredentials(stderr)) return "harness";
+  if (/\bENOMEM\b|out of memory|\bOOM\b/i.test(stderr)) return "oom";
+  if (/\bECONNRESET\b|\bETIMEDOUT\b|\bENOTFOUND\b|\bECONNREFUSED\b|fetch failed|rate.?limit|too many requests|overloaded|\b(status|http)\s*:?\s*(429|5\d\d)\b|\b(429|5\d\d) (too many|internal server|bad gateway|service unavailable|gateway timeout|overloaded)/i.test(stderr)) return "network";
+  return "harness";
+}
 export function suggestTriage(r: TrialResult, likelyBroken: boolean): "agent" | "grader" | "task" | "infra" {
   if (r.infra_error) return "infra";
   if (r.pass) return "agent";
