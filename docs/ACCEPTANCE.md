@@ -44,6 +44,8 @@ As of 2026-10-27. Derived from the 25-chapter "litmustest Master Class" guide, w
 - [x] A scheduled sampler pulls production traces into the review queue weekly. (`litmustest sample --if-due` honours `sources.sampler.every`; `--write-workflow` scaffolds a weekly GitHub Action that opens a PR with the batch.)
 - [x] Capability tasks that pass every trial for 3 runs are proposed for graduation; a suite above 90% raises a saturation alert. (`litmustest graduate [--apply]`, the Tasks & suites page, and the Overview's needs-attention list; a graduation is one multi-file change: the task and both suite lists.)
 - [x] At least two platform adapters (e.g. Langfuse, Braintrust) ingest traces without a manual export. (Pull adapters over their HTTP APIs with credentials from the environment, tested against recorded response shapes rather than live accounts.)
+- [x] From the Review queue, "Promote to regression task" writes the task, a reference drafted from the trace and the suite entry as one pending change, and says what the reference still fails. (`POST /api/traces/<id>/promote`; the reference starts as what the agent did, so a person edits it before committing.)
+- [x] Run compare marks a flip as expected, with a note, and posts the comparison to the pull request. (Stored on run B as `expected_flips`; an expected flip is left out of the verdict sentence and never waives a gate. "Post to PR" uses `gh` for the current branch's pull request.)
 - [ ] Hosted mode: dashboard saves become commits on a PR branch via a GitHub App. (Not started: needs a GitHub App and a hosted deployment; the local write-back model it would mirror is in place.)
 
 ## Cross-cutting, every phase

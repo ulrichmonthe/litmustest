@@ -1,4 +1,5 @@
 // litmustest serve: the local HTTP server over evals/, with a file watcher and server-sent events.
+import { commentRoute, promoteTrace, setExpectedFlip } from "./server/promote.ts";
 import { glossaryHereRoute, glossaryRoute } from "./server/glossary_route.ts";
 import { prefsRoute, putPrefsRoute } from "./server/prefs.ts";
 import { coverageRoute } from "./server/coverage_route.ts";
@@ -72,6 +73,8 @@ async function handle(app: App, req: IncomingMessage, res: ServerResponse, ask?:
     if ((tm = /^\/api\/transcripts\/([^/]+)\/([^/]+)\/(\d+)\/explain$/.exec(path)) && req.method === "POST") return send(await explainRoute(app, decodeURIComponent(tm[1]!), decodeURIComponent(tm[2]!), Number(tm[3]), hooks.explainAsk ?? ask));
     if ((tm = /^\/api\/transcripts\/([^/]+)\/([^/]+)\/(\d+)\/dispute$/.exec(path)) && req.method === "POST") return send(dispute(app, decodeURIComponent(tm[1]!), decodeURIComponent(tm[2]!), Number(tm[3]), body));
     if (path === "/api/compare" && req.method === "GET") return send(app.compare(need(q("a"), "a"), need(q("b"), "b")));
+    if (path === "/api/compare/expected" && req.method === "POST") return send(setExpectedFlip(app, body));
+    if (path === "/api/compare/comment" && req.method === "POST") return send(commentRoute(app, body));
     if (path === "/api/discover" && req.method === "POST") return send(await discoverRoute(app, body, ask));
     if (path === "/api/judges" && req.method === "GET") return send(judgesList(app));
     let jm: RegExpExecArray | null;
@@ -94,6 +97,7 @@ async function handle(app: App, req: IncomingMessage, res: ServerResponse, ask?:
     let m: RegExpExecArray | null;
     if ((m = /^\/api\/batches\/([^/]+)$/.exec(path)) && req.method === "GET") return send(app.batch(decodeURIComponent(m[1]!)));
     if ((m = /^\/api\/traces\/([^/]+)$/.exec(path)) && req.method === "GET") return send(app.trace(decodeURIComponent(m[1]!)));
+    if ((m = /^\/api\/traces\/([^/]+)\/promote$/.exec(path)) && req.method === "POST") return send(promoteTrace(app, decodeURIComponent(m[1]!), body));
     send({ status: 404, body: { error: "not_found", message: `${req.method} ${path}` } });
   } catch (e) {
     if (e instanceof HttpError) return send({ status: e.status, body: { error: "error", message: e.message } });

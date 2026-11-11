@@ -486,6 +486,52 @@
           }
         }
       }
+    },
+    "expected_flips": {
+      "type": "array",
+      "description": "Flips against an earlier run that a person marked as expected, from Run compare. An expected flip explains a change in the comparison's verdict; it never waives a gate.",
+      "items": {
+        "type": "object",
+        "required": [
+          "task",
+          "change",
+          "vs",
+          "by",
+          "at"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "task": {
+            "$ref": "common.json#/$defs/name",
+            "description": "The task that flipped."
+          },
+          "change": {
+            "type": "string",
+            "enum": [
+              "Broke",
+              "Fixed",
+              "Flaky"
+            ],
+            "description": "How the task's majority result changed."
+          },
+          "vs": {
+            "type": "string",
+            "description": "The run id this run was compared against."
+          },
+          "by": {
+            "type": "string",
+            "description": "Who marked it."
+          },
+          "at": {
+            "$ref": "common.json#/$defs/timestamp"
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 1000,
+            "description": "Why the flip was expected."
+          }
+        }
+      }
     }
   }
 }

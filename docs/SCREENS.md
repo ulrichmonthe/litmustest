@@ -17,9 +17,9 @@ Each `.dc.html` is a Design Component: an `<x-dc>` template plus a small logic c
 | File | View | Job | Key interactions (working in Play) |
 | --- | --- | --- | --- |
 | `Main.dc.html` | Overview | One verdict sentence; three suite cards with CI; needs-attention list; flipped tasks | Verdict strip with one action; every number links down |
-| `Compare.dc.html` | Run compare | Per-suite delta drawn as a CI on a shared −10…+10 axis; filterable flip list; failure-mode deltas; cost panel | Filter tabs All/Broke/Fixed/Flaky; run pickers |
+| `Compare.dc.html` | Run compare | Per-suite delta drawn as a CI on a shared −10…+10 axis; filterable flip list; failure-mode deltas; cost panel | Filter tabs All/Broke/Fixed/Flaky; run pickers; mark a flip expected; Post to PR |
 | `Transcript.dc.html` (+ `.rework`) | Transcript | Triage verdict to confirm/override; timeline with each check pinned to its step; expected-vs-actual state diff; 5-trial strip | Trial selector; dispute a verdict |
-| `Review.dc.html` | Review queue | Trace reader with tool calls inline and a missing call flagged; Pass/Fail; free-text note; suggested failure-mode chips; coverage by cluster | p/f toggles; chip toggles; Save and next |
+| `Review.dc.html` | Review queue | Trace reader with tool calls inline and a missing call flagged; Pass/Fail; free-text note; suggested failure-mode chips; coverage by cluster | p/f toggles; chip toggles; Save and next; Promote to regression task |
 | `Modes.dc.html` | Failure modes | Pareto with severity, grader status, sparkline; selected-mode editor with definition, severity, owner, linked labels/tasks/grader | Row select drives the editor |
 | `Tasks.dc.html` | Tasks & suites | Suite cards that switch the table; suite-health strip; per-task pass@1, pass^5, 5-run history; broken/flaky flags | Suite select; filter |
 | `Judges.dc.html` | Judge editor | 4-step stepper (edit → dev ≥90/90 → test once → trusted); form/files toggle; field save states incl. a disk conflict; few-shot picker; checks-on-save; confusion matrix; TPR/TNR by version; disagreements; Pending changes diff | Form/Files toggle; commit / PR / discard |

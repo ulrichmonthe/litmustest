@@ -1104,6 +1104,15 @@
   related: [gate, capability_suite]
   learn_more: master-class#ch-19
 
+- id: expected_flip
+  term: Expected flip
+  aliases: [expected flips]
+  short: A [[flip]] a person marked as intended, with a note saying why.
+  why: A change that was meant to move a task should not read as a surprise in the comparison, and one that was not meant to should.
+  good: Every Broke flip in a regression suite is either fixed or marked expected with a reason before merging.
+  related: [flip, gate]
+  learn_more: master-class#ch-18
+
 - id: flip
   term: Flip
   aliases: [flips, flipped]
