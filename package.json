@@ -12,7 +12,8 @@
     "docs:schemas": "node scripts/gen-schema-docs.ts",
     "validate": "node packages/cli/src/main.ts validate",
     "example:seed": "node examples/support-agent/src/generate_traces.ts && node examples/support-agent/src/seed_evals.ts",
-    "docs:tokens": "node scripts/gen-tokens-css.ts"
+    "docs:tokens": "node scripts/gen-tokens-css.ts",
+    "lint:terms": "node scripts/lint-terms.ts"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

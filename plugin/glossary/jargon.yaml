@@ -1,0 +1,33 @@
+# Eval jargon that must not reach a person without a glossary entry. `npm run lint:terms` fails when one of these
+# appears in text the dashboard or the CLI prints and the glossary has no term or alias for it. When a feature
+# introduces one of these words, add its entry to terms.yaml in the same PR; the word can then stay on this list.
+- kappa
+- cohen's kappa
+- ppi
+- prediction-powered
+- mde
+- minimum detectable
+- bradley-terry
+- elo
+- win rate
+- attack success rate
+- asr
+- hit@k
+- rogan-gladen
+- wilson
+- bootstrap
+- confusion matrix
+- few-shot
+- tf-idf
+- k-means
+- cluster
+- clusters
+- saturation
+- saturating
+- stratified
+- p-value
+- epoch
+- rubric
+- triage
+- separability
+- canary

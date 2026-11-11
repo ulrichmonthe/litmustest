@@ -50,7 +50,13 @@ An explanation never creates a number. Layer 2 computes every figure from the fi
   learn_more: master-class#ch-12
 ```
 
-`here` is a list because one term can be explained from more than one place: a confidence interval on a suite and on a judge are different sentences. The surface passes a source and a context; the engine picks the variant for that source.
+`here` is either one `{source, template}` with the entry's `next` (the shape in `docs/stories/explainer.md`), or a list of variants, each with its own `next`, when a term is explained from more than one place or state: a confidence interval on a suite and on a judge are different sentences. Both load as a list. The surface passes a source and a context; the engine picks the first variant for that source whose `when` holds and whose facts all resolve.
+
+A next step may name an `action`, a dashboard command from `packages/cli/src/explain/actions.ts` (`pending.commit`, `judges.runTest`…). The panel renders it as a button that runs the page's own handler; `link` is for steps done on another screen.
+
+`here.source` names a read model, not a single file: `judge` reads `calibration.json`, `judge.yaml`, the labels and the tasks. "Every placeholder resolves to a field in the named source schema" is checked against that read model's typed field list in `glossary_facts.ts`.
+
+Every surface resolves a term through one function, `explain(termId, context)` in `packages/cli/src/explain/index.ts`.
 
 ## Template language
 
@@ -80,6 +86,9 @@ An explanation never creates a number. Layer 2 computes every figure from the fi
 6. No digit appears in `template` or `say` outside a placeholder, except a number that also appears in `good`.
 7. Every `next` list ends with an item that has no `when`.
 8. `learn_more` names a Master Class chapter from 1 to 25.
+9. An `action` is a known dashboard command.
+
+`npm run lint:terms` (in CI) scans the text the dashboard and the CLI print for the jargon in `plugin/glossary/jargon.yaml` and fails, with file and line, on any word the glossary does not define.
 
 ## Sources
 

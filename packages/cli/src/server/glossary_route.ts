@@ -1,6 +1,7 @@
 // GET /api/glossary: every term (layer 1). POST /api/glossary/here: rendered "here" sentences (layer 2) for [{id, source, ctx}].
-import { factsFor, type Ctx } from "../glossary_facts.ts";
-import { findEntry, loadGlossary, renderHere } from "../glossary.ts";
+import { explain } from "../explain/index.ts";
+import type { Ctx } from "../glossary_facts.ts";
+import { loadGlossary } from "../glossary.ts";
 import { labelsFor } from "../calibrate.ts";
 import { loadFiles } from "./overview.ts";
 import { HttpError, type App, type Reply } from "./app.ts";
@@ -13,20 +14,16 @@ export function glossaryRoute(app: App): Reply {
   return { status: 200, body: { terms } };
 }
 
-/** One facts build per (source, ctx) per request: a page asks for many sentences over the same few sources. */
+/** One glossary and file load per request: a page asks for many sentences over the same few sources. */
 export function glossaryHereRoute(app: App, body: Obj): Reply {
   const items = (body.items as { id: string; source: string; ctx?: Ctx }[] | undefined) ?? [];
   if (!Array.isArray(items) || items.length > MAX_ITEMS) throw new HttpError(400, `items must be a list of at most ${MAX_ITEMS}`);
-  const entries = loadGlossary(app.evalsDir); const f = loadFiles(app.evalsDir); const cache = new Map<string, Obj | null>();
+  const entries = loadGlossary(app.evalsDir); const files = loadFiles(app.evalsDir);
   const out = items.map((it) => {
-    const e = findEntry(entries, String(it.id));
-    if (!e) return { id: it.id, error: "no such term" };
-    const key = `${it.source}|${JSON.stringify(it.ctx ?? {})}`;
-    if (!cache.has(key)) cache.set(key, factsFor(app.evalsDir, String(it.source), it.ctx ?? {}, f));
-    const facts = cache.get(key);
-    const r = facts ? renderHere(e, String(it.source), facts) : null;
+    const x = explain(String(it.id), { evalsDir: app.evalsDir, source: String(it.source), ctx: it.ctx ?? {}, entries, files });
+    if (!x) return { id: it.id, error: "no such term" };
     const examples = it.source === "failure_mode" && it.ctx?.mode ? labelExamples(app.evalsDir, String(it.ctx.mode)) : undefined;
-    return r ? { id: e.id, source: it.source, here: r.text, next: r.next, examples } : { id: e.id, source: it.source, here: null, next: null, examples };
+    return { ...x, here: x.here ?? null, next: x.next ?? null, examples };
   });
   return { status: 200, body: { items: out } };
 }
