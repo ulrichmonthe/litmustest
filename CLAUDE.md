@@ -35,6 +35,7 @@ scripts/gen-tokens-css.ts   # writes packages/cli/ui/tokens.css from brand/token
 packages/cli/ui/          # the dashboard: static HTML, CSS and one ES module, no build step; served by `litmustest serve`
 packages/cli/src/server/  # app (routes and validated writes), pending (the tray), overview (read models), judges, discover_route, promote (trace to task, expected flips, PR comment)
 packages/cli/src/{stats,judge_run,calibrate,draft}.ts  # error bars and judge-error correction; running a judge; the calibration workflow; drafting graders
+packages/cli/src/write_cli.ts  # the dashboard's writes as commands (label, triage, dispute, mode, set, pending, prefs), each a call into the App method its route uses; tests/parity.test.ts maps every write route to its command
 packages/cli/src/{run,compare,ci}.ts  # the runner (agent.command per trial, grading, summaries); paired comparison and gates; the CI entry
 packages/cli/src/{coverage,coverage_cli}.ts, server/coverage_route.ts  # coverage v1: spec, surface and risk maps with depth; docs/COVERAGE.md says what it does not measure
 packages/cli/src/{explain,explain_run}.ts  # why a trial failed: a template from the data (no model) and Claude's reading, stored as trials[n].explanation; advice only, never a verdict
@@ -95,5 +96,6 @@ evals/
 - The runner's contract: `agent.command` runs once per trial in a fresh directory and must leave `trial.json` in the reference-solution shape, including the end state in `state` (the agent's own script snapshots it; the runner reads only `trial.json`). Only trusted judges count; infra failures are excluded and reported.
 - Judges: one failure mode each, few-shot from the train split only, critique before verdict, Unknown allowed. `litmustest calibrate` is the only writer of `calibration.json`, with one exception below. A judge counts in gates only while `status: trusted`.
 - Never hand-edit `calibration.json`; it is written by `litmustest calibrate` only. The one exception is the server marking a trusted calibration `stale` when the judge's prompt or model changes; the API refuses direct writes to it.
-- The dashboard is a client of the CLI and the files. If something works in the dashboard but not the CLI, that is a bug.
+- The dashboard is a client of the CLI and the files. If something works in the dashboard but not the CLI, that is a bug. A new PUT or POST route in `serve.ts` needs a command and a row in `tests/parity.test.ts`.
+- `litmustest label` and `litmustest dispute` are for a person at a terminal. No skill or agent runs them.
 - Mockups in `design/mockups/` are the UI reference. Replicate their values from inline styles and `brand/tokens.json`; do not copy the markup wholesale. In `packages/cli/ui/` every colour, radius and spacing is a `var(--token)` from the generated `tokens.css`; no hex values in `app.css`.

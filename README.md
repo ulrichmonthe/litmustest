@@ -54,6 +54,13 @@ The skills call the `litmustest` CLI, installed separately: `npm install -g litm
 | `litmustest graduate` | Capability tasks that passed every trial for 3 runs move to regression |
 | `litmustest doctor` | Eval health and the next step |
 | `litmustest validate` | Every file against its schema and the cross-file rules |
+| `litmustest label` / `dispute` | A person's label on a trace, or a disagreement with a judge's verdict, from a terminal. Human-only: refused without a terminal unless `--annotator` names who decided |
+| `litmustest triage` | Confirm or override why a trial failed |
+| `litmustest mode new\|set\|merge\|retire` | Create, edit, merge or retire a failure mode |
+| `litmustest set <path>` | The validated save behind every dashboard editor: `key=value` on a task, judge or config, or a whole file with `--from` |
+| `litmustest pending` | The Pending changes tray: `status`, `commit`, `pr`, `discard` |
+
+Every write the dashboard makes has a command that calls the same code, so a refused save is refused in both places and a judge goes stale either way. `tests/parity.test.ts` holds the table of routes to commands and fails when a route has none.
 
 ## Development
 
