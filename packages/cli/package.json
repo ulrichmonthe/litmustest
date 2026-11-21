@@ -1,6 +1,6 @@
 {
   "name": "litmustest",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "From raw AI-product traces to a trusted, CI-gated eval suite. Schemas, validator, runner, calibration and a local dashboard over eval files in git.",
   "license": "Apache-2.0",
   "type": "module",
