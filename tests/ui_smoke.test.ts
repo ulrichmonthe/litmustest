@@ -569,3 +569,32 @@ describe("Cover and the Library (docs/stories/redesign.md, R4)", () => {
     await page.close();
   }, 90_000);
 });
+
+describe("⌘K search (docs/stories/redesign.md, R5)", () => {
+  it("opens from the shortcut or the sidebar, finds tasks, failure modes, judges, runs and places, and returns focus on Escape", async (ctx) => {
+    if (!browser) return ctx.skip();
+    const cwd = repo((c) => cpSync(EXAMPLE, join(c, "evals"), { recursive: true }));
+    const s = await serve({ evalsDir: join(cwd, "evals"), port: 0, watch: false }); servers.push(s);
+    const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+    await page.goto(`${s.url}/#/home`); await page.waitForSelector("#page h1");
+    await page.keyboard.press("Control+k"); await page.waitForSelector('#palette[role="dialog"] .pal-item');
+    expect(await page.evaluate(() => document.activeElement?.id)).toBe("palette-input");
+    await page.keyboard.type("tone");
+    await page.waitForFunction(() => [...document.querySelectorAll("#palette .pal-group")].some((g) => g.getAttribute("aria-label") === "Judges"));
+    const kinds = await page.$$eval("#palette .pal-group", (gs) => gs.map((g) => g.getAttribute("aria-label")));
+    expect(kinds).toEqual(expect.arrayContaining(["Failure modes", "Judges", "Tasks"]));
+    // the first result is selected; Enter opens it and closes the palette
+    const first = await page.getAttribute('#palette .pal-item[aria-selected="true"]', "href");
+    await page.keyboard.press("Enter"); await page.waitForFunction((want) => location.hash === want && !document.querySelector("#palette"), first);
+    // a run by id, with the arrow keys
+    await page.click("#search-btn"); await page.waitForSelector("#palette .pal-item");
+    await page.keyboard.type("run_0040"); await page.waitForFunction(() => document.querySelector('#palette .pal-item[aria-selected="true"]')?.getAttribute("href") === "#/library/runs/run_0040");
+    // Escape closes and puts focus back on the button that opened it
+    await page.keyboard.press("Escape"); await page.waitForFunction(() => !document.querySelector("#palette"));
+    expect(await page.evaluate(() => document.activeElement?.id)).toBe("search-btn");
+    // nothing matches: say so
+    await page.keyboard.press("Control+k"); await page.waitForSelector("#palette-input"); await page.keyboard.type("zzqqxx");
+    await page.waitForFunction(() => /Nothing matches/.test(document.querySelector("#palette-list")?.textContent ?? ""));
+    await page.close();
+  }, 60_000);
+});

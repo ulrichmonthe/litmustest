@@ -7,6 +7,18 @@ The redesign replaces nine pages with one ranked **Home**, three spaces (**Ship*
 - **Track R, the redesign**: tokens, shell, and every screen, on features the CLI and server already have. Six PRs.
 - **Track N, new features the canvas introduces**: each its own PR, after R2. The canvas marks these screens "Planned · not built".
 
+## Status (2026-11-21)
+
+Track R is built, R0 to R5, one commit each on `feat/r5-search` (stacked on `integration/roadmap`). Left over from Track R, each small and none blocking:
+
+- The judge editor and the task editor keep their v1 bodies under the new shell and headings.
+- Running a judge's test set has no separate confirmation screen (F6); "Turn into a task" is one click, not the preview form (F4); graduation has no separate confirm sheet (F2).
+- Settings' Judges, Trace sources and Storage sections are not drawn or built.
+- Bringing traces in from the dashboard (F8) is not built: running ingest from the server writes several files outside `App.putFiles`. First run shows `litmustest ingest`.
+- Home has no "D" shortcut; Pending changes keeps its v1 after-commit message.
+
+Track N (N1 to N4) has not started.
+
 ## Decisions to make before R0
 
 1. **Status as a dot and a word, not a pill.** The canvas reverses `docs/BRAND.md` rule 3 ("Pills say Trusted, Stale, Broke"). The word stays, so the rule's intent (never colour alone) holds. Recommendation: accept; rewrite the rule as "a dot and a word".

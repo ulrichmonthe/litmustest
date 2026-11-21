@@ -6,6 +6,7 @@ import { state } from "./lib/state.js";
 import { render } from "./router.js";
 import { judgePage } from "./screens/judges.js";
 import { refreshHealth } from "./shell.js";
+import { openPalette } from "./palette.js";
 
 window.addEventListener("hashchange", render);
 const events = new EventSource("/api/events");
@@ -17,3 +18,6 @@ refreshHealth().then(() => Promise.all([loadGlossary(), loadPrefs()])).then(rend
 let lost = false;
 events.addEventListener("error", () => { if (events.readyState === EventSource.OPEN) return; lost = true; const c = $("#conn"); c.hidden = false; c.textContent = "Lost connection to litmustest serve. Saves fail until it is back; nothing was lost. Retrying…"; });
 events.addEventListener("open", () => { if (!lost) return; lost = false; $("#conn").hidden = true; refreshHealth().then(render).catch(() => {}); });
+// ⌘K search: the sidebar button opens the same palette as the shortcut; Ctrl+K off a Mac.
+$("#search-btn").addEventListener("click", (e) => openPalette(e.currentTarget));
+if (!/Mac|iPhone|iPad/.test(navigator.platform)) $("#search-kbd").textContent = "Ctrl K";
