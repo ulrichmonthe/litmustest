@@ -12,8 +12,9 @@ export const ratio = (a: string, b: string) => { const [hi, lo] = [luminance(a),
 const GROUNDS = ["ground", "surface", "surface-sunken"];
 // [text token, the grounds app.css puts it on]
 const TEXT: [string, string[]][] = [
-  ["ink", [...GROUNDS, "neutral-tint", "good-tint", "warn-tint", "bad-tint"]],
+  ["ink", [...GROUNDS, "neutral-tint", "good-tint", "warn-tint", "bad-tint", "hover", "selected"]],
   ["ink-muted", [...GROUNDS, "neutral-tint", "blue-tint"]],
+  ["ink-soft", [...GROUNDS, "neutral-tint", "hover", "selected"]],
   ["ink-faint", GROUNDS],
   ["blue-ink", [...GROUNDS, "blue-tint"]],
   ["blue", GROUNDS],
@@ -23,7 +24,11 @@ const TEXT: [string, string[]][] = [
   ["slate-ink", ["slate"]],
   ["ground", ["blue"]], // the primary button's label
 ];
-const MARKS: [string, string[]][] = [["slate-good", ["slate"]], ["slate-bad", ["slate"]], ["slate-neutral", ["slate"]]];
+const MARKS: [string, string[]][] = [
+  ["slate-good", ["slate"]], ["slate-bad", ["slate"]], ["slate-neutral", ["slate"]],
+  // status dots and trial dots (the redesign): beside their word on any ground, or on a hovered or selected row
+  ...["dot-good", "dot-warn", "dot-bad"].map((d): [string, string[]] => [d, [...GROUNDS, "hover", "selected"]]),
+];
 
 describe("contrast in both themes", () => {
   for (const theme of ["light", "dark"]) {

@@ -86,7 +86,8 @@ evals/
 | --- | --- |
 | Full spec, architecture, build phases | `docs/SPEC.md` |
 | The six decisions with recommendations | `docs/DECISIONS.md` |
-| What each screen does and the write-back model | `docs/SCREENS.md`, `design/mockups/*.dc.html` |
+| What each screen does and the write-back model | `docs/SCREENS.md`, `design/mockups/v2/*.dc.html` (the redesign; v1 in `design/mockups/`) |
+| The redesign build plan: tracks, PRs, route map | `docs/stories/redesign.md` |
 | Colours, type, spacing, voice, component rules | `docs/BRAND.md`, `brand/tokens.json`, `brand/logos/` |
 | What "done" means per phase | `docs/ACCEPTANCE.md` |
 | What coverage measures, and what it does not | `docs/COVERAGE.md` |
@@ -107,4 +108,4 @@ evals/
 - Never hand-edit `calibration.json`; it is written by `litmustest calibrate` only. The one exception is the server marking a trusted calibration `stale` when the judge's prompt or model changes; the API refuses direct writes to it.
 - The dashboard is a client of the CLI and the files. If something works in the dashboard but not the CLI, that is a bug. A new PUT or POST route in `serve.ts` needs a command and a row in `tests/parity.test.ts`.
 - `litmustest label` and `litmustest dispute` are for a person at a terminal. No skill or agent runs them.
-- Mockups in `design/mockups/` are the UI reference. Replicate their values from inline styles and `brand/tokens.json`; do not copy the markup wholesale. In `packages/cli/ui/` every colour, radius and spacing is a `var(--token)` from the generated `tokens.css`; no hex values in `app.css`.
+- Mockups in `design/mockups/v2/` are the UI reference for the redesign (`docs/stories/redesign.md`); the v1 mockups in `design/mockups/` describe screens not yet replaced. Replicate their values from inline styles and `brand/tokens.json`; do not copy the markup wholesale. In `packages/cli/ui/` every colour, radius and spacing is a `var(--token)` from the generated `tokens.css`; no hex values in `app.css`.
