@@ -252,7 +252,7 @@
         {gate.min_pass_rate | percent}. These tasks used to work, so this blocks a merge.
       next:
         - when: prev.exists
-          say: Look at the flips in Run compare to see which tasks broke.
+          say: Look at the flips on Ship to see which tasks broke.
           link: "#/compare/{prev.run_id}/{run_id}"
         - say: Open the failing tasks in this run.
     - source: suite
@@ -286,7 +286,7 @@
         - when: not prev.significant
           say: The change is within noise. Keep climbing; compare again after your next change.
           link: "#/compare/{prev.run_id}/{run_id}"
-        - say: Look at the flips in Run compare to see what got worse.
+        - say: Look at the flips on Ship to see what got worse.
           link: "#/compare/{prev.run_id}/{run_id}"
     - source: suite
       when: kind == 'capability'
@@ -969,7 +969,7 @@
         {gate.min_pass_rate | percent}. This blocks a merge.
       next:
         - when: prev.exists
-          say: Look at the flips in Run compare to see which tasks dropped.
+          say: Look at the flips on Ship to see which tasks dropped.
           link: "#/compare/{prev.run_id}/{run_id}"
         - say: Open the failing tasks in this run.
     - source: suite
@@ -978,7 +978,7 @@
         {suite} dropped {prev.delta | pts} since {prev.run_id} (could be {prev.delta_ci | prange}), more than the
         {gate.max_drop_pts | points} its gate allows. This blocks a merge.
       next:
-        - say: Look at the flips in Run compare to see which tasks dropped.
+        - say: Look at the flips on Ship to see which tasks dropped.
           link: "#/compare/{prev.run_id}/{run_id}"
     - source: suite
       when: gate.min_pass_rate != null and gate.max_drop_pts != null
@@ -1007,7 +1007,7 @@
         {suite} passed {rate_b | pct} in {b} (could be {rate_b_ci | range}), under the gate's minimum of
         {gate.min_pass_rate | percent}. This blocks a merge.
       next:
-        - say: Look at the flips in Run compare to see which tasks dropped.
+        - say: Look at the flips on Ship to see which tasks dropped.
           link: "#/compare/{a}/{b}"
     - source: delta
       when: gate.passed == false
@@ -1015,7 +1015,7 @@
         {suite} dropped {delta | pts} from {a} to {b} (could be {delta_ci | prange}), more than the
         {gate.max_drop_pts | points} its gate allows. This blocks a merge.
       next:
-        - say: Look at the flips in Run compare to see which tasks dropped.
+        - say: Look at the flips on Ship to see which tasks dropped.
           link: "#/compare/{a}/{b}"
     - source: delta
       when: gate.passed
@@ -1104,6 +1104,15 @@
   related: [gate, capability_suite]
   learn_more: master-class#ch-19
 
+- id: expected_flip
+  term: Expected flip
+  aliases: [expected flips]
+  short: A [[flip]] a person marked as intended, with a note saying why.
+  why: A change that was meant to move a task should not read as a surprise in the comparison, and one that was not meant to should.
+  good: Every Broke flip in a regression suite is either fixed or marked expected with a reason before merging.
+  related: [flip, gate]
+  learn_more: master-class#ch-18
+
 - id: flip
   term: Flip
   aliases: [flips, flipped]
@@ -1135,8 +1144,8 @@
 
 - id: coverage_map
   term: Coverage map
-  aliases: [spec, surface, risk, coverage maps]
-  short: "One way of listing your app: cases in your spec, its API routes or tools, or [[failure_mode]]s by [[severity]]."
+  aliases: [spec, surface, risk, traffic, frontend, code lines, coverage maps]
+  short: "One way of listing your app: spec cases, API routes or tools, [[failure_mode]]s, production use, lines that ran, or pages."
   related: [coverage, coverage_depth]
   learn_more: master-class#ch-25
 
@@ -1145,7 +1154,7 @@
 - id: cluster
   term: Cluster
   aliases: [clusters, clustering, tf-idf, k-means]
-  short: A group of [[trace]]s that read alike, so one review sample covers each kind of conversation.
+  short: A group of [[trace]]s that read alike, so one review sample reaches each kind of conversation.
   why: Reading one trace from every cluster finds more kinds of failure than reading the most recent ones.
   related: [trace, label]
   learn_more: master-class#ch-2
@@ -1192,8 +1201,8 @@
 
 - id: task_status
   term: Task status
-  aliases: [passing, failing, mixed]
-  short: "How a [[task]] did over its recent runs: passing every time, failing every time, or mixed."
+  aliases: [passing, failing, mixed, not run, no runs]
+  short: "How a [[task]] did over its recent runs: passing every time, failing every time, mixed, or not run yet."
   why: One run can be luck; the status looks across runs before calling a task fixed or broken.
   related: [flaky, likely_broken, graduation]
   learn_more: master-class#ch-8
@@ -1234,7 +1243,60 @@
 
 - id: diff_hunk
   term: "@@"
-  short: "In a diff, @@ starts a changed block: the line numbers it covers before and after."
+  short: "In a diff, @@ starts a changed block: the line numbers it spans before and after."
   why: Lines below it starting with + were added, lines starting with - were removed.
   related: [diff_old, diff_new]
   learn_more: master-class#ch-21
+
+# The job-first redesign (docs/stories/redesign.md): the places and visuals the v2 screens name.
+- id: ship_space
+  term: Ship
+  short: "The place that answers one question about a change to your agent: can it merge?"
+  why: Everything a reviewer needs before merging sits on one page, so nobody has to assemble it.
+  good: Every [[gate]] passes and no regression task went from passing to failing.
+  related: [gate, flip]
+
+- id: teach_space
+  term: Teach
+  short: "The place where people define good: [[label]] conversations, name [[failure_mode]]s, run [[calibration]] on [[judge]]s."
+  why: Evals are only as good as the human judgement behind them, and that judgement is built here.
+  related: [label, failure_mode, judge, calibration]
+
+- id: cover_space
+  term: Cover
+  short: The place that shows what your evals do not test yet, and turns each gap into a [[task]].
+  why: A passing suite only means something for the behaviour it actually checks.
+  related: [coverage, task, suite]
+
+- id: up_next
+  term: Up next
+  short: Home's list of what needs you, most urgent first, each with one action.
+  why: "The order is fixed: what blocks a merge, then what keeps the numbers honest, then what improves your evals."
+  related: [gate, stale, flaky]
+
+- id: margin_bar
+  term: Margin bar
+  aliases: [range bar]
+  short: "A pass rate drawn as its likely range, a tick at the measured value, and a dashed [[gate]] line."
+  why: It shows at a glance whether a rate is clearly above its gate, clearly below, or too close to call.
+  related: [confidence_interval, gate]
+
+- id: trial_dots
+  term: Trial dots
+  short: "One dot per [[trial]]: filled for a pass or a fail, hollow for an infrastructure error, which is not counted."
+  why: Five dots show at once whether a task is solid, broken or flaky.
+  related: [trial, flaky, infra_error]
+
+- id: hold
+  term: Hold
+  aliases: [don't merge]
+  short: "The verdict when at least one [[gate]] fails: do not merge until the cause is fixed or explained."
+  why: A held change is not necessarily worse; it means the evidence does not yet show it is safe.
+  related: [gate, safe_to_merge]
+
+- id: safe_to_merge
+  term: Safe to merge
+  aliases: [safe]
+  short: "The verdict when every [[gate]] passes, counting only [[trusted]] [[check]]s."
+  why: It is a statement about the evidence, not a promise; untested behaviour can still break.
+  related: [gate, hold, coverage]

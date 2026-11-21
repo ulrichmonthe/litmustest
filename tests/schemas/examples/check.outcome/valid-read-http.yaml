@@ -1,0 +1,7 @@
+id: order_shipped
+type: outcome
+backend: http
+read:
+  url: http://127.0.0.1:8080/orders/{task}
+  headers: { authorization: "Bearer ${ORDERS_TOKEN}" }
+expect: { status: shipped }

@@ -9,6 +9,8 @@ description: Entry point for litmustest. Looks at the state of the evals/ direct
 
 This skill only routes. Find where the team is, tell the user which skill you are loading and why, then load it and follow its workflow from start to finish. Do not improvise a shorter version of another skill here.
 
+**Where the evals directory is.** The commands here are written for `evals/` at the repository root. Find the directory that holds `litmustest.yaml` first. If it is somewhere else (the sample repo keeps it at `examples/support-agent/evals`), add `--dir <evals dir>` to every `litmustest` command and read the `evals/...` paths below as inside that directory. A command pointed at a directory that is not there fails; it never reports a clean result. `litmustest <command> --help` prints that command's flags.
+
 Three rules from `CLAUDE.md` bind every litmustest skill:
 
 1. `evals/` in git is the source of truth. Skills write files there; nothing else.
@@ -26,7 +28,7 @@ litmustest validate
 litmustest doctor
 ```
 
-`doctor` prints findings and a `next:` line. Map them:
+`doctor` prints findings and a `next:` line. Map them: `doctor` often lists several findings at once. Report all of them in plain words and lead with its `next:` line; when that does not settle it, use this order: validation errors, a broken task, a stale judge, a flaky task, the review queue, graduation.
 
 | `doctor` says | Load |
 | --- | --- |
@@ -73,5 +75,6 @@ The skills form one loop. Most teams go through it in this order the first time:
 
 - Most requests that mention traces and "what is going wrong" mean `error-discovery`.
 - Do not route to a grader skill before failure modes exist. A judge or check without a named, observed failure mode measures nothing specific.
-- When two rows fit, say both and ask the user which matters now. Do not guess.
+- When two rows fit, or `doctor` lists several findings, say them all, recommend one and ask the user before loading it. Do not guess.
+- When the user only asks where things stand, summarise the findings and the skill you would load, then stop and ask.
 - This file holds only routing. The workflow lives in the skill you load.

@@ -1,7 +1,7 @@
 // Loads every dashboard route in a real browser and fails on a script error, a page that never renders, or a control under 44px.
 // Uses the installed Chrome through playwright-core (no browser download); skipped where no Chrome is found.
 import { execFileSync } from "node:child_process";
-import { cpSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { chromium, type Browser } from "playwright-core";
@@ -11,7 +11,7 @@ import { serve, type Running } from "../packages/cli/src/serve.ts";
 
 const EXAMPLE = join(import.meta.dirname, "..", "examples", "support-agent", "evals");
 const git = (cwd: string, ...a: string[]) => execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@t", ...a], { cwd, encoding: "utf8" });
-const ROUTES = ["overview", "review", "modes", "tasks", "compare", "transcripts", "judges", "coverage", "settings", "pending"];
+const ROUTES = ["home", "teach/label", "teach/group", "teach/modes", "cover/tasks", "ship", "library/runs", "teach/judges", "cover", "library/settings", "pending"];
 
 function repo(fill: (cwd: string) => void): string {
   const cwd = mkdtempSync(join(tmpdir(), "litmustest-ui-"));
@@ -29,8 +29,8 @@ const servers: Running[] = [];
 beforeAll(async () => {
   try { browser = await chromium.launch({ channel: "chrome" }); }
   catch (e) { if (process.env.CI) throw e; browser = undefined; } // GitHub's runners have Chrome; never skip there.
-});
-afterAll(async () => { await browser?.close(); for (const s of servers) await s.close(); });
+}, 60_000); // a cold Chrome start on a busy CI runner can take longer than the 10s default
+afterAll(async () => { await browser?.close(); for (const s of servers) await s.close(); }, 60_000);
 
 async function visit(url: string, hashes: string[]): Promise<Record<string, string[]>> {
   const page = await browser!.newPage(); const problems: Record<string, string[]> = {}; let current = "";
@@ -61,8 +61,30 @@ describe("dashboard smoke", () => {
     const s = await serve({ evalsDir: join(cwd, "evals"), port: 0, watch: false }); servers.push(s);
     const t = (await (await fetch(`${s.url}/api/transcripts`)).json()) as { run: { run_id: string }; tasks: { id: string; suite: string }[] };
     const task = t.tasks[0];
-    const deep = [`tasks/${task.suite}/${task.id}`, `transcripts/${t.run.run_id}/${task.id}/1`, "judges/tone_mismatch", "modes/tone_mismatch"];
+    const deep = [`cover/tasks/${task.suite}/${task.id}`, `library/runs/${t.run.run_id}/${task.id}/1`, "teach/judges/tone_mismatch", "teach/modes/tone_mismatch", "teach/judges/new?mode=ungrounded_policy", "ship/decide", "library/runs/run_0041", "cover/setup", "cover/traffic"];
     expect(await visit(s.url, [...ROUTES, ...deep])).toEqual({});
+  }, 60_000);
+
+  it("an old link goes to its place, and Back still works", async (ctx) => {
+    if (!browser) return ctx.skip();
+    const cwd = repo((c) => cpSync(EXAMPLE, join(c, "evals"), { recursive: true }));
+    const s = await serve({ evalsDir: join(cwd, "evals"), port: 0, watch: false }); servers.push(s);
+    const page = await browser.newPage();
+    const MOVED: [string, string][] = [["", "#/home"], ["overview", "#/home"], ["compare", "#/ship"], ["review", "#/teach/label"], ["discover", "#/teach/group"],
+      ["modes/tone_mismatch", "#/teach/modes/tone_mismatch"], ["judges/tone_mismatch", "#/teach/judges/tone_mismatch"], ["coverage/traffic", "#/cover/traffic"],
+      ["tasks/regression?status=broken", "#/cover/tasks/regression?status=broken"], ["transcripts/run_0041", "#/library/runs/run_0041"], ["settings", "#/library/settings"]];
+    for (const [from, to] of MOVED) {
+      await page.goto(`${s.url}/#/${from}`);
+      await page.waitForFunction((want) => location.hash === want, to);
+    }
+    // the sidebar marks the current place, and the top bar names where you are
+    await page.goto(`${s.url}/#/teach/judges/tone_mismatch`); await page.waitForSelector('#nav-items a[aria-current="page"]');
+    expect(await page.textContent('#nav-items a[aria-current="page"]')).toContain("Teach");
+    expect(await page.$$eval("#nav-current > :not(.sep)", (els) => els.map((e) => e.textContent))).toEqual(["Teach", "Trust judges", "tone_mismatch"]);
+    // a redirect replaces the history entry, so Back skips it
+    await page.goto(`${s.url}/#/home`); await page.evaluate(() => { location.hash = "#/judges"; }); await page.waitForFunction(() => location.hash === "#/teach/judges");
+    await page.goBack(); await page.waitForFunction(() => location.hash === "#/home");
+    await page.close();
   }, 60_000);
 
   it("renders every route on a fresh init", async (ctx) => {
@@ -74,9 +96,9 @@ describe("dashboard smoke", () => {
 });
 
 // The explainer (docs/EXPLAINER.md): every header, stat label and pill on the screens is either a glossary term or a plain word on this list.
-const PLAIN = new Set(["a", "b", "a → b", "actual", "agent", "change", "customer", "expected", "fail", "failed", "failing", "passing", "pass", "high", "med", "low", "human", "item", "last runs", "model", "mode", "none", "path", "source", "status", "suite health", "tool", "trend", "used by", "why", "what happened", "what it tests", "what this means", "to make it pass", "judge's critique", "covered by", "has check", "measured", "not measured in v1", "needs labels", "failing check in b", "no grader", "only a judge failed it", "mixed", "high severity", "review queue", "dev tpr / tnr", "test tpr / tnr", "checks"]);
+const PLAIN = new Set(["a", "b", "a → b", "actual", "before", "after", "action", "actions", "pick", "run", "date", "verdict", "quality", "agent", "change", "customer", "expected", "fail", "failed", "failing", "passing", "pass", "high", "med", "low", "human", "item", "last runs", "model", "mode", "none", "path", "source", "status", "suite health", "tool", "trend", "used by", "why", "what happened", "what it tests", "what this means", "to make it pass", "judge's critique", "covered by", "has check", "measured", "not measured in v1", "not measured", "needs labels", "failing check in b", "no grader", "only a judge failed it", "mixed", "high severity", "review queue", "dev tpr / tnr", "test tpr / tnr", "checks"]);
 const ALSO: Record<string, string> = { broke: "flip", fixed: "flip", significant: "confidence_interval", "within noise": "confidence_interval" };
-const ROUTES_ALL = ["overview", "review", "modes", "tasks", "compare", "transcripts", "judges", "judges/tone_mismatch", "coverage", "settings", "pending"];
+const ROUTES_ALL = ["home", "teach/label", "teach/modes", "cover/tasks", "ship", "library/runs", "teach/judges", "teach/judges/tone_mismatch", "cover", "library/settings", "pending"];
 /** Pills that are not status words: the explain card's own kind label and the AI pill. */
 const NOT_STATUS = /^(AI|Claude|Sample data)/i;
 
@@ -360,4 +382,219 @@ describe("explainer, Epic 4 (docs/stories/explainer.md)", () => {
     expect(JSON.parse(readFileSync(join(process.env.XDG_CONFIG_HOME!, "litmustest", "prefs.json"), "utf8"))).toMatchObject({ plain_language: false, plain_prompt_seen: true });
     void file; await page.close(); await page2.close();
   }, 90_000);
+});
+
+describe("phone layout and themes", () => {
+  it("at 390px the top bar names the page, Menu opens the sidebar, the four places sit in a bottom bar, the title is in the first screen and the page does not scroll sideways", async (ctx) => {
+    if (!browser) return ctx.skip();
+    const cwd = repo((c) => cpSync(EXAMPLE, join(c, "evals"), { recursive: true }));
+    const s = await serve({ evalsDir: join(cwd, "evals"), port: 0, watch: false }); servers.push(s);
+    const page = await browser.newPage({ viewport: { width: 390, height: 844 }, hasTouch: true });
+    const bad: string[] = [];
+    for (const r of ROUTES) {
+      await page.goto(`${s.url}/#/${r}`);
+      await page.waitForFunction(() => { const p = document.querySelector("#page"); return p && !/Loading…/.test(p.textContent ?? "") && p.querySelector("h1"); });
+      const m = await page.evaluate(() => ({ h1: document.querySelector("#page h1")!.getBoundingClientRect().top, items: getComputedStyle(document.querySelector("#sidebar")!).display, sideways: document.documentElement.scrollWidth - document.documentElement.clientWidth, toggle: document.querySelector("#nav-toggle")!.getBoundingClientRect().height, current: document.querySelector("#nav-current")!.textContent }));
+      if (m.items !== "none") bad.push(`${r}: the sidebar shows before Menu is pressed`);
+      if (m.h1 > 300) bad.push(`${r}: title starts ${Math.round(m.h1)}px down`);
+      if (m.sideways > 1) bad.push(`${r}: page scrolls sideways by ${m.sideways}px`);
+      if (m.toggle < 44) bad.push(`${r}: Menu is ${m.toggle}px tall`);
+      if (!m.current) bad.push(`${r}: the bar does not name the page`);
+    }
+    expect(bad).toEqual([]);
+    await page.click("#nav-toggle");
+    expect(await page.getAttribute("#nav-toggle", "aria-expanded")).toBe("true");
+    expect(await page.evaluate(() => getComputedStyle(document.querySelector("#sidebar")!).display)).toBe("flex");
+    await page.click('#nav-items a[href="#/library/settings"]');
+    await page.waitForFunction(() => location.hash === "#/library/settings" && document.querySelector("#nav-toggle")!.getAttribute("aria-expanded") === "false");
+    // the bottom bar holds the four places, each at least 44px, and marks the current one
+    const bottom = await page.$$eval("#bottombar a", (as) => as.map((a) => ({ text: a.textContent, h: a.getBoundingClientRect().height, current: a.getAttribute("aria-current") })));
+    expect(bottom.map((b) => b.text)).toEqual(["Home", "Ship", "Teach", "Cover"]);
+    expect(bottom.every((b) => b.h >= 44)).toBe(true);
+    await page.click('#bottombar a[href="#/ship"]'); await page.waitForFunction(() => document.querySelector('#bottombar a[href="#/ship"]')!.getAttribute("aria-current") === "page");
+    await page.close();
+  }, 90_000);
+
+  it("the theme setting switches the tokens, persists, and every route renders in dark", async (ctx) => {
+    if (!browser) return ctx.skip();
+    const cwd = repo((c) => cpSync(EXAMPLE, join(c, "evals"), { recursive: true }));
+    const s = await serve({ evalsDir: join(cwd, "evals"), port: 0, watch: false }); servers.push(s);
+    const context = await browser.newContext({ colorScheme: "light" }); const page = await context.newPage();
+    await page.goto(`${s.url}/#/settings`); await page.waitForSelector("#theme-setting");
+    const ground = () => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--ground").trim());
+    const light = await ground();
+    await page.selectOption("#theme-setting", "dark");
+    await page.waitForFunction(() => document.documentElement.dataset.theme === "dark");
+    expect(await ground()).not.toBe(light);
+    await page.waitForFunction(async () => (await (await fetch("/api/prefs")).json()).theme === "dark");
+    await page.reload(); await page.waitForSelector("#theme-setting");
+    expect(await page.evaluate(() => document.documentElement.dataset.theme)).toBe("dark");
+    // Home's status dot is a token, so it follows the theme.
+    await page.goto(`${s.url}/#/home`); await page.waitForSelector("#page .eyebrow-status .sdot");
+    const dot = await page.evaluate(() => getComputedStyle(document.querySelector("#page .eyebrow-status .sdot")!).backgroundColor);
+    await page.goto(`${s.url}/#/settings`); await page.waitForSelector("#theme-setting"); await page.selectOption("#theme-setting", "light");
+    await page.goto(`${s.url}/#/home`); await page.waitForSelector("#page .eyebrow-status .sdot");
+    expect(await page.evaluate(() => getComputedStyle(document.querySelector("#page .eyebrow-status .sdot")!).backgroundColor)).not.toBe(dot);
+    await context.close();
+  }, 90_000);
+});
+
+describe("numbers carry their margin and link down", () => {
+  it("rates on Tasks, Transcripts, Overview and Judges show an interval and link to the trials; counts filter the list", async (ctx) => {
+    if (!browser) return ctx.skip();
+    const cwd = repo((c) => cpSync(EXAMPLE, join(c, "evals"), { recursive: true }));
+    const s = await serve({ evalsDir: join(cwd, "evals"), port: 0, watch: false }); servers.push(s);
+    const page = await browser.newPage();
+    const ready = () => page.waitForFunction(() => { const p = document.querySelector("#page"); return p && !/Loading…/.test(p.textContent ?? "") && p.querySelector("h1"); });
+    const bare = async (route: string, cells: string) => {
+      await page.goto(`${s.url}/#/${route}`); await ready();
+      return page.evaluate((sel) => [...document.querySelectorAll(sel)].filter((el) => /\d%/.test(el.textContent ?? "")).filter((el) => { const r = el.querySelector(".rate"); return !r || !r.querySelector(".rate-ci"); }).map((el) => (el.textContent ?? "").trim()), cells);
+    };
+    // every percentage in these columns is a rate with its interval
+    expect(await bare("tasks/regression", "#page table.plain td.num")).toEqual([]);
+    expect(await bare("library/runs/run_0041", "#page .task-row .num")).toEqual([]);
+    expect(await bare("library/runs", '#page [aria-label="Runs"] td.num')).toEqual([]);
+    expect(await bare("home", '#page [aria-label="Gates"] .gate-value')).toEqual([]);
+    expect(await bare("ship", '#page [aria-label="Gates"] .ship-rate')).toEqual([]);
+    expect(await bare("judges", "#page table.plain td.num")).toEqual([]);
+    // a task's rate links to its trial
+    await page.goto(`${s.url}/#/tasks/regression`); await ready();
+    expect(await page.getAttribute("#page table.plain td.num a.rate", "href")).toMatch(/^#\/transcripts\/run_0041\/[a-z_]+\/1$/);
+    // the health strip's counts filter the table, and the note leads back
+    const brokenHref = await page.evaluate(() => [...document.querySelectorAll("#page .health a.count-link")].map((a) => a.getAttribute("href"))[0]);
+    expect(brokenHref).toBe("#/tasks/regression?status=broken");
+    await page.goto(`${s.url}/${brokenHref}`); await page.waitForSelector(".filter-note");
+    expect(await page.$$eval("#page table.plain tbody tr", (r) => r.length)).toBe(1);
+    expect(await page.textContent("#page table.plain tbody tr")).toContain("refund_ghost_account_frustrated");
+    await page.click(".filter-note a"); await page.waitForFunction(() => !document.querySelector(".filter-note"));
+    // a failure mode's count on Ship opens the trials that failed on it
+    await page.goto(`${s.url}/#/ship`); await ready();
+    const modeHref = await page.getAttribute('#page [aria-label="Failure-mode deltas"] a.count-link', "href");
+    expect(modeHref).toBe("#/library/runs/run_0041?mode=tone_mismatch");
+    await page.goto(`${s.url}/${modeHref}`); await page.waitForSelector(".filter-note");
+    const all = ((await (await fetch(`${s.url}/api/transcripts`)).json()) as { tasks: { failed_modes: string[] }[] }).tasks;
+    expect(await page.$$eval("#page .task-row a.mono", (r) => r.length)).toBe(all.filter((t) => t.failed_modes.includes("tone_mismatch")).length);
+    await page.close();
+  }, 90_000);
+});
+
+describe("Home, Ship and Decide (docs/stories/redesign.md, R2)", () => {
+  it("Home states the verdict from the files, draws every gate as a margin bar and ranks Up next; Ship shows trial dots; Decide writes a label to Pending changes", async (ctx) => {
+    if (!browser) return ctx.skip();
+    const cwd = repo((c) => cpSync(EXAMPLE, join(c, "evals"), { recursive: true }));
+    const s = await serve({ evalsDir: join(cwd, "evals"), port: 0, watch: false }); servers.push(s);
+    const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+    const ready = () => page.waitForFunction(() => { const p = document.querySelector("#page"); return p && !/Loading…/.test(p.textContent ?? "") && p.querySelector("h1"); });
+    await page.goto(`${s.url}/#/home`); await ready();
+    expect(await page.textContent("#page .eyebrow-status")).toMatch(/Hold · 2 of 2 gates fail/);
+    expect(await page.textContent("#page .home-lead")).toMatch(/Regression is at 85\.1% \(could be \d+–\d+%\) and needs 95%\./);
+    const bars = await page.$$eval('#page [aria-label="Gates"] .mbar', (els) => els.map((e) => e.getAttribute("aria-label")));
+    expect(bars).toHaveLength(3); expect(bars[0]).toMatch(/^Regression: 85\.1%, could be \d+ to \d+%, gate at 95%$/);
+    const rows = await page.$$eval("#page .up-row", (els) => els.map((e) => e.querySelector(".up-title")!.textContent));
+    expect(rows.slice(0, 2)).toEqual(["Regression is below its gate", "Quality is below its gate"]);
+    expect(await page.textContent('#nav-items a[href="#/ship"]')).toContain("Hold");
+    // Ship: every changed task shows its trials as dots, labelled in words
+    await page.click('#page a.btn.quiet[href="#/ship"]'); await page.waitForSelector("#page .change-row .tdots");
+    const dots = await page.$$eval("#page .change-row .tdots", (els) => els.map((e) => e.getAttribute("aria-label")));
+    expect(dots.length).toBeGreaterThan(0); expect(dots[0]).toMatch(/^Before: \d of \d passed/);
+    await page.waitForSelector("#page .ship-aside .aside-actions");
+    // Decide: "Can't tell" saves a Skip label through the dispute route, and the next reply comes up.
+    // Transcripts are not in git, so store a minimal trial for the first reply to decide.
+    const d = ((await (await fetch(`${s.url}/api/home`)).json()) as { decide: { task: string; n: number }[] }).decide[0]!;
+    const dir = join(cwd, ".litmustest", "transcripts", "run_0041", d.task, String(d.n)); mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, "trial.json"), JSON.stringify({ transcript: [{ role: "user", content: "I want my money back." }, { role: "assistant", content: "Hey there! Great question!" }], tool_calls: [], state: {} }));
+    await page.goto(`${s.url}/#/ship/decide?task=${d.task}`); await page.waitForSelector("#page .choices");
+    const first = await page.textContent("#page .decide-head .mono");
+    await page.keyboard.press("3");
+    await page.waitForFunction((was) => document.querySelector("#page .decide-head .mono")?.textContent !== was, first);
+    const pending = (await (await fetch(`${s.url}/api/pending`)).json()) as { files: { path: string }[] };
+    expect(pending.files.some((f) => /labels\/disputes-run_0041\.jsonl$/.test(f.path))).toBe(true);
+    const label = readFileSync(join(cwd, "evals", "labels", "disputes-run_0041.jsonl"), "utf8").trim().split("\n").map((l) => JSON.parse(l)).pop();
+    expect(label).toMatchObject({ label: "Skip", failure_mode: "tone_mismatch" });
+    await page.close();
+  }, 90_000);
+});
+
+describe("Teach (docs/stories/redesign.md, R3)", () => {
+  it("every step shows the rail with the current step marked; notes can be grouped by hand into a failure mode", async (ctx) => {
+    if (!browser) return ctx.skip();
+    const cwd = repo((c) => cpSync(EXAMPLE, join(c, "evals"), { recursive: true }));
+    const s = await serve({ evalsDir: join(cwd, "evals"), port: 0, watch: false }); servers.push(s);
+    const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+    for (const [route, step] of [["teach/label", "Label"], ["teach/group", "Group notes"], ["teach/modes", "Failure modes"], ["teach/judges", "Trust judges"], ["teach/judges/tone_mismatch", "Trust judges"]]) {
+      await page.goto(`${s.url}/#/${route}`); await page.waitForSelector('#page .teach-rail a[aria-current="step"]');
+      expect(await page.textContent('#page .teach-rail a[aria-current="step"] .rail-title'), route).toMatch(new RegExp(`^${step}( \\(done\\))?$`));
+      expect(await page.$$eval("#page .teach-rail a", (as) => as.length)).toBe(4);
+    }
+    expect(await page.textContent('#page .teach-rail a[href="#/teach/label"] .rail-sub')).toBe("18 of 60");
+    // by hand: show tagged notes, pick one, add it to tone_mismatch as an example
+    await page.goto(`${s.url}/#/teach/group`); await page.waitForSelector("#page .hand-tab");
+    await page.check("#page .hand-notes .inline-check input"); await page.waitForSelector("#page .note-row");
+    const trace = (await page.textContent("#page .note-row .mono"))!.trim();
+    await page.click("#page .note-row"); await page.waitForSelector('#page .note-row[aria-pressed="true"]');
+    await page.click('#page .mode-target:has-text("tone_mismatch")');
+    await page.waitForFunction(() => /is in Pending changes/.test(document.querySelector("#page .status")?.textContent ?? ""));
+    expect(readFileSync(join(cwd, "evals", "failure_modes", "tone_mismatch.yaml"), "utf8")).toContain(trace);
+    // the new-judge screen explains what drafting needs when there is no model key
+    await page.goto(`${s.url}/#/teach/judges/new?mode=ungrounded_policy`); await page.waitForSelector("#page .facts");
+    expect(await page.textContent("#page")).toMatch(/ANTHROPIC_API_KEY|Draft the judge with Claude/);
+    await page.close();
+  }, 90_000);
+});
+
+describe("Cover and the Library (docs/stories/redesign.md, R4)", () => {
+  it("Cover leads with the biggest gaps; coverage setup writes litmustest.yaml; runs compare two on Ship; a lost server says so", async (ctx) => {
+    if (!browser) return ctx.skip();
+    const cwd = repo((c) => cpSync(EXAMPLE, join(c, "evals"), { recursive: true }));
+    const s = await serve({ evalsDir: join(cwd, "evals"), port: 0, watch: false });
+    const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+    await page.goto(`${s.url}/#/cover`); await page.waitForSelector('#page [aria-label="Biggest gaps"] .gap-row');
+    expect(await page.textContent("#page .gaps h1")).toBe("3 high-severity failure modes have no check you can trust");
+    expect(await page.getAttribute('#page .gap-row:has-text("missed_refund") a.btn', "href")).toBe("#/teach/judges/missed_refund");
+    // coverage setup: a code report path lands in litmustest.yaml as a validated, pending write
+    await page.goto(`${s.url}/#/cover/setup`); await page.waitForSelector("#code-report");
+    await page.fill("#code-report", "coverage/lcov.info"); await page.click('#page button.primary:has-text("Save")');
+    await page.waitForFunction(() => /Saved to evals\/litmustest\.yaml/.test(document.querySelector("#page .status")?.textContent ?? ""));
+    expect(readFileSync(join(cwd, "evals", "litmustest.yaml"), "utf8")).toMatch(/code:\s+report: coverage\/lcov\.info/);
+    // runs: pick two and compare them on Ship
+    await page.goto(`${s.url}/#/library/runs`); await page.waitForSelector("#page input.pick");
+    await page.check("#page tbody tr:nth-child(1) input.pick"); await page.waitForSelector("#page tbody tr:nth-child(1) input.pick:checked");
+    await page.check("#page tbody tr:nth-child(2) input.pick");
+    await page.waitForSelector('#page a.btn.primary[href^="#/ship/"]');
+    expect(await page.getAttribute('#page a.btn.primary[href^="#/ship/"]', "href")).toBe("#/ship/run_0040/run_0041");
+    // the server stops (open connections drop, as when the process ends): the top bar says the connection is lost
+    const closed = s.close(); s.server.closeAllConnections(); await closed;
+    await page.waitForFunction(() => !document.querySelector("#conn")!.hidden, null, { timeout: 15_000 });
+    expect(await page.textContent("#conn")).toMatch(/Lost connection to litmustest serve/);
+    await page.close();
+  }, 90_000);
+});
+
+describe("⌘K search (docs/stories/redesign.md, R5)", () => {
+  it("opens from the shortcut or the sidebar, finds tasks, failure modes, judges, runs and places, and returns focus on Escape", async (ctx) => {
+    if (!browser) return ctx.skip();
+    const cwd = repo((c) => cpSync(EXAMPLE, join(c, "evals"), { recursive: true }));
+    const s = await serve({ evalsDir: join(cwd, "evals"), port: 0, watch: false }); servers.push(s);
+    const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+    await page.goto(`${s.url}/#/home`); await page.waitForSelector("#page h1");
+    await page.keyboard.press("Control+k"); await page.waitForSelector('#palette[role="dialog"] .pal-item');
+    expect(await page.evaluate(() => document.activeElement?.id)).toBe("palette-input");
+    await page.keyboard.type("tone");
+    await page.waitForFunction(() => [...document.querySelectorAll("#palette .pal-group")].some((g) => g.getAttribute("aria-label") === "Judges"));
+    const kinds = await page.$$eval("#palette .pal-group", (gs) => gs.map((g) => g.getAttribute("aria-label")));
+    expect(kinds).toEqual(expect.arrayContaining(["Failure modes", "Judges", "Tasks"]));
+    // the first result is selected; Enter opens it and closes the palette
+    const first = await page.getAttribute('#palette .pal-item[aria-selected="true"]', "href");
+    await page.keyboard.press("Enter"); await page.waitForFunction((want) => location.hash === want && !document.querySelector("#palette"), first);
+    // a run by id, with the arrow keys
+    await page.click("#search-btn"); await page.waitForSelector("#palette .pal-item");
+    await page.keyboard.type("run_0040"); await page.waitForFunction(() => document.querySelector('#palette .pal-item[aria-selected="true"]')?.getAttribute("href") === "#/library/runs/run_0040");
+    // Escape closes and puts focus back on the button that opened it
+    await page.keyboard.press("Escape"); await page.waitForFunction(() => !document.querySelector("#palette"));
+    expect(await page.evaluate(() => document.activeElement?.id)).toBe("search-btn");
+    // nothing matches: say so
+    await page.keyboard.press("Control+k"); await page.waitForSelector("#palette-input"); await page.keyboard.type("zzqqxx");
+    await page.waitForFunction(() => /Nothing matches/.test(document.querySelector("#palette-list")?.textContent ?? ""));
+    await page.close();
+  }, 60_000);
 });

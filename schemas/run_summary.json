@@ -207,7 +207,7 @@
                 },
                 "transcript_ref": {
                   "type": "string",
-                  "description": "Address of the raw transcript in the configured store."
+                  "description": "Address of the raw transcript in the store it was written to: local:<run>/<task>/<n>, s3://bucket/prefix/<run>/<task>/<n>, gs://..., langfuse:<run>/<task>/<n> or braintrust:<project>/<run>/<task>/<n>. The last three segments are always run, task and trial."
                 },
                 "triage": {
                   "type": "object",
@@ -360,7 +360,7 @@
     "coverage": {
       "type": "object",
       "additionalProperties": false,
-      "description": "Coverage when this run finished, from `litmustest coverage` (v1: spec, surface and risk maps). Items by depth: none, planned (only capability or unpassed tasks), checked (a passing task), guarded (a passing regression task).",
+      "description": "Coverage when this run finished, from `litmustest coverage` (spec, surface, risk, traffic, code and frontend maps; only the ones that are set up). Items by depth: none, planned (only capability or unpassed tasks), checked (a passing task), guarded (a passing regression task).",
       "properties": {
         "spec": {
           "type": "object",
@@ -484,6 +484,255 @@
               "description": "Item ids with no task, for diffs between runs."
             }
           }
+        },
+        "traffic": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "total",
+            "none",
+            "planned",
+            "checked",
+            "guarded"
+          ],
+          "properties": {
+            "total": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "none": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "planned": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "checked": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "guarded": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "uncovered": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 1000,
+              "description": "Item ids with no task, for diffs between runs."
+            },
+            "weighted": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "unit",
+                "total",
+                "covered"
+              ],
+              "description": "The headline for a map whose items differ in size: the covered share of the weight.",
+              "properties": {
+                "unit": {
+                  "type": "string"
+                },
+                "total": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "covered": {
+                  "type": "number",
+                  "minimum": 0
+                }
+              }
+            }
+          }
+        },
+        "code": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "total",
+            "none",
+            "planned",
+            "checked",
+            "guarded"
+          ],
+          "properties": {
+            "total": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "none": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "planned": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "checked": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "guarded": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "uncovered": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 1000,
+              "description": "Item ids with no task, for diffs between runs."
+            },
+            "weighted": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "unit",
+                "total",
+                "covered"
+              ],
+              "description": "The headline for a map whose items differ in size: the covered share of the weight.",
+              "properties": {
+                "unit": {
+                  "type": "string"
+                },
+                "total": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "covered": {
+                  "type": "number",
+                  "minimum": 0
+                }
+              }
+            }
+          }
+        },
+        "frontend": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "total",
+            "none",
+            "planned",
+            "checked",
+            "guarded"
+          ],
+          "properties": {
+            "total": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "none": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "planned": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "checked": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "guarded": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "uncovered": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 1000,
+              "description": "Item ids with no task, for diffs between runs."
+            }
+          }
+        }
+      }
+    },
+    "expected_flips": {
+      "type": "array",
+      "description": "Flips against an earlier run that a person marked as expected, from Run compare. An expected flip explains a change in the comparison's verdict; it never waives a gate.",
+      "items": {
+        "type": "object",
+        "required": [
+          "task",
+          "change",
+          "vs",
+          "by",
+          "at"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "task": {
+            "$ref": "common.json#/$defs/name",
+            "description": "The task that flipped."
+          },
+          "change": {
+            "type": "string",
+            "enum": [
+              "Broke",
+              "Fixed",
+              "Flaky"
+            ],
+            "description": "How the task's majority result changed."
+          },
+          "vs": {
+            "type": "string",
+            "description": "The run id this run was compared against."
+          },
+          "by": {
+            "type": "string",
+            "description": "Who marked it."
+          },
+          "at": {
+            "$ref": "common.json#/$defs/timestamp"
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 1000,
+            "description": "Why the flip was expected."
+          }
+        }
+      }
+    },
+    "budget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "limit_usd",
+        "spent_usd",
+        "trials_skipped"
+      ],
+      "description": "Present only when runs.budget_usd stopped the run early. Skipped trials are not in `tasks` and count toward no score.",
+      "properties": {
+        "limit_usd": {
+          "type": "number",
+          "minimum": 0,
+          "description": "runs.budget_usd at run time."
+        },
+        "spent_usd": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Recorded cost when the runner stopped starting trials."
+        },
+        "trials_skipped": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Trials that were planned and never started."
+        },
+        "tasks_skipped": {
+          "type": "array",
+          "items": {
+            "$ref": "common.json#/$defs/name"
+          },
+          "description": "Tasks with no trial at all in this run."
         }
       }
     }

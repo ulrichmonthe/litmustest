@@ -1,4 +1,7 @@
 // litmustest serve: the local HTTP server over evals/, with a file watcher and server-sent events.
+import { commentRoute, promoteTrace, setExpectedFlip } from "./server/promote.ts";
+import { addNotes, notesList, teachSummary } from "./server/teach.ts";
+import { runHistory } from "./server/home.ts";
 import { glossaryHereRoute, glossaryRoute } from "./server/glossary_route.ts";
 import { prefsRoute, putPrefsRoute } from "./server/prefs.ts";
 import { coverageRoute } from "./server/coverage_route.ts";
@@ -10,15 +13,21 @@ import { fileURLToPath } from "node:url";
 import { App, HttpError, type Reply } from "./server/app.ts";
 import { discoverRoute } from "./server/discover_route.ts";
 import type { Ask } from "./discover.ts";
+import type { Hosted } from "./server/hosted.ts";
 import type { JudgeAsk } from "./judge_run.ts";
 import { checkDraft, judgeCalibrate, judgeDetail, judgeDraft, judgesList, trainExcerpts } from "./server/judges.ts";
 import { dispute, explainRoute, setTriage, transcriptsIndex, trial } from "./server/transcripts.ts";
 
-export interface ServeOptions { evalsDir: string; port?: number; host?: string; watch?: boolean; ask?: Ask; judgeAsk?: JudgeAsk; draftAsk?: Ask; explainAsk?: Ask }
+export interface ServeOptions { evalsDir: string; port?: number; host?: string; watch?: boolean; ask?: Ask; judgeAsk?: JudgeAsk; draftAsk?: Ask; explainAsk?: Ask;
+  /** Hosted mode (server/hosted.ts): the server's own clone, GitHub sign-in, and a commit on a pull-request branch per save. */
+  hosted?: Hosted }
+const LOOPBACK = new Set(["127.0.0.1", "localhost", "::1"]);
 export interface Running { server: Server; app: App; url: string; close: () => Promise<void> }
 
 export async function serve(o: ServeOptions): Promise<Running> {
-  const app = new App(o.evalsDir);
+  // The local server has no sign-in: anyone who can reach it can write. Only hosted mode may listen beyond this machine.
+  if (!o.hosted && !LOOPBACK.has(o.host ?? "127.0.0.1")) throw new Error(`the local server only listens on this machine (127.0.0.1); to serve a team, use litmustest serve --hosted --repo owner/name (docs/HOSTED.md)`);
+  const app = o.hosted ? o.hosted.app : new App(o.evalsDir);
   let watcher: FSWatcher | undefined;
   if (o.watch !== false) {
     let timer: NodeJS.Timeout | undefined; const changed = new Set<string>();
@@ -32,17 +41,25 @@ export async function serve(o: ServeOptions): Promise<Running> {
       });
     } catch { /* recursive watch unsupported: validation still happens on every request */ }
   }
-  const server = createServer((req, res) => void handle(app, req, res, o.ask, { judgeAsk: o.judgeAsk, draftAsk: o.draftAsk ?? o.ask, explainAsk: o.explainAsk }));
-  await new Promise<void>((r) => server.listen(o.port ?? 4242, o.host ?? "127.0.0.1", r));
+  const hooks = { judgeAsk: o.judgeAsk, draftAsk: o.draftAsk ?? o.ask, explainAsk: o.explainAsk, hosted: o.hosted };
+  const server = createServer((req, res) => {
+    const h = o.hosted;
+    if (!h) return void handle(app, req, res, o.ask, hooks);
+    // Hosted: the gate answers sign-in and refusals itself; otherwise the request runs as the signed-in person.
+    void h.gate(req, res).then((actor) => actor && h.run(actor, () => handle(app, req, res, o.ask, hooks))).catch((e: Error) => { if (!res.headersSent) { res.writeHead(500, { "content-type": "application/json" }); res.end(JSON.stringify({ error: "internal", message: e.message })); } });
+  });
+  await new Promise<void>((r) => server.listen(o.port ?? 4242, o.host ?? (o.hosted ? "0.0.0.0" : "127.0.0.1"), r));
   const addr = server.address() as { address: string; port: number };
   const url = `http://${addr.address}:${addr.port}`;
-  return { server, app, url, close: () => new Promise((r) => { watcher?.close(); server.close(() => r()); }) };
+  return { server, app, url, close: () => new Promise((r) => { watcher?.close(); o.hosted?.close(); server.close(() => r()); }) };
 }
 
-async function handle(app: App, req: IncomingMessage, res: ServerResponse, ask?: Ask, hooks: { judgeAsk?: JudgeAsk; draftAsk?: Ask; explainAsk?: Ask } = {}): Promise<void> {
+async function handle(app: App, req: IncomingMessage, res: ServerResponse, ask?: Ask, hooks: { judgeAsk?: JudgeAsk; draftAsk?: Ask; explainAsk?: Ask; hosted?: Hosted } = {}): Promise<void> {
   const url = new URL(req.url ?? "/", "http://localhost");
   const path = url.pathname; const q = (k: string) => url.searchParams.get(k) ?? undefined;
-  const send = (r: Reply) => { res.writeHead(r.status, { "content-type": "application/json", "cache-control": "no-store", ...(r.headers ?? {}) }); res.end(JSON.stringify(r.body)); };
+  const answer = (r: Reply) => { res.writeHead(r.status, { "content-type": "application/json", "cache-control": "no-store", ...(r.headers ?? {}) }); res.end(JSON.stringify(r.body)); };
+  // Hosted: a write is answered once its commit is pushed, so a lost race with someone else's push comes back as 409.
+  const send = (r: Reply) => { if (hooks.hosted && ["PUT", "POST"].includes(req.method ?? "")) return hooks.hosted.settle(r).then(answer, () => answer(r)); answer(r); };
   try {
     if (path === "/api/events" && req.method === "GET") {
       res.writeHead(200, { "content-type": "text/event-stream", "cache-control": "no-store", connection: "keep-alive" });
@@ -51,10 +68,16 @@ async function handle(app: App, req: IncomingMessage, res: ServerResponse, ask?:
       req.on("close", off); return;
     }
     const body = ["PUT", "POST"].includes(req.method ?? "") ? await readJson(req) : {};
+    hooks.hosted?.identify(path, body);
     if (!path.startsWith("/api/") && req.method === "GET") return serveStatic(path, res);
     if (path === "/api/failure_modes" && req.method === "GET") return send(app.failureModes());
     if (path === "/api/modes" && req.method === "GET") return send(app.modes());
     if (path === "/api/overview" && req.method === "GET") return send(app.overview());
+    if (path === "/api/home" && req.method === "GET") return send(app.home());
+    if (path === "/api/runs/history" && req.method === "GET") return send({ status: 200, body: runHistory(app.evalsDir) });
+    if (path === "/api/teach" && req.method === "GET") return send({ status: 200, body: teachSummary(app.evalsDir) });
+    if (path === "/api/modes/notes" && req.method === "POST") return send(addNotes(app, body));
+    if (path === "/api/teach/notes" && req.method === "GET") return send({ status: 200, body: notesList(app.evalsDir) });
     if (path === "/api/coverage" && req.method === "GET") return send(coverageRoute(app));
     if (path === "/api/glossary" && req.method === "GET") return send(glossaryRoute(app));
     if (path === "/api/prefs" && req.method === "GET") return send(prefsRoute(app));
@@ -67,11 +90,13 @@ async function handle(app: App, req: IncomingMessage, res: ServerResponse, ask?:
     if (path === "/api/doctor" && req.method === "GET") return send(app.doctor());
     if (path === "/api/transcripts" && req.method === "GET") return send(transcriptsIndex(app, q("run")));
     let tm: RegExpExecArray | null;
-    if ((tm = /^\/api\/transcripts\/([^/]+)\/([^/]+)\/(\d+)$/.exec(path)) && req.method === "GET") return send(trial(app, decodeURIComponent(tm[1]!), decodeURIComponent(tm[2]!), Number(tm[3])));
+    if ((tm = /^\/api\/transcripts\/([^/]+)\/([^/]+)\/(\d+)$/.exec(path)) && req.method === "GET") return send(await trial(app, decodeURIComponent(tm[1]!), decodeURIComponent(tm[2]!), Number(tm[3])));
     if ((tm = /^\/api\/transcripts\/([^/]+)\/([^/]+)\/(\d+)\/triage$/.exec(path)) && req.method === "POST") return send(setTriage(app, decodeURIComponent(tm[1]!), decodeURIComponent(tm[2]!), Number(tm[3]), body));
     if ((tm = /^\/api\/transcripts\/([^/]+)\/([^/]+)\/(\d+)\/explain$/.exec(path)) && req.method === "POST") return send(await explainRoute(app, decodeURIComponent(tm[1]!), decodeURIComponent(tm[2]!), Number(tm[3]), hooks.explainAsk ?? ask));
-    if ((tm = /^\/api\/transcripts\/([^/]+)\/([^/]+)\/(\d+)\/dispute$/.exec(path)) && req.method === "POST") return send(dispute(app, decodeURIComponent(tm[1]!), decodeURIComponent(tm[2]!), Number(tm[3]), body));
+    if ((tm = /^\/api\/transcripts\/([^/]+)\/([^/]+)\/(\d+)\/dispute$/.exec(path)) && req.method === "POST") return send(await dispute(app, decodeURIComponent(tm[1]!), decodeURIComponent(tm[2]!), Number(tm[3]), body));
     if (path === "/api/compare" && req.method === "GET") return send(app.compare(need(q("a"), "a"), need(q("b"), "b")));
+    if (path === "/api/compare/expected" && req.method === "POST") return send(setExpectedFlip(app, body));
+    if (path === "/api/compare/comment" && req.method === "POST") return send(commentRoute(app, body));
     if (path === "/api/discover" && req.method === "POST") return send(await discoverRoute(app, body, ask));
     if (path === "/api/judges" && req.method === "GET") return send(judgesList(app));
     let jm: RegExpExecArray | null;
@@ -94,6 +119,7 @@ async function handle(app: App, req: IncomingMessage, res: ServerResponse, ask?:
     let m: RegExpExecArray | null;
     if ((m = /^\/api\/batches\/([^/]+)$/.exec(path)) && req.method === "GET") return send(app.batch(decodeURIComponent(m[1]!)));
     if ((m = /^\/api\/traces\/([^/]+)$/.exec(path)) && req.method === "GET") return send(app.trace(decodeURIComponent(m[1]!)));
+    if ((m = /^\/api\/traces\/([^/]+)\/promote$/.exec(path)) && req.method === "POST") return send(promoteTrace(app, decodeURIComponent(m[1]!), body));
     send({ status: 404, body: { error: "not_found", message: `${req.method} ${path}` } });
   } catch (e) {
     if (e instanceof HttpError) return send({ status: e.status, body: { error: "error", message: e.message } });

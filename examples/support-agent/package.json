@@ -10,6 +10,6 @@
     "generate-traces": "node src/generate_traces.ts",
     "seed-evals": "node src/seed_evals.ts"
   },
-  "dependencies": { "@anthropic-ai/sdk": "^0.80.0" },
+  "dependencies": { "@anthropic-ai/sdk": "^0.80.0", "yaml": "^2.6.1" },
   "engines": { "node": ">=22.13" }
 }

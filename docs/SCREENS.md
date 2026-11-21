@@ -1,42 +1,89 @@
 # Screens
 
-As of 2026-10-27. Source of record: the "Evals Dashboard Mockup" Design canvas. The eight artboards are in `../design/mockups/*.dc.html`; `Transcript.rework.dc.html` is the latest, brand-aligned version of the Transcript screen and is the reference for how the other seven should be brought in line.
+As of 2026-11-21. Source of record: the "litmustest: Job-first redesign" Design canvas, Page 2, sections E and F. The 43 artboards are in `../design/mockups/v2/*.dc.html`; the build plan that turns them into the dashboard is `stories/redesign.md`. The eight v1 artboards in `../design/mockups/*.dc.html` describe the dashboard as it is until the redesign lands.
 
-Each `.dc.html` is a Design Component: an `<x-dc>` template plus a small logic class. The values to replicate live in inline `style` attributes and the `<helmet><style>` block. Replicate them in the real component system; do not copy the markup wholesale. All numbers are sample data.
+Each `.dc.html` is a Design Component: an `<x-dc>` template plus a small logic class, rendered by the canvas (the `support.js` it loads is the canvas's, not in this repo). The values to replicate live in inline `style` attributes and the `<helmet><style>` block. Replicate them through the tokens in `../brand/tokens.json` (every hex on the canvas maps to a token; `BRAND.md` names them); do not copy the markup wholesale. All numbers are sample data.
 
-## Shell shared by every screen
+## The shape
 
-- 220px nav, `line-soft` right border, logo mark + wordmark at the top, items at 500 weight, current page 600 in `blue-ink` on `blue-tint` with `aria-current`. Counts beside items are the number alone in mono on `neutral-tint`.
-- A **Pending changes** tray at the bottom of the nav: `blue-tint` card, count badge, branch name in mono, "Review and commit" link. Present on every screen.
-- Page content in a centred 1180px column, `space-6` padding (16px on phones). Nav stacks above the page below 900px.
-- Every page opens with a breadcrumb above its title. A "Sample data" pill marks mock numbers.
-- Every control ≥ 44px tall. Status is always a word in a pill. Blue is navigation/selection only.
+One ranked **Home**, three places that each answer one question, and a **Library**:
 
-## The eight screens
+- **Ship**: is this change safe? Compare two runs, every trial, one trial in full.
+- **Teach**: what does good look like? A four-step rail: label, group notes, failure modes, trust judges.
+- **Cover**: what isn't tested? Gaps and coverage maps, tasks and suites, the task editor.
+- **Library**: runs and trials, settings.
 
-| File | View | Job | Key interactions (working in Play) |
-| --- | --- | --- | --- |
-| `Main.dc.html` | Overview | One verdict sentence; three suite cards with CI; needs-attention list; flipped tasks | Verdict strip with one action; every number links down |
-| `Compare.dc.html` | Run compare | Per-suite delta drawn as a CI on a shared −10…+10 axis; filterable flip list; failure-mode deltas; cost panel | Filter tabs All/Broke/Fixed/Flaky; run pickers |
-| `Transcript.dc.html` (+ `.rework`) | Transcript | Triage verdict to confirm/override; timeline with each check pinned to its step; expected-vs-actual state diff; 5-trial strip | Trial selector; dispute a verdict |
-| `Review.dc.html` | Review queue | Trace reader with tool calls inline and a missing call flagged; Pass/Fail; free-text note; suggested failure-mode chips; coverage by cluster | p/f toggles; chip toggles; Save and next |
-| `Modes.dc.html` | Failure modes | Pareto with severity, grader status, sparkline; selected-mode editor with definition, severity, owner, linked labels/tasks/grader | Row select drives the editor |
-| `Tasks.dc.html` | Tasks & suites | Suite cards that switch the table; suite-health strip; per-task pass@1, pass^5, 5-run history; broken/flaky flags | Suite select; filter |
-| `Judges.dc.html` | Judge editor | 4-step stepper (edit → dev ≥90/90 → test once → trusted); form/files toggle; field save states incl. a disk conflict; few-shot picker; checks-on-save; confusion matrix; TPR/TNR by version; disagreements; Pending changes diff | Form/Files toggle; commit / PR / discard |
-| `Settings.dc.html` | Settings | Gates per suite, runs, judges, sources/storage; form or `litmustest.yaml` | Form/YAML toggle |
+The shell (sidebar, sheet, top bar, phone bottom bar) is specified in `BRAND.md`, Layout.
 
-## Write-back states (Judge editor)
+## Every v2 screen
+
+Status: **built** means the feature exists today and the screen is a new layout over it; **new** means the redesign adds behaviour (see `stories/redesign.md`); **planned** means the canvas marks it "Planned" and neither track builds it yet.
+
+| File | Canvas | Screen | Route | Status |
+| --- | --- | --- | --- | --- |
+| `HomeP` | E1 | Home: verdict, gates, Up next | `#/home` | new (ranked list) |
+| `HomeExplainP` | E4 | Home with the explain panel open | every screen | built |
+| `HomeSafeP` | F15 | Home: safe to merge, nothing to do | `#/home` | new |
+| `HomeNoKeyP` | F17 | Home without a model key | `#/home` | new (the default verdict) |
+| `HomeDarkP` | F25 | Home, dark theme | every screen | built (tokens) |
+| `FirstRunP` | E14 | Home on first run | `#/home` | built |
+| `TracesSourceP` | F8 | No traces found: drop a file, connect, pick a batch | `#/home/traces` | new; LangSmith and the collector planned |
+| `CommandP` | F24 | ⌘K search | everywhere | new |
+| `ShipP` | E3 | Ship: gates, what changed, failure modes | `#/ship` | built |
+| `ShipSafeP` | F16 | Ship: safe | `#/ship` | built |
+| `RunPickerP` | F13 | Choosing runs to compare | `#/ship` | new |
+| `DecideP` | E2 | Decide who's right, one reply at a time | `#/ship/decide` | built (labels, expected flips) |
+| `TranscriptsP` | E5 | All trials in a run | `#/library/runs/<run>` | built |
+| `TrialP` | E6 | One trial: timeline, checks, end state, triage | `#/library/runs/<run>/<task>/<n>` | built |
+| `RunsP` | F12 | Run history and trend | `#/library/runs` | new |
+| `RunningP` | F19 | Run in progress | `#/library/runs/<run>` | planned (N1) |
+| `RunStoppedP` | F20 | Run stopped at budget | `#/library/runs/<run>` | planned (N1) |
+| `TeachP` | E7 | Step 1: label | `#/teach/label` | built |
+| `PromoteP` | F4 | Turn a conversation into a task | `#/teach/label/<trace>/promote` | built (default suite changes) |
+| `DiscoverP` | E8 | Step 2: group notes, Claude proposes | `#/teach/group` | built |
+| `DiscoverNoKeyP` | F18 | Group notes by hand | `#/teach/group` | new |
+| `ModesP` | E9 | Step 3: failure modes | `#/teach/modes` | built |
+| `JudgesP` | F11 | All judges | `#/teach/judges` | built |
+| `JudgeP` | E10 | Step 4: one judge, calibration | `#/teach/judges/<name>` | built |
+| `NewJudgeP` | F5 | New judge for a mode with no check | `#/teach/judges/new` | built (`draftJudge`) |
+| `JudgeTestP` | F6 | Run the test set once | `#/teach/judges/<name>` | new (server route over calibrate) |
+| `JudgeTrustedP` | F7 | Judge trusted | `#/teach/judges/<name>` | built |
+| `RecheckP` | F3 | Claude re-checks a stale judge | `#/teach/judges/<name>/recheck` | planned (N2) |
+| `CoverP` | E11 | Cover: gaps and coverage maps | `#/cover` | built |
+| `CoverageDetailP` | F14 | Coverage drill-down: real traffic | `#/cover/<map>` | built |
+| `CoverageSetupP` | F9 | Set up spec and code coverage | `#/cover/setup` | built (spec file, code report); connectors planned |
+| `ImportStoriesP` | F10 | Import stories from Linear | none | planned |
+| `TasksP` | E12 | Tasks and suites, graduation | `#/cover/tasks` | built |
+| `GraduateP` | F2 | Confirm graduation | `#/cover/tasks` | built |
+| `TaskEditorP` | E13 | Task editor | `#/cover/tasks/<suite>/<id>` | built |
+| `DraftTasksP` | F1 | Review Claude's drafted tasks | `#/cover/drafts` | planned (N3) |
+| `PendingP` | E15 | Pending changes sheet | sheet | built |
+| `CommittedP` | F22 | After commit | sheet | built |
+| `HostedPendingP` | F23 | Hosted mode: the pull request | sheet | parked (hosted mode is not in the plugin) |
+| `SettingsP` | E16 | Settings | `#/library/settings` | built; three sections not drawn |
+| `ErrorStatesP` | F21 | Error states | everywhere | built (one component) |
+| `PhoneHomeP` | F26 | Home on a phone | every screen | new (bottom bar) |
+| `PhoneExplainP` | F27 | Explain sheet on a phone | every screen | built |
+
+## Rules every screen follows
+
+- Every control ≥ 44px tall (compact toolbar controls inside a 44px row excepted). Status is a dot and a word. One solid primary button per screen. Blue is for links, focus and handing work to Claude.
+- Every rate prints its interval; every delta prints its paired interval and whether it is real or noise. Counts and costs carry none.
+- A screen that writes says where: "Lands in Pending changes", the file path in mono, and nothing reaches git until a person commits.
+- Labels are only ever written by a person. Claude's work arrives as a proposal with Accept, Edit and Reject.
+
+## Write-back states
 
 Field label on the left, state on the right, border matches:
 - `Saved · in sync with disk` (neutral)
-- `Checked and saved to branch · 2s ago` (`good`, green border)
-- `Not saved · conflict` (`bad`, red border) with "Reload file" / "Keep mine"
+- `Checked and saved to branch · 2s ago` (`good`)
+- `Not saved · the file changed on disk` (`bad`) with "See their change", "Reload file" and "Keep mine"
 
 Checks on save: schema valid; one failure mode, Pass and Fail defined; a clear pass, a clear fail and a borderline example; no few-shot example in dev or test; calibration marked stale when the prompt hash changes.
 
-## Known gaps in the mockups
+## Known gaps in the v2 mockups
 
-- No empty, loading or error states drawn for any screen.
-- No dark theme drawn; tokens exist for it in `../brand/tokens.json`.
-- Seven of eight screens still use Inter/JetBrains Mono and the older nav; the rework uses Geist/Geist Mono and the current nav rules. Treat the rework as canonical.
-- No mobile layout beyond "it wraps".
+- Settings draws Gates, Runs and budget, and Explainer; its Judges, Trace sources and Storage sections are listed but not drawn.
+- Not drawn: changing a trial's triage, merging or retiring a failure mode outside Group notes, disputing a single check's verdict. All exist today and need a place in the new layout (R3, R4).
+- Home's briefing paragraph is Claude's summary (explainer layer 3, gated). Until that ships, Home uses the fact sentence from `HomeNoKeyP`.
+- The sidebar shows the git user's name; there is no sign-in in the plugin.

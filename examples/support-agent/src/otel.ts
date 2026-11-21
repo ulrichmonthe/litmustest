@@ -11,12 +11,14 @@ export function toTrace(r: Recorded): Record<string, unknown> {
   const iso = (ms: number) => new Date(ms).toISOString();
   const spans: Record<string, unknown>[] = [];
   const root = "s_root";
-  const userTurns = r.turns.filter((x) => x.role === "user");
   const agentTurns = r.turns.filter((x) => x.role === "agent");
+  // The input of each model call is the conversation so far, as the OTel GenAI conventions ask: every earlier user and
+  // agent turn, then the user turns that came right before this agent turn.
+  const before = (k: number) => { const out: Record<string, unknown>[] = []; let seen = 0; for (const x of r.turns) { if (x.role === "agent") { if (seen === k) break; seen++; out.push({ role: "assistant", parts: [{ type: "text", content: x.content }] }); } else if (x.role === "user") out.push({ role: "user", parts: [{ type: "text", content: x.content }] }); } return out; };
   let callIx = 0;
   for (let i = 0; i < agentTurns.length; i++) {
     const start = t; t += 1800;
-    const inMsgs = [{ role: "user", parts: [{ type: "text", content: userTurns[i]?.content ?? userTurns[0]?.content ?? "" }] }];
+    const inMsgs = before(i);
     const callsThisTurn = r.calls.filter((c) => c.turn === i);
     const outParts: Record<string, unknown>[] = [];
     for (const c of callsThisTurn) outParts.push({ type: "tool_call", id: `tc_${callIx++}`, name: c.name, arguments: c.args });

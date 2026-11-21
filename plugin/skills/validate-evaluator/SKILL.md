@@ -9,6 +9,8 @@ description: Calibrate a litmustest judge against human labels. Runs the judge o
 
 You are measuring how well a judge agrees with people, and improving it until it can be trusted. `litmustest calibrate` does the splitting, running and scoring and is the only writer of `calibration.json`. You read its output, edit `prompt.md` and `judge.yaml`, and stop. A person commits.
 
+**Where the evals directory is.** The commands here are written for `evals/` at the repository root. Find the directory that holds `litmustest.yaml` first. If it is somewhere else (the sample repo keeps it at `examples/support-agent/evals`), add `--dir <evals dir>` to every `litmustest` command and read the `evals/...` paths below as inside that directory. A command pointed at a directory that is not there fails; it never reports a clean result. `litmustest <command> --help` prints that command's flags.
+
 Three rules from `CLAUDE.md` bind you:
 
 1. `evals/` in git is the source of truth. You write files there; nothing else.
@@ -29,7 +31,7 @@ Each comes with a 95% bootstrap interval over the labelled traces. Use TPR and T
 
 ## Phase 1: Check the labels
 
-The judge's labels are lines in `evals/labels/*.jsonl` with `failure_mode: <judge's mode>`, Pass or Fail; the latest line per trace wins. Aim for about 100, roughly half Fail, from a domain expert. Under 60 the intervals are wide and `calibrate` warns; it also warns when the labels are imbalanced. If there are too few Fails, the reviewer should label more failing traces in the queue (`litmustest serve`), balanced even if production is not. Tell the user; do not label.
+The judge's labels are lines in `evals/labels/*.jsonl` with `failure_mode: <judge's mode>`, Pass or Fail; the latest line per trace wins. Aim for about 100, roughly half Fail, from a domain expert. Under 60 the intervals are wide and `calibrate` warns; it also warns when the labels are imbalanced. If there are too few Fails, the reviewer should label more failing traces in the queue (`litmustest serve`), balanced even if production is not. Tell the user; do not label. With fewer than 60, run dev anyway, tell the user the intervals will be wide, and ask for more labels.
 
 ```bash
 litmustest calibrate <judge> --split none
@@ -43,7 +45,9 @@ This writes or refreshes the splits and the status without calling the model. Sp
 litmustest calibrate <judge> --split dev
 ```
 
-It runs the judge on every dev trace and records TPR, TNR, intervals, the confusion matrix and the disagreements in `calibration.json`, with a run entry per prompt hash. Needs `ANTHROPIC_API_KEY`. Report the two rates with their intervals.
+It runs the judge on every dev trace and records TPR, TNR, intervals, the confusion matrix and the disagreements in `calibration.json`, with a run entry per prompt hash. Needs `ANTHROPIC_API_KEY`. Report the two rates with their intervals. Check the key before you run. Without one `calibrate` stops, says the judge's model could not be reached, and records nothing. Verdicts that all come back Unknown with a model error are not a measurement; never report them as one.
+
+For a judge that is already stale, say what changed before you re-run: `git log -p -- <evals dir>/graders/judges/<judge>/prompt.md` shows the edits since its last test. `--split none` can reorder trace ids and refresh `prompt_hash` in `calibration.json`; the diff looks large, the splits are the same.
 
 ## Phase 3: Read every disagreement
 

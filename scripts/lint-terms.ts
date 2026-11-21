@@ -1,6 +1,6 @@
 // npm run lint:terms (docs/stories/explainer.md E1-S3): fail when text the dashboard or the CLI prints uses eval jargon
 // that has no glossary entry. Scans string and template literals (not identifiers or comments) and HTML text.
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { isAbsolute, join, relative } from "node:path";
 import { parse as parseYaml } from "yaml";
 import { pluginEntries } from "../packages/cli/src/glossary.ts";
@@ -8,7 +8,7 @@ import { pluginEntries } from "../packages/cli/src/glossary.ts";
 const ROOT = join(import.meta.dirname, "..");
 /** What a person reads: the dashboard, and the CLI files whose strings are printed. */
 export const SCANNED = [
-  "packages/cli/ui/app.js", "packages/cli/ui/index.html",
+  ...readdirSync(join(ROOT, "packages/cli/ui"), { recursive: true, encoding: "utf8" }).filter((f) => f.endsWith(".js")).sort().map((f) => `packages/cli/ui/${f}`), "packages/cli/ui/index.html",
   ...["main.ts", "compare.ts", "coverage_cli.ts", "glossary_cli.ts", "explain.ts", "explain_run.ts", "graduate.ts", "ci.ts", "run.ts", "calibrate.ts"].map((f) => `packages/cli/src/${f}`),
 ];
 

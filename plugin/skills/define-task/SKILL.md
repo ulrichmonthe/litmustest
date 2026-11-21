@@ -7,6 +7,8 @@ description: Turn a failure mode, a flipped or failing trace, or a spec item int
 
 You are writing one task, or a small family of them. A task is the unit of work: an input, a reference solution, binary checks and a suite. The output of this skill is a set of uncommitted files under `evals/`. A person commits them.
 
+**Where the evals directory is.** The commands here are written for `evals/` at the repository root. Find the directory that holds `litmustest.yaml` first. If it is somewhere else (the sample repo keeps it at `examples/support-agent/evals`), add `--dir <evals dir>` to every `litmustest` command and read the `evals/...` paths below as inside that directory. A command pointed at a directory that is not there fails; it never reports a clean result. `litmustest <command> --help` prints that command's flags.
+
 Three rules from `CLAUDE.md` bind you:
 
 1. `evals/` in git is the source of truth. You write files there; nothing else.
@@ -19,7 +21,7 @@ Say what you are about to write and why before each phase. "Promoting tr_0033 to
 
 ## Phase 1: Pick the door
 
-There are three ways in. Each sets `source:` differently.
+There are four ways in. Each sets `source:` differently.
 
 | Starting point | `source:` | Usual suite |
 | --- | --- | --- |
@@ -28,11 +30,11 @@ There are three ways in. Each sets `source:` differently.
 | A failure mode with a grader but no task | `trace:<an example trace id>` from the mode's `examples` | `regression`, or `quality` if only a judge can see it |
 | Generated input (from `generate-synthetic-data`) | `synthetic:<slug>` | any |
 
-Read the inputs first: the failure mode file under `evals/failure_modes/`, the trace under `evals/datasets/traces/`, the spec section, and two or three existing tasks in the same suite so the new one matches their shape. Ask the user which suite if it is not obvious. A capability task may be written before the agent can pass it; that is the point of capability.
+Read the inputs first: the failure mode file under `evals/failure_modes/`, the trace under `evals/datasets/traces/`, the spec section, and two or three existing tasks in the same suite so the new one matches their shape. Ask the user which suite if it is not obvious. A capability task may be written before the agent can pass it; that is the point of capability. Check for a task with the same input first (`grep -rl "<part of the message>" <evals dir>/tasks`); if one exists, tell the user and offer to add the trace as extra provenance or pick a different input, instead of writing a near duplicate.
 
 ## Phase 2: Write the task file
 
-Path: `evals/tasks/<suite>/<id>.yaml`. The `id` is `snake_case` and must equal the file name. The schema is `task` in `docs/SCHEMAS.md`. A real one, trimmed, from `examples/support-agent`:
+Path: `evals/tasks/<suite>/<id>.yaml`. The `id` is `snake_case` and must equal the file name. The schema is `task` in `docs/SCHEMAS.md` in the litmustest repository. A real one, trimmed, from `examples/support-agent`:
 
 ```yaml
 id: duplicate_charge_frustrated
@@ -64,7 +66,7 @@ Leave `trials` out unless the task needs a different count from `runs.trials` in
 
 ## Phase 3: Write the reference solution
 
-Path: `evals/refs/<id>.json`. It is a known-good trial in exactly the shape the runner grades (`reference_solution` in `docs/SCHEMAS.md`): `task`, `output`, `state`, `tool_calls`, `transcript`, and a `note` saying why it is right.
+Path: `evals/refs/<id>.json`. It is a known-good trial in exactly the shape the runner grades (`reference_solution` in `docs/SCHEMAS.md` in the litmustest repository): `task`, `output`, `state`, `tool_calls`, `transcript`, and a `note` saying why it is right.
 
 - `state` is keyed the way `expect` paths address it: `refunds.status` reads `state.refunds.status`.
 - For a promoted trace, start from what the agent should have done, not what it did. Keep real ids and amounts from the trace.
@@ -79,7 +81,7 @@ If the suite file under `evals/suites/` lists `tasks:`, add the id. If it uses `
 litmustest validate --deep
 ```
 
-`--deep` runs every code, outcome and transcript check on the reference solution. It does not run judges. The reference must pass every check before the task can join a suite. If a check fails on the reference, either the reference is wrong or the check is; fix the one that is wrong and say which. Never weaken a check just to make the reference pass without telling the user.
+`--deep` runs every code, outcome and transcript check on the reference solution. It does not run judges. The reference must pass every check before the task can join a suite. If a check fails on the reference, either the reference is wrong or the check is; fix the one that is wrong and say which. Never weaken a check just to make the reference pass without telling the user. For each check, also say whether it would have failed on the original bad trace: the task is only worth having if at least one check that counts does. A dry run's headline shows strict pass 0% while any judge check is Unknown or untrusted (always, without a model key); read `failed_checks` in the run summary instead, where empty means every code, outcome and transcript check passed.
 
 Then a run on the reference only, which grades refs instead of calling the agent:
 
@@ -88,11 +90,11 @@ litmustest run --task <id> --dry-run --id dryrun_<id>
 litmustest coverage --gaps 10
 ```
 
-The dry run writes `evals/runs/dryrun_<id>.json`. Tell the user to discard it from the Pending changes tray; it is not a real run. Read the coverage output and say which items the new task moved.
+The dry run writes `evals/runs/dryrun_<id>.json`. Tell the user to discard it from the Pending changes tray; it is not a real run. Coverage is computed against the latest run, which is now the one-task dry run: run `litmustest coverage` before the dry run and compare, or say that the dry run masks the change. From a terminal, `litmustest pending discard <path>` discards the dry-run file.
 
 ## Phase 5: Present and stop
 
-Show the diff of every file you wrote: the task, the ref, the suite list. Point out anything a person must confirm: that the task is unambiguous (two experts would agree on the reference), the suite choice, and any judge check that is not trusted yet. Then stop. The user commits from the tray or with git.
+Show the diff of every file you wrote: the task, the ref, the suite list. Point out anything a person must confirm: that the task is unambiguous (two experts would agree on the reference), the suite choice, and any judge check that is not trusted yet. Then stop. The user commits from the tray or with git. New files are untracked, so `git diff` alone does not show them: use `git status --short` and print the files.
 
 ## What you never do
 

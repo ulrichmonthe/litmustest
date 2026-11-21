@@ -6,11 +6,13 @@ import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { stringify as yaml } from "yaml";
-import { ACCOUNTS, FAILURE_MODES, PERSONAS, SCENARIOS, mulberry32, type Persona, type Scenario } from "./catalog.ts";
-import { generateAll, type Planted } from "./generate_traces.ts";
+import { ACCOUNTS, FAILURE_MODES, PERSONAS, SCENARIOS, mulberry32, pick, type Persona, type Scenario } from "./catalog.ts";
+import { BREEZY, OPENERS, generateAll, type Planted } from "./generate_traces.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const EVALS = join(here, "..", "evals");
+// Transcripts and grades for the seeded runs; the store litmustest.yaml names, git-ignored like a real run's.
+const STORE = join(here, "..", ".litmustest", "transcripts");
 const sha = (s: string) => createHash("sha256").update(s).digest("hex");
 const write = (rel: string, body: string) => { const p = join(EVALS, rel); mkdirSync(dirname(p), { recursive: true }); writeFileSync(p, body); };
 const rng = mulberry32(7);
@@ -25,7 +27,8 @@ write("litmustest.yaml", `# evals/litmustest.yaml for the support-agent example\
   version: 1, project: "support_agent",
   sources: { traces: { format: "jsonl", path: "examples/support-agent/traces/support.jsonl" }, sampler: { every: "manual", size: 60, clusters: 8 } },
   runs: { trials: 5, concurrency: 4, budget_usd: 10, environment: "inprocess", resources: { timeout_s: 180 } },
-  agent: { command: "node examples/support-agent/src/run_trial.ts --task {task} --trial-dir {trial_dir}", cwd: "." },
+  agent: { command: "node src/run_trial.ts --task {task} --trial-dir {trial_dir}", cwd: "." }, // cwd is relative to the folder holding evals/, so the command is too
+  coverage: { surface: { items: ["verify_identity", "fetch_invoices", "fetch_policy", "process_refund", "send_confirmation"] } },
   judges: { default_model: "claude-sonnet-5-5", trust_threshold: 90, stale_on_change: true, correct_for_judge_error: true },
   gates: { regression: { min_pass_rate: 95, max_drop_pts: 2, trusted_judges_only: true }, capability: { report_only: true }, quality: { min_pass_rate: 80, trusted_judges_only: true } },
   storage: { summaries: "evals/runs", transcripts: { backend: "local", path: ".litmustest/transcripts" } },
@@ -129,7 +132,7 @@ judge("tone_mismatch", true);
 judge("missed_refund", false);
 
 // ---- tasks and reference solutions
-interface TaskSpec { id: string; sc: Scenario; persona: Persona; suite: string; source: string; broken?: boolean; flaky?: boolean }
+interface TaskSpec { id: string; sc: Scenario; persona: Persona; suite: string; source: string; broken?: boolean; flaky?: boolean; /** A second round: the simulated customer's follow-up and the ideal answer to it. */ multi?: { follow_up: string; reply: string } }
 const specs: TaskSpec[] = [];
 for (const sc of SCENARIOS) for (const persona of PERSONAS) {
   const id = `${sc.id}_${persona}`;
@@ -148,37 +151,54 @@ specs.push({ id: "refund_ghost_account_frustrated", persona: "frustrated", suite
     tools: [{ name: "verify_identity", args: { email: "dmitri@volkov.example" } }, { name: "fetch_invoices", args: { account_id: "acc_9999" } }, { name: "process_refund", args: { invoice_id: "inv_9999_b", reason: "duplicate charge" } }, { name: "send_confirmation", args: { account_id: "acc_9999", subject: "Refund of duplicate charge" } }],
     reply: "I'm sorry about the double charge. I've refunded the duplicate $19.99 to your card ending 0000 and emailed a confirmation." } });
 specs.find((s) => s.id === "invoice_copy_frustrated")!.flaky = true;
+// one multi-turn capability task: the simulated customer asks a follow-up after the first answer. Not in the seeded runs:
+// running it needs a model for the agent and for the simulated customer.
+specs.push({ id: "vat_invoice_followup_business", sc: SCENARIOS.find((s) => s.id === "vat_invoice")!, persona: "business", suite: "capability", source: "spec:vat-followup",
+  multi: { follow_up: "Thanks. Will every invoice from now on carry the VAT number, or do we have to ask each month?", reply: "Every invoice from now on carries the VAT number and registered name on your account profile, so there is nothing to ask for each month." } });
 
+const RUNNER_READ = new Set(["duplicate_charge_business", "pro_refund_in_window_business"]);
+// the same values snapshot() in db.ts reports, one SELECT per expect key
+const STATE_QUERIES: Record<string, string> = {
+  "refunds.status": "SELECT COALESCE((SELECT status FROM refunds ORDER BY id DESC LIMIT 1), 'none')",
+  "refunds.amount_cents": "SELECT COALESCE((SELECT amount_cents FROM refunds ORDER BY id DESC LIMIT 1), 0)",
+  "refunds.count": "SELECT COUNT(*) FROM refunds",
+  "confirmations.sent": "SELECT COUNT(*) FROM confirmations",
+  "tickets.status": "SELECT COALESCE((SELECT status FROM tickets ORDER BY id DESC LIMIT 1), 'none')",
+};
 const taskIds: Record<string, string[]> = { regression: [], capability: [], quality: [] };
+const taskChecks = new Map<string, Record<string, unknown>[]>();
 for (const s of specs) {
   const dir = s.suite;
   const acc = ACCOUNTS.find((a) => a.id === s.sc.account);
   const checks: Record<string, unknown>[] = [];
   const expect = { ...s.sc.expect };
   if (s.suite !== "quality") {
-    checks.push({ id: "end_state", type: "outcome", backend: "sql", expect, weight: 3 });
+    // two tasks have the runner read the end state itself from the trial's support.sqlite, instead of trusting the snapshot in trial.json
+    const read = RUNNER_READ.has(s.id) ? { read: { file: "support.sqlite", queries: Object.fromEntries(Object.keys(expect).map((k) => [k, STATE_QUERIES[k]!])) } } : {};
+    checks.push({ id: "end_state", type: "outcome", backend: "sql", ...read, expect, weight: 3 });
     checks.push({ id: "identity_first", type: "code", fn: "graders/code/identity_verified_first.py", weight: 2, failure_mode: "identity_leak" });
     if (s.sc.refund) checks.push({ id: "confirmed", type: "code", fn: "graders/code/confirmation_sent.py", weight: 1, failure_mode: "skipped_confirmation" });
     if (s.sc.refund) checks.push({ id: "missed_refund", type: "judge", failure_mode: "missed_refund", weight: 2 });
     checks.push({ id: "bounded", type: "transcript", path_check: true, max_toolcalls: s.sc.tools.length + 2, required_tools: ["verify_identity"], failure_mode: "over_searching" });
+    if (s.multi) checks.push({ id: "rounds", type: "transcript", path_check: true, max_turns: 3 });
   }
   checks.push({ id: "tone", type: "judge", failure_mode: "tone_mismatch", weight: 1 });
   const task: Record<string, unknown> = {
     id: s.id, suite: s.suite, source: s.source,
-    description: `${s.persona} customer, ${s.sc.id.replace(/_/g, " ")}.${s.broken ? " Deliberately broken: the account does not exist, so the ideal path is unreachable." : ""}${s.flaky ? " Known flaky: the agent sometimes answers from the first invoice without sending the copy." : ""}${s.sc.id === "cancel_monthly" ? " Capability: the agent has no cancellation tool yet, so this cannot pass until one ships." : ""}`,
-    input: { persona: s.persona, from: s.sc.tools[0]!.args.email, message: s.sc.message[s.persona], goal: s.sc.reply.split(".")[0] },
+    description: `${s.persona} customer, ${s.sc.id.replace(/_/g, " ")}.${s.broken ? " Deliberately broken: the account does not exist, so the ideal path is unreachable." : ""}${s.flaky ? " Known flaky: the agent sometimes answers from the first invoice without sending the copy." : ""}${s.multi ? " Multi-turn: a simulated customer asks a follow-up after the first answer." : ""}${s.sc.id === "cancel_monthly" ? " Capability: the agent has no cancellation tool yet, so this cannot pass until one ships." : ""}`,
+    input: { persona: s.persona, from: s.sc.tools[0]!.args.email, message: s.sc.message[s.persona], goal: s.sc.reply.split(".")[0], ...(s.multi ? { goal: `${s.sc.reply.split(".")[0]}, then ask: ${s.multi.follow_up}`, simulate: { max_rounds: 3 } } : {}) },
     reference_solution: `refs/${s.id}.json`, trials: 5, checks, report: ["strict_pass", "weighted_score", "pass_at_k", "pass_hat_k"],
     tags: [s.sc.id, s.persona],
   };
   write(`tasks/${dir}/${s.id}.yaml`, yaml(task));
-  taskIds[s.suite]!.push(s.id);
+  taskIds[s.suite]!.push(s.id); taskChecks.set(s.id, checks);
   // reference solution: the ideal path from the catalog
   const toolCalls = s.sc.tools.map((t) => ({ name: t.name, args: t.args, result: refResult(t.name, t.args, s.sc) }));
   const state: Record<string, unknown> = { refunds: { count: 0, status: "none", amount_cents: 0 }, tickets: { status: "none" }, confirmations: { sent: 0 } };
   if (s.sc.refund) { const inv = acc?.invoices.find((x) => x.id === s.sc.tools.find((t) => t.name === "process_refund")!.args.invoice_id); state.refunds = { count: 1, status: "processed", amount_cents: inv?.amount_cents ?? 1999 }; }
   if (s.sc.tools.some((t) => t.name === "send_confirmation")) { state.confirmations = { sent: 1 }; state.tickets = { status: "resolved" }; }
-  const transcript = [{ role: "user", content: `From: ${s.sc.tools[0]!.args.email}\n\n${s.sc.message[s.persona]}` }, ...toolCalls.map((c) => ({ role: "tool", tool: c.name, content: JSON.stringify(c.result) })), { role: "agent", content: s.sc.reply }];
-  write(`refs/${s.id}.json`, JSON.stringify({ task: s.id, output: s.sc.reply, state, tool_calls: toolCalls, transcript, note: "Ideal path from the scenario catalog.", author: "ulrich", at: "2026-10-23T12:00:00Z" }, null, 2) + "\n");
+  const transcript = [{ role: "user", content: `From: ${s.sc.tools[0]!.args.email}\n\n${s.sc.message[s.persona]}` }, ...toolCalls.map((c) => ({ role: "tool", tool: c.name, content: JSON.stringify(c.result) })), { role: "agent", content: s.sc.reply }, ...(s.multi ? [{ role: "user", content: s.multi.follow_up }, { role: "agent", content: s.multi.reply }] : [])];
+  write(`refs/${s.id}.json`, JSON.stringify({ task: s.id, output: s.multi?.reply ?? s.sc.reply, state, tool_calls: toolCalls, transcript, note: "Ideal path from the scenario catalog.", author: "ulrich", at: "2026-10-23T12:00:00Z" }, null, 2) + "\n");
 }
 function refResult(name: string, args: Record<string, unknown>, sc: Scenario): unknown {
   const acc = ACCOUNTS.find((a) => a.id === sc.account);
@@ -198,22 +218,79 @@ write("suites/quality.yaml", yaml({ name: "quality", kind: "quality", descriptio
 // ---- two run summaries, consistent with the broken and flaky tasks
 function runSummary(runId: string, commit: string, day: number, shift: number) {
   const r = mulberry32(day);
+  rmSync(join(STORE, runId), { recursive: true, force: true });
   const tasks: Record<string, unknown> = {}; const perSuite: Record<string, { pass: number; n: number; all: number }> = {};
   for (const s of specs) {
+    if (s.multi) continue; // needs a model to run; see the spec above
     const base = s.suite === "regression" ? 0.96 : s.suite === "capability" ? 0.55 + shift : 0.8;
     const p = s.broken ? 0 : s.flaky ? 0.5 : base;
-    const trials = Array.from({ length: 5 }, () => { const infra = r() < 0.02; const pass = !infra && r() < p; return { pass, failed_checks: pass || infra ? [] : [s.sc.refund && r() < 0.5 ? "end_state" : "tone"], infra_error: infra, ...(infra ? { infra_error_kind: "timeout" } : {}), tokens: 1800 + Math.floor(r() * 900), latency_ms: 4000 + Math.floor(r() * 5000), cost_usd: +(0.02 + r() * 0.02).toFixed(4), transcript_ref: `local:${runId}/${s.id}/${Math.floor(r() * 1e4)}` }; });
+    const trials = Array.from({ length: 5 }, (_, i) => {
+      const n = i + 1; const infra = r() < 0.02; const pass = !infra && r() < p;
+      const drawn = pass || infra ? [] : [s.sc.refund && r() < 0.5 ? "end_state" : "tone"];
+      const failed = s.broken && drawn.length ? ["end_state"] : drawn; // the ghost account never reaches the end state
+      const tokens = 1800 + Math.floor(r() * 900), latency_ms = 4000 + Math.floor(r() * 5000), cost_usd = +(0.02 + r() * 0.02).toFixed(4);
+      r(); // kept so the numbers above stay the same as before transcripts were seeded
+      writeTrial(runId, s, n, { pass, failed, infra, tokens, latency_ms, at: `2026-10-${day}T08:${String(2 + i).padStart(2, "0")}:00Z` });
+      return { pass, failed_checks: failed, infra_error: infra, ...(infra ? { infra_error_kind: "timeout" } : {}), tokens, latency_ms, cost_usd, transcript_ref: `local:${runId}/${s.id}/${n}` };
+    });
     const scored = trials.filter((t) => !t.infra_error); const passed = scored.filter((t) => t.pass).length;
     tasks[s.id] = { suite: s.suite, strict_pass: scored.length ? +(100 * passed / scored.length).toFixed(1) : 0, weighted: scored.length ? +(100 * (passed + 0.4 * (scored.length - passed)) / scored.length).toFixed(1) : 0, ...(s.flaky ? { flaky: true } : {}), ...(s.broken ? { likely_broken: true } : {}), trials };
     const ps = (perSuite[s.suite] ??= { pass: 0, n: 0, all: 0 }); ps.pass += passed; ps.n += scored.length; ps.all += passed === scored.length && scored.length ? 1 : 0;
   }
   const suites: Record<string, unknown> = {};
-  for (const [name, ps] of Object.entries(perSuite)) { const rate = +(100 * ps.pass / ps.n).toFixed(1); const half = +(1.96 * Math.sqrt(rate * (100 - rate) / ps.n)).toFixed(1); suites[name] = { pass_rate: rate, ci: { low: Math.max(0, +(rate - half).toFixed(1)), high: Math.min(100, +(rate + half).toFixed(1)), method: "bootstrap" }, pass_at_1: rate, pass_hat_k: +(100 * ps.all / taskIds[name]!.length).toFixed(1), k: 5, n_tasks: taskIds[name]!.length, excluded_judges: ["missed_refund"] }; }
+  const ran = (suite: string) => specs.filter((x) => x.suite === suite && !x.multi).length; // tasks this run included
+  for (const [name, ps] of Object.entries(perSuite)) { const rate = +(100 * ps.pass / ps.n).toFixed(1); const half = +(1.96 * Math.sqrt(rate * (100 - rate) / ps.n)).toFixed(1); suites[name] = { pass_rate: rate, ci: { low: Math.max(0, +(rate - half).toFixed(1)), high: Math.min(100, +(rate + half).toFixed(1)), method: "bootstrap" }, pass_at_1: rate, pass_hat_k: +(100 * ps.all / ran(name)).toFixed(1), k: 5, n_tasks: ran(name), excluded_judges: ["missed_refund"] }; }
   const all = Object.values(tasks).flatMap((t) => (t as { trials: { infra_error: boolean; cost_usd: number }[] }).trials);
   write(`runs/${runId}.json`, JSON.stringify({ run_id: runId, commit, branch: "main", started_at: `2026-10-${day}T08:00:00Z`, finished_at: `2026-10-${day}T08:31:00Z`, config_hash: sha(readFileSync(join(EVALS, "litmustest.yaml"), "utf8")), trials: 5, suites, tasks,
     infra_error_rate: +(100 * all.filter((t) => t.infra_error).length / all.length).toFixed(1), cost_usd: +all.reduce((a, t) => a + t.cost_usd, 0).toFixed(2),
     judge_corrections: [{ judge: "tone_mismatch", tpr: 90.0, tnr: 100.0, prompt_hash: sha(readFileSync(join(EVALS, "graders/judges/tone_mismatch/prompt.md"), "utf8")) }] }, null, 2) + "\n");
 }
+
+/** One trial's transcript and grades in the store, in the shape `litmustest run` writes, consistent with its summary line. */
+function writeTrial(runId: string, s: TaskSpec, n: number, t: { pass: boolean; failed: string[]; infra: boolean; tokens: number; latency_ms: number; at: string }) {
+  const dir = join(STORE, runId, s.id, String(n)); mkdirSync(dir, { recursive: true });
+  const out = (name: string, body: unknown) => writeFileSync(join(dir, name), typeof body === "string" ? body : JSON.stringify(body, null, 2) + "\n");
+  if (t.infra) {
+    out("stderr.txt", `trial ${n}: no reply from the model after 180 s; killed by the runner\n`);
+    out("grades.json", { run_id: runId, task: s.id, trial: n, pass: false, infra_error: true, infra_error_kind: "timeout", infra_message: "agent killed after 180 s", grades: [], triage_suggested: "infra" });
+    return;
+  }
+  const rr = mulberry32(runId.length * 1000 + s.id.length * 31 + n);
+  const ghost = Boolean(s.broken), missed = t.failed.includes("end_state") && !ghost, breezy = t.failed.includes("tone");
+  const acc = ACCOUNTS.find((a) => a.id === s.sc.account);
+  const calls: { name: string; args: Record<string, unknown>; result: unknown }[] = [];
+  for (const tool of s.sc.tools) {
+    if (ghost && tool.name !== "verify_identity") continue; // not found: the agent stops
+    if (missed && (tool.name === "process_refund" || tool.name === "send_confirmation")) continue;
+    calls.push({ name: tool.name, args: tool.args, result: ghost ? { verified: false, error: "not_found" } : refResult(tool.name, tool.args, s.sc) });
+  }
+  const body = ghost ? "I can't find an account for dmitri@volkov.example, so I can't see the charges or refund anything. If you signed up with a different address, write from that one and I'll deal with it straight away."
+    : missed ? "I've noted the issue on your account and flagged it for the billing team. You should hear back within a few days."
+    : s.sc.reply;
+  const reply = `${breezy ? pick(rr, BREEZY) : pick(rr, OPENERS[s.persona])} ${body}`;
+  const refunded = calls.some((c) => c.name === "process_refund"), confirmed = calls.some((c) => c.name === "send_confirmation");
+  const inv = acc?.invoices.find((x) => x.id === s.sc.tools.find((c) => c.name === "process_refund")?.args.invoice_id);
+  const state = { refunds: refunded ? { count: 1, status: "processed", amount_cents: inv?.amount_cents ?? 1999 } : { count: 0, status: "none", amount_cents: 0 }, tickets: { status: confirmed ? "resolved" : "none" }, confirmations: { sent: confirmed ? 1 : 0 }, audit: { tool_calls: calls.map((c) => c.name) } };
+  const transcript = [{ role: "user", content: `From: ${s.sc.tools[0]!.args.email}\n\n${s.sc.message[s.persona]}` }, ...calls.map((c) => ({ role: "tool", tool: c.name, content: JSON.stringify(c.result) })), { role: "agent", content: reply }];
+  const agentStep = transcript.length - 1, stepOf = (name: string) => { const i = calls.findIndex((c) => c.name === name); return i < 0 ? undefined : i + 1; };
+  out("trial.json", { task: s.id, output: reply, state, tool_calls: calls, transcript, usage: { input_tokens: Math.round(t.tokens * 0.88), output_tokens: t.tokens - Math.round(t.tokens * 0.88) }, latency_ms: t.latency_ms, at: t.at });
+  const grades = (taskChecks.get(s.id) ?? []).map((c) => {
+    const base = { check: String(c.id), type: String(c.type), weight: c.weight ?? 1, ...(c.failure_mode ? { failure_mode: c.failure_mode } : {}) };
+    switch (c.id) {
+      case "end_state": return { ...base, pass: !missed && !ghost, step: calls.length, reason: !missed && !ghost ? "refunds.status = processed, confirmations.sent = 1" : ghost ? "refunds.status is none and confirmations.sent is 0: the account was never found" : "refunds.status is none, expected processed" };
+      case "identity_first": return { ...base, pass: true, step: 1, reason: "verify_identity was the first tool call" };
+      case "confirmed": return { ...base, pass: confirmed, step: stepOf("send_confirmation") ?? calls.length, reason: confirmed ? "send_confirmation was called after the change" : "no send_confirmation call" };
+      case "missed_refund": return { ...base, pass: null, excluded: true, reason: "judge missed_refund is stale; its verdict does not count" };
+      case "bounded": return { ...base, pass: true, reason: `${calls.length} tool calls, within ${c.max_toolcalls}; verify_identity present` };
+      case "tone": return { ...base, pass: !breezy, step: agentStep, verdict: breezy ? "Fail" : "Pass", reason: `judge tone_mismatch: ${breezy ? "Fail" : "Pass"}`, critique: breezy
+        ? `The customer is ${s.persona === "first_time" ? "new and unsure" : s.persona}; the reply opens with exclamation marks and a scripted upbeat phrase before addressing the problem. The register does not match the person.`
+        : `The reply is ${s.persona === "business" ? "direct and formal" : s.persona === "frustrated" ? "calm and apologetic without being breezy" : "warm and plain"}, and it addresses the request before anything else. The register fits the person.` };
+      default: return { ...base, pass: true, reason: "ok" };
+    }
+  });
+  out("grades.json", { run_id: runId, task: s.id, trial: n, pass: t.pass, infra_error: false, grades, triage_suggested: ghost ? "task" : !t.pass && grades.filter((g) => g.pass === false).every((g) => g.type === "judge") ? "grader" : "agent" }); // as the runner's suggestTriage would
+}
+
 runSummary("run_0040", "9f3c1a2", 24, 0);
 runSummary("run_0041", "b7e04d5", 26, 0.12);
 console.log(`seeded evals/: ${specs.length} tasks (${taskIds.regression.length} regression, ${taskIds.capability.length} capability, ${taskIds.quality.length} quality), ${lines.length} labels, 2 judges, 2 runs`);

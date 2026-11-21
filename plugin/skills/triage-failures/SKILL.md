@@ -16,6 +16,8 @@ You are helping a person decide why each failed trial failed. There are four ans
 
 The output of this skill is a triage proposal per failed trial, plus explanations saved in the run summary. A person confirms each triage in the dashboard.
 
+**Where the evals directory is.** The commands here are written for `evals/` at the repository root. Find the directory that holds `litmustest.yaml` first. If it is somewhere else (the sample repo keeps it at `examples/support-agent/evals`), add `--dir <evals dir>` to every `litmustest` command and read the `evals/...` paths below as inside that directory. A command pointed at a directory that is not there fails; it never reports a clean result. `litmustest <command> --help` prints that command's flags.
+
 Three rules from `CLAUDE.md` bind you:
 
 1. `evals/` in git is the source of truth. Triage and explanations are written into `evals/runs/<run id>.json` and land as uncommitted changes.
@@ -44,7 +46,7 @@ litmustest explain                 # Claude reads each failed task's first faile
 litmustest explain --task <id> --all
 ```
 
-Without `--no-model`, Claude adds a reading of the transcript (`summary`, `cause`, `fix`, `confidence`) and saves it as `trials[n].explanation` in the run summary, an uncommitted change. Already explained trials are skipped unless `--force`. It needs a model token. You can also read the trial yourself: `<transcripts path>/<run id>/<task>/<n>/trial.json` and `grades.json` (the grades, with reasons, and `triage_suggested`).
+Without `--no-model`, Claude adds a reading of the transcript (`summary`, `cause`, `fix`, `confidence`) and saves it as `trials[n].explanation` in the run summary, an uncommitted change. Already explained trials are skipped unless `--force`. It needs a model token. You can also read the trial yourself: `<transcripts path>/<run id>/<task>/<n>/trial.json` and `grades.json` (the grades, with reasons, and `triage_suggested`). (`storage.transcripts.path` in `litmustest.yaml` is relative to the parent of the evals directory.)
 
 For each failed trial, decide which verdict fits, with the evidence:
 
@@ -53,11 +55,11 @@ For each failed trial, decide which verdict fits, with the evidence:
 - **task**: the reference would not survive this input, the task asks for two incompatible things, or it is `likely_broken`.
 - **infra**: tagged already. If a trial failed for an infra reason the runner did not catch (a rate-limit message in the output), say so.
 
-The runner's suggestion (`triage_suggested`) is a heuristic: infra if tagged, task if likely broken, grader if only judges failed, else agent. Agree or disagree with it out loud.
+The runner's suggestion (`triage_suggested`) is a heuristic: infra if tagged, task if likely broken, grader if only judges failed, else agent. Agree or disagree with it out loud. A judge-only failure is not automatically a grader problem: read the reply and check whether the critique's claim is true. With many failures sharing one critique, group them by check and critique, read a sample of each group plus every non-judge failure, and report counts per group. A task whose description says it is deliberately broken still gets `task`.
 
 ## Phase 3: A person confirms in the dashboard
 
-Start the server if it is not running:
+Start the server if it is not running: If port 4242 already answers, check it is serving this repository (`/api/health` names the evals directory) before you hand out links; otherwise pass `--port`.
 
 ```bash
 litmustest serve

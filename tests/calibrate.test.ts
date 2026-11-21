@@ -73,6 +73,12 @@ describe("calibrate", () => {
     const v = validateEvals(evals);
     expect(v.problems.filter((p) => p.level === "error")).toEqual([]);
   });
+  it("records nothing when the model was never reached: an all-error run is not a measurement", async () => {
+    const file = join(evals, "graders", "judges", "missed_refund", "calibration.json"); const before = readFileSync(file, "utf8");
+    const noKey = async () => { throw new Error("Could not resolve authentication method. Expected either apiKey or authToken to be set."); };
+    await expect(calibrate({ evalsDir: evals, judge: "missed_refund", split: "dev", ask: noKey })).rejects.toThrow(/could not be reached for any of the \d+ traces \(Could not resolve authentication method.*nothing was recorded/);
+    expect(readFileSync(file, "utf8")).toBe(before);
+  });
   it("a stale judge: dev below threshold blocks the test; a good dev unlocks it; the test runs once", async () => {
     // missed_refund ships stale: its test was for an older prompt
     const bad = await calibrate({ evalsDir: evals, judge: "missed_refund", split: "dev", ask: async () => JSON.stringify({ critique: "", result: "Pass" }) });

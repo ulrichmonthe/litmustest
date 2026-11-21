@@ -14,7 +14,7 @@ Alternate. Go broad until something turns up, go deep on it, go broad again.
 
 ## Watching for labels
 
-Labels append to `evals/labels/<batch>.jsonl`, one JSON object per line. Watch that file:
+Labels append to `evals/labels/<batch>.jsonl`, one JSON object per line. Older labels may sit in files named differently; read every file there. Watch that file:
 
 - Claude Code: use the Monitor tool on the file (or poll it with a read-and-compare loop every few seconds).
 - Anything else: a small polling script in the background that appends new lines to a log you read each turn.

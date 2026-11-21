@@ -1,0 +1,52 @@
+id: vat_invoice_followup_business
+suite: capability
+source: spec:vat-followup
+description: "business customer, vat invoice. Multi-turn: a simulated customer
+  asks a follow-up after the first answer."
+input:
+  persona: business
+  from: office@clearwaterdental.com
+  message: We need the October invoice reissued with our VAT number and registered name.
+  goal: "VAT invoices pull the registered company name and VAT number from the
+    account profile, then ask: Thanks. Will every invoice from now on carry the
+    VAT number, or do we have to ask each month?"
+  simulate:
+    max_rounds: 3
+reference_solution: refs/vat_invoice_followup_business.json
+trials: 5
+checks:
+  - id: end_state
+    type: outcome
+    backend: sql
+    expect:
+      refunds.count: 0
+      confirmations.sent: 1
+    weight: 3
+  - id: identity_first
+    type: code
+    fn: graders/code/identity_verified_first.py
+    weight: 2
+    failure_mode: identity_leak
+  - id: bounded
+    type: transcript
+    path_check: true
+    max_toolcalls: 6
+    required_tools:
+      - verify_identity
+    failure_mode: over_searching
+  - id: rounds
+    type: transcript
+    path_check: true
+    max_turns: 3
+  - id: tone
+    type: judge
+    failure_mode: tone_mismatch
+    weight: 1
+report:
+  - strict_pass
+  - weighted_score
+  - pass_at_k
+  - pass_hat_k
+tags:
+  - vat_invoice
+  - business

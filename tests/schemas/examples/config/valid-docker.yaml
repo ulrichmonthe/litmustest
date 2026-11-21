@@ -1,0 +1,19 @@
+version: 1
+project: support_agent
+sources: { traces: { format: jsonl, path: logs/traces/*.jsonl } }
+runs:
+  trials: 5
+  concurrency: 4
+  budget_usd: 20
+  environment: docker
+  resources: { cpus: 1, memory_mb: 1024, timeout_s: 300 }
+  docker:
+    build: { context: ., dockerfile: environments/Dockerfile }
+    network: none
+    mounts: ["fixtures:/fixtures:ro"]
+    workdir: /app
+    pass_env: [ANTHROPIC_API_KEY]
+  harbor: { image: "support-agent:latest", pass_env: [ANTHROPIC_API_KEY] }
+agent: { command: "node src/run_trial.ts --task {task} --trial-dir {trial_dir}" }
+judges: { default_model: claude-sonnet-4-5-20250929 }
+gates: { regression: { min_pass_rate: 95 } }

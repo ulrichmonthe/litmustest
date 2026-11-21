@@ -155,7 +155,7 @@ export const SOURCES: Record<string, Source> = {
       const t = m.totals; const checked = t.checked + t.guarded;
       return { map: ctx.map, label: m.label, configured: m.configured, total: t.total, with_task: t.total - t.none, checked, guarded: t.guarded, planned: t.planned, none: t.none, checked_share: t.total ? (100 * checked) / t.total : null };
     },
-    contexts: () => ["spec", "surface", "risk"].map((map) => ({ map })),
+    contexts: () => ["spec", "surface", "risk", "traffic", "code", "frontend"].map((map) => ({ map })),
   },
 
   pending: {

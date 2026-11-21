@@ -14,6 +14,14 @@ checks:
   - id: end_state
     type: outcome
     backend: sql
+    read:
+      file: support.sqlite
+      queries:
+        refunds.status: SELECT COALESCE((SELECT status FROM refunds ORDER BY id DESC
+          LIMIT 1), 'none')
+        refunds.amount_cents: SELECT COALESCE((SELECT amount_cents FROM refunds ORDER BY
+          id DESC LIMIT 1), 0)
+        confirmations.sent: SELECT COUNT(*) FROM confirmations
     expect:
       refunds.status: processed
       refunds.amount_cents: 1999

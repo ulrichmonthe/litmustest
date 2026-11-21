@@ -1,5 +1,5 @@
 // Epic 3 of docs/stories/explainer.md, the checks that need no browser (tests/ui_smoke.test.ts has the rest).
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { ACTIONS } from "../packages/cli/src/explain/actions.ts";
@@ -7,7 +7,8 @@ import { loadGlossary, loadPages, pluginEntries, SCREENS, validateGlossary, vali
 import { commitBranch } from "../packages/cli/src/server/git.ts";
 
 const ROOT = join(import.meta.dirname, "..");
-const app = readFileSync(join(ROOT, "packages", "cli", "ui", "app.js"), "utf8");
+const UI = join(ROOT, "packages", "cli", "ui");
+const app = readdirSync(UI, { recursive: true, encoding: "utf8" }).filter((f) => f.endsWith(".js")).map((f) => readFileSync(join(UI, f), "utf8")).join("\n");
 
 describe("E3-S2 pages.yaml", () => {
   it("names at least three known terms for every screen", () => {

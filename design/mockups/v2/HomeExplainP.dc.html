@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Home with explanation open</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;family=Sora:wght@600&amp;display=swap">
+<style>
+body{margin:0;background:#f6f6f3;font-feature-settings:"ss01","tnum"}
+a{color:#1e3a8a}a:hover{color:#1d4ed8}
+:focus-visible{outline:2px solid #1d4ed8;outline-offset:2px}
+.nv:hover{background:#ecebe6}
+.rw:hover{background:#fafaf8}
+.gh:hover{background:#f1f0ec}
+.tm{background:none;border:0;border-bottom:1px dotted #a8a29e;padding:0;margin:0;font:inherit;color:inherit;line-height:inherit;cursor:pointer}
+.tm:hover{border-bottom:1px solid #57534e}
+</style>
+</helmet>
+<div style="display: flex; flex-wrap: wrap; min-height: 1080px; background: #f6f6f3; color: #1c1917; font-family: Geist, Inter, system-ui, sans-serif; font-size: 13px; line-height: 1.5; letter-spacing: -0.003em">
+
+<nav aria-label="Main" style="flex: 1 1 232px; max-width: 100%; box-sizing: border-box; padding: 12px 10px; display: flex; flex-direction: column; gap: 2px">
+<button type="button" class="nv" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 8px; border: 0; border-radius: 8px; background: transparent; color: #1c1917; font: 600 13px Geist, sans-serif; text-align: left; cursor: pointer">
+<svg width="22" height="22" viewBox="0 0 64 64" aria-hidden="true"><path d="M13 31 L26 44 L50 16" fill="none" stroke="#1d4ed8" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"></path><path d="M10 56 H54 M10 50 V62 M54 50 V62" fill="none" stroke="#1c1917" stroke-width="5" stroke-linecap="round"></path></svg>
+<span style="flex: 1">support-agent</span>
+<svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M5 6l3 3 3-3" fill="none" stroke="#57534e" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+</button>
+<button type="button" style="display: flex; align-items: center; gap: 8px; min-height: 36px; margin: 6px 0 10px; padding: 0 10px; border: 1px solid #e4e2dc; border-radius: 8px; background: #fff; color: #57534e; font: 400 13px Geist, sans-serif; text-align: left; cursor: pointer">
+<svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.5" fill="none" stroke="#57534e" stroke-width="1.5"></circle><path d="M10.5 10.5L14 14" stroke="#57534e" stroke-width="1.5" stroke-linecap="round"></path></svg>
+<span style="flex: 1">Search or jump to</span><kbd style="font-family: 'Geist Mono', monospace; font-size: 11px; color: #57534e">⌘K</kbd>
+</button>
+<a href="HomeP.dc.html" aria-current="page" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 10px; border-radius: 8px; background: #ecebe6; color: #1c1917; font-weight: 600; text-decoration: none"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 7L8 2.5 13.5 7v6.5h-4v-4h-3v4h-4z" fill="none" stroke="#1c1917" stroke-width="1.4" stroke-linejoin="round"></path></svg><span style="flex: 1">Home</span><span style="font-size: 12px; color: #57534e; font-weight: 500">8</span></a>
+<a href="ShipP.dc.html" class="nv" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 10px; border-radius: 8px; color: #1c1917; font-weight: 500; text-decoration: none"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 13L13 3M6 3h7v7" fill="none" stroke="#57534e" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"></path></svg><span style="flex: 1">Ship</span><span style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: #b91c1c; font-weight: 500"><span aria-hidden="true" style="width: 6px; height: 6px; border-radius: 50%; background: #dc2626"></span>Hold</span></a>
+<a href="TeachP.dc.html" class="nv" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 10px; border-radius: 8px; color: #1c1917; font-weight: 500; text-decoration: none"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 4.5h11M2.5 8h7M2.5 11.5h5" fill="none" stroke="#57534e" stroke-width="1.4" stroke-linecap="round"></path><path d="M10.5 11l1.5 1.5 3-3" fill="none" stroke="#57534e" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"></path></svg><span style="flex: 1">Teach</span><span style="font-size: 12px; color: #57534e; font-weight: 500">1 of 4</span></a>
+<a href="CoverP.dc.html" class="nv" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 10px; border-radius: 8px; color: #1c1917; font-weight: 500; text-decoration: none"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2l5.5 2v4c0 3-2.4 5.2-5.5 6-3.1-.8-5.5-3-5.5-6V4z" fill="none" stroke="#57534e" stroke-width="1.4" stroke-linejoin="round"></path></svg><span style="flex: 1">Cover</span><span style="font-size: 12px; color: #57534e; font-weight: 500">3 gaps</span></a>
+<span style="font-size: 12px; font-weight: 500; color: #57534e; padding: 18px 10px 4px">Library</span>
+<a href="RunsP.dc.html" class="nv" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 10px; border-radius: 8px; color: #1c1917; font-weight: 500; text-decoration: none"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 2.5h7l3 3v8H3z" fill="none" stroke="#57534e" stroke-width="1.4" stroke-linejoin="round"></path></svg><span style="flex: 1">Runs and trials</span></a>
+<a href="SettingsP.dc.html" class="nv" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 10px; border-radius: 8px; color: #1c1917; font-weight: 500; text-decoration: none"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="2.2" fill="none" stroke="#57534e" stroke-width="1.4"></circle><path d="M8 1.8v2M8 12.2v2M1.8 8h2M12.2 8h2M3.6 3.6l1.4 1.4M11 11l1.4 1.4M3.6 12.4L5 11M11 5l1.4-1.4" stroke="#57534e" stroke-width="1.4" stroke-linecap="round"></path></svg><span style="flex: 1">Settings</span></a>
+<div style="margin-top: auto; display: flex; flex-direction: column; gap: 2px; padding-top: 12px">
+<a href="PendingP.dc.html" class="nv" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 10px; border-radius: 8px; color: #1c1917; text-decoration: none">
+<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="4.5" cy="3.5" r="1.6" fill="none" stroke="#1d4ed8" stroke-width="1.4"></circle><circle cx="4.5" cy="12.5" r="1.6" fill="none" stroke="#1d4ed8" stroke-width="1.4"></circle><circle cx="11.5" cy="6" r="1.6" fill="none" stroke="#1d4ed8" stroke-width="1.4"></circle><path d="M4.5 5.1v5.8M11.5 7.6c0 2-2 2.4-5.5 3.4" fill="none" stroke="#1d4ed8" stroke-width="1.4"></path></svg>
+<span style="flex: 1; display: flex; flex-direction: column; line-height: 1.25"><span style="font-weight: 500">2 pending changes</span><span style="font-family: 'Geist Mono', monospace; font-size: 11px; color: #57534e">evals/tone-review</span></span>
+<span style="font-size: 12px; color: #1e3a8a; font-weight: 500">Review</span></a>
+<div style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 10px">
+<span aria-hidden="true" style="width: 24px; height: 24px; border-radius: 50%; background: #1c1917; color: #fafaf9; font-size: 11px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center">UM</span>
+<span style="flex: 1; color: #44403c">Ulrich</span>
+</div>
+</div>
+</nav>
+
+
+<div style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 8px 8px 8px 0">
+<div style="background: #fff; border: 1px solid #e4e2dc; border-radius: 12px; min-height: 1062px; display: flex; flex-direction: column">
+
+<header style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; padding: 0 24px; min-height: 56px; border-bottom: 1px solid #efede8">
+<span style="font-weight: 600">Home</span>
+<span style="flex: 1 1 0"></span>
+<button type="button" class="gh" style="min-height: 36px; display: inline-flex; align-items: center; gap: 8px; padding: 0 10px; border: 1px solid #e4e2dc; border-radius: 8px; background: #fff; font: 500 12px 'Geist Mono', monospace; color: #1c1917; cursor: pointer">run_0041 <span style="color: #57534e">vs</span> run_0040
+<svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true"><path d="M5 6l3 3 3-3" fill="none" stroke="#57534e" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg></button>
+<span style="font-size: 12px; color: #57534e">Finished 4 min ago · $5.97</span>
+<button type="button" aria-pressed="true" style="min-height: 36px; display: inline-flex; align-items: center; gap: 8px; padding: 0 10px; border: 0; border-radius: 8px; background: #ecebe6; font: 500 13px Geist, sans-serif; color: #1c1917; cursor: pointer">Explain this page <kbd style="font-family: 'Geist Mono', monospace; font-size: 11px; color: #57534e; border: 1px solid #e4e2dc; border-radius: 4px; padding: 0 5px">?</kbd></button>
+</header>
+
+<div style="flex: 1; display: flex; flex-wrap: wrap">
+<main style="flex: 999 1 520px; min-width: 0; padding: 32px 32px 40px; display: flex; flex-direction: column; gap: 36px; box-sizing: border-box">
+
+<section aria-label="Briefing" style="display: flex; flex-wrap: wrap; gap: 32px 48px; align-items: flex-start">
+<div style="flex: 999 1 460px; min-width: 0; display: flex; flex-direction: column; gap: 14px">
+<span style="display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: #57534e">
+<span style="display: inline-flex; align-items: center; gap: 6px; color: #b91c1c; font-weight: 600"><span aria-hidden="true" style="width: 7px; height: 7px; border-radius: 50%; background: #dc2626; box-shadow: 0 0 0 3px #fde4e4"></span>Hold</span>
+<span aria-hidden="true">·</span>2 of 3 <button type="button" class="tm">gates</button> crossed</span>
+<h1 style="margin: 0; font-size: 30px; line-height: 1.15; font-weight: 600; letter-spacing: -0.035em; max-width: 20ch">Don't merge yet. One check explains every break.</h1>
+<p style="margin: 0; font-size: 15px; line-height: 1.6; color: #44403c; max-width: 60ch">All 6 tasks that broke failed on the <button type="button" class="tm">tone judge</button>, on replies that open with "Hey there! Great question!" to a frustrated customer. Every other check passed. Either the new prompt made the agent sound wrong, or the judge is stricter than you are.</p>
+<span style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #57534e">Summary by Claude from <span style="font-family: 'Geist Mono', monospace; font-size: 11.5px; color: #44403c">runs/run_0041.json</span> and <span style="font-family: 'Geist Mono', monospace; font-size: 11.5px; color: #44403c">labels/</span></span>
+<div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding-top: 6px">
+<a href="DecideP.dc.html" style="min-height: 44px; display: inline-flex; align-items: center; gap: 10px; padding: 0 16px; border-radius: 9px; background: #1c1917; color: #fafaf9; font-weight: 600; font-size: 13px; text-decoration: none">Decide 3 replies <kbd style="font-family: 'Geist Mono', monospace; font-size: 11px; color: #b3aea6; border: 1px solid #44403c; border-radius: 4px; padding: 0 5px">D</kbd></a>
+<a href="ShipP.dc.html" class="gh" style="min-height: 44px; display: inline-flex; align-items: center; padding: 0 14px; border-radius: 9px; color: #1c1917; font-weight: 500; font-size: 13px; text-decoration: none">See all 12 changes</a>
+</div>
+</div>
+
+<div style="flex: 1 1 300px; min-width: 0; display: flex; flex-direction: column; gap: 18px; padding-top: 4px">
+<span style="font-size: 12px; font-weight: 500; color: #57534e">Gates</span>
+
+<div style="display: flex; flex-direction: column; gap: 8px; margin: -10px -12px; padding: 10px 12px; border-radius: 10px; background: #f6f6f3; box-shadow: inset 0 0 0 1.5px #1d4ed8">
+<span style="display: flex; justify-content: space-between; align-items: baseline"><button type="button" class="tm" style="font-weight: 500">Regression</button><span><span style="font-size: 18px; font-weight: 600; letter-spacing: -0.02em">85.1%</span><span style="font-size: 12px; color: #57534e"> · 78–92</span></span></span>
+<div role="img" aria-label="85.1%, could be 78 to 92%, gate at 95%" style="position: relative; height: 6px; border-radius: 3px; background: #f1f0ec">
+<span style="position: absolute; left: 78%; width: 14%; top: 0; bottom: 0; border-radius: 3px; background: rgba(29,78,216,0.22)"></span>
+<span style="position: absolute; left: 85.1%; top: -3px; width: 2px; height: 12px; margin-left: -1px; border-radius: 1px; background: #1c1917"></span>
+<span style="position: absolute; left: 95%; top: -6px; height: 18px; border-left: 1.5px dashed #b91c1c"></span>
+</div>
+<span style="font-size: 12px; color: #b91c1c">Below the 95% gate</span>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<span style="display: flex; justify-content: space-between; align-items: baseline"><button type="button" class="tm" style="font-weight: 500">Quality</button><span><span style="font-size: 18px; font-weight: 600; letter-spacing: -0.02em">64.0%</span><span style="font-size: 12px; color: #57534e"> · 45–83</span></span></span>
+<div role="img" aria-label="64%, could be 45 to 83%, gate at 80%" style="position: relative; height: 6px; border-radius: 3px; background: #f1f0ec">
+<span style="position: absolute; left: 45%; width: 38%; top: 0; bottom: 0; border-radius: 3px; background: rgba(29,78,216,0.22)"></span>
+<span style="position: absolute; left: 64%; top: -3px; width: 2px; height: 12px; margin-left: -1px; border-radius: 1px; background: #1c1917"></span>
+<span style="position: absolute; left: 80%; top: -6px; height: 18px; border-left: 1.5px dashed #b91c1c"></span>
+</div>
+<span style="font-size: 12px; color: #b91c1c">Below the 80% gate · down 24 pts</span>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<span style="display: flex; justify-content: space-between; align-items: baseline"><button type="button" class="tm" style="font-weight: 500">Capability</button><span><span style="font-size: 18px; font-weight: 600; letter-spacing: -0.02em">60.8%</span><span style="font-size: 12px; color: #57534e"> · 50–71</span></span></span>
+<div role="img" aria-label="60.8%, could be 50 to 71%, no gate" style="position: relative; height: 6px; border-radius: 3px; background: #f1f0ec">
+<span style="position: absolute; left: 50%; width: 21%; top: 0; bottom: 0; border-radius: 3px; background: rgba(29,78,216,0.22)"></span>
+<span style="position: absolute; left: 60.8%; top: -3px; width: 2px; height: 12px; margin-left: -1px; border-radius: 1px; background: #1c1917"></span>
+</div>
+<span style="font-size: 12px; color: #57534e"><button type="button" class="tm">Report only</button> · up 9.4 pts, <button type="button" class="tm">within noise</button></span>
+</div>
+</div>
+</section>
+
+<section aria-label="Up next" style="display: flex; flex-direction: column">
+<div style="display: flex; justify-content: space-between; align-items: baseline; padding-bottom: 10px; border-bottom: 1px solid #efede8">
+<h2 style="margin: 0; font-size: 14px; font-weight: 600">Up next</h2>
+<span style="font-size: 12px; color: #57534e"><kbd style="font-family: 'Geist Mono', monospace; font-size: 11px">J</kbd> <kbd style="font-family: 'Geist Mono', monospace; font-size: 11px">K</kbd> to move · <kbd style="font-family: 'Geist Mono', monospace; font-size: 11px">↵</kbd> to open</span>
+</div>
+
+<a href="ShipP.dc.html" class="rw" style="display: flex; align-items: center; gap: 14px; min-height: 52px; padding: 0 8px; border-bottom: 1px solid #f3f2ee; text-decoration: none; color: #1c1917">
+<span aria-hidden="true" style="flex: 0 0 7px; height: 7px; border-radius: 50%; background: #dc2626"></span>
+<span style="flex: 1 1 auto; min-width: 0; display: flex; gap: 10px; align-items: baseline; overflow: hidden; white-space: nowrap"><span style="font-weight: 500">Quality fell 24 points</span><span style="color: #57534e; overflow: hidden; text-overflow: ellipsis">Same cause as above: the tone judge</span></span>
+<span style="flex: 0 0 64px; font-size: 12px; color: #57534e">Ship</span>
+<span style="flex: 0 0 132px; font-size: 12px; color: #1c1917; font-weight: 500; text-align: right">See what changed</span>
+</a>
+
+<a href="RecheckP.dc.html" class="rw" style="display: flex; align-items: center; gap: 14px; min-height: 52px; padding: 0 8px; border-bottom: 1px solid #f3f2ee; text-decoration: none; color: #1c1917">
+<span aria-hidden="true" style="flex: 0 0 7px; height: 7px; border-radius: 50%; background: #d97706"></span>
+<span style="flex: 1 1 auto; min-width: 0; display: flex; gap: 10px; align-items: baseline; overflow: hidden; white-space: nowrap"><span style="font-weight: 500">Missed-refund judge is stale</span><span style="color: #57534e; overflow: hidden; text-overflow: ellipsis">Changed after its test; left out of scores</span></span>
+<span style="flex: 0 0 64px; font-size: 12px; color: #57534e">Teach</span>
+<span style="flex: 0 0 132px; font-size: 12px; color: #1e3a8a; font-weight: 500; text-align: right; display: inline-flex; justify-content: flex-end; align-items: center; gap: 6px"><svg width="13" height="13" viewBox="0 0 64 64" aria-hidden="true"><path d="M13 31 L26 44 L50 16" fill="none" stroke="#1d4ed8" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"></path></svg>Claude can re-check</span>
+</a>
+
+<a href="TranscriptsP.dc.html" class="rw" style="display: flex; align-items: center; gap: 14px; min-height: 52px; padding: 0 8px; border-bottom: 1px solid #f3f2ee; text-decoration: none; color: #1c1917">
+<span aria-hidden="true" style="flex: 0 0 7px; height: 7px; border-radius: 50%; background: #d97706"></span>
+<span style="flex: 1 1 auto; min-width: 0; display: flex; gap: 10px; align-items: baseline; overflow: hidden; white-space: nowrap"><span style="font-weight: 500">Invoice copy is flaky</span><span style="color: #57534e; overflow: hidden; text-overflow: ellipsis">Frustrated customer · passes some trials, fails others</span></span>
+<span style="flex: 0 0 64px; font-size: 12px; color: #57534e">Ship</span>
+<span style="flex: 0 0 132px; font-size: 12px; color: #1c1917; font-weight: 500; text-align: right">Read 5 trials</span>
+</a>
+
+<a href="TasksP.dc.html" class="rw" style="display: flex; align-items: center; gap: 14px; min-height: 52px; padding: 0 8px; border-bottom: 1px solid #f3f2ee; text-decoration: none; color: #1c1917">
+<span aria-hidden="true" style="flex: 0 0 7px; height: 7px; border-radius: 50%; background: #d97706"></span>
+<span style="flex: 1 1 auto; min-width: 0; display: flex; gap: 10px; align-items: baseline; overflow: hidden; white-space: nowrap"><span style="font-weight: 500">Ghost-account refund is likely broken</span><span style="color: #57534e; overflow: hidden; text-overflow: ellipsis">Fails every trial; its reference solution passes</span></span>
+<span style="flex: 0 0 64px; font-size: 12px; color: #57534e">Cover</span>
+<span style="flex: 0 0 132px; font-size: 12px; color: #1c1917; font-weight: 500; text-align: right">Open task</span>
+</a>
+
+<a href="TeachP.dc.html" class="rw" style="display: flex; align-items: center; gap: 14px; min-height: 52px; padding: 0 8px; border-bottom: 1px solid #f3f2ee; text-decoration: none; color: #1c1917">
+<span aria-hidden="true" style="flex: 0 0 7px; height: 7px; border-radius: 50%; border: 1.5px solid #8a847c; box-sizing: border-box"></span>
+<span style="flex: 1 1 auto; min-width: 0; display: flex; gap: 10px; align-items: baseline; overflow: hidden; white-space: nowrap"><span style="font-weight: 500">42 conversations to label</span><span style="color: #57534e; overflow: hidden; text-overflow: ellipsis">Only people can do this · 18 of 60 done</span></span>
+<span style="flex: 0 0 64px; font-size: 12px; color: #57534e">Teach</span>
+<span style="flex: 0 0 132px; font-size: 12px; color: #1c1917; font-weight: 500; text-align: right">Start labeling</span>
+</a>
+
+<a href="DiscoverP.dc.html" class="rw" style="display: flex; align-items: center; gap: 14px; min-height: 52px; padding: 0 8px; border-bottom: 1px solid #f3f2ee; text-decoration: none; color: #1c1917">
+<span aria-hidden="true" style="flex: 0 0 7px; height: 7px; border-radius: 50%; border: 1.5px solid #8a847c; box-sizing: border-box"></span>
+<span style="flex: 1 1 auto; min-width: 0; display: flex; gap: 10px; align-items: baseline; overflow: hidden; white-space: nowrap"><span style="font-weight: 500">18 notes to group into failure modes</span><span style="color: #57534e; overflow: hidden; text-overflow: ellipsis">Proposed as a diff; nothing saved until you accept</span></span>
+<span style="flex: 0 0 64px; font-size: 12px; color: #57534e">Teach</span>
+<span style="flex: 0 0 132px; font-size: 12px; color: #1e3a8a; font-weight: 500; text-align: right; display: inline-flex; justify-content: flex-end; align-items: center; gap: 6px"><svg width="13" height="13" viewBox="0 0 64 64" aria-hidden="true"><path d="M13 31 L26 44 L50 16" fill="none" stroke="#1d4ed8" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"></path></svg>Claude can group</span>
+</a>
+
+<a href="CoverP.dc.html" class="rw" style="display: flex; align-items: center; gap: 14px; min-height: 52px; padding: 0 8px; border-bottom: 1px solid #f3f2ee; text-decoration: none; color: #1c1917">
+<span aria-hidden="true" style="flex: 0 0 7px; height: 7px; border-radius: 50%; border: 1.5px solid #8a847c; box-sizing: border-box"></span>
+<span style="flex: 1 1 auto; min-width: 0; display: flex; gap: 10px; align-items: baseline; overflow: hidden; white-space: nowrap"><span style="font-weight: 500">3 high-severity gaps</span><span style="color: #57534e; overflow: hidden; text-overflow: ellipsis">Missed refund, ungrounded policy, wrong tool arguments</span></span>
+<span style="flex: 0 0 64px; font-size: 12px; color: #57534e">Cover</span>
+<span style="flex: 0 0 132px; font-size: 12px; color: #1e3a8a; font-weight: 500; text-align: right; display: inline-flex; justify-content: flex-end; align-items: center; gap: 6px"><svg width="13" height="13" viewBox="0 0 64 64" aria-hidden="true"><path d="M13 31 L26 44 L50 16" fill="none" stroke="#1d4ed8" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"></path></svg>Claude can draft</span>
+</a>
+</section>
+
+<form style="display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 0 8px 0 14px; border: 1px solid #e4e2dc; border-radius: 10px; background: #fff">
+<label style="flex: 1; display: flex"><span style="position: absolute; left: -9999px">Ask about this run</span><input type="text" placeholder="Ask about this run…" style="flex: 1; min-height: 44px; border: 0; outline-offset: 4px; font: 400 14px Geist, sans-serif; color: #1c1917; background: transparent"></label>
+<kbd style="font-family: 'Geist Mono', monospace; font-size: 11px; color: #57534e; border: 1px solid #e4e2dc; border-radius: 4px; padding: 1px 6px">/</kbd>
+</form>
+</main>
+
+<aside aria-label="Explanation: Gate" style="flex: 0 1 320px; min-width: 280px; box-sizing: border-box; border-left: 1px solid #efede8; padding: 12px 20px 24px; display: flex; flex-direction: column; gap: 22px">
+<div style="display: flex; align-items: center; gap: 8px; min-height: 44px">
+<span style="flex: 1; font-size: 12px; font-weight: 500; color: #57534e">Explain</span>
+<label style="display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: #44403c; cursor: pointer; min-height: 44px">
+<input type="checkbox" role="switch" checked="{{ yes }}" style="position: absolute; opacity: 0; width: 1px; height: 1px">
+<span aria-hidden="true" style="width: 28px; height: 16px; border-radius: 8px; background: #1c1917; position: relative; display: inline-block"><span style="position: absolute; right: 2px; top: 2px; width: 12px; height: 12px; border-radius: 50%; background: #fff"></span></span>
+Plain language</label>
+<button type="button" class="gh" aria-label="Close explanation" style="width: 36px; height: 36px; border: 0; border-radius: 8px; background: transparent; display: inline-flex; align-items: center; justify-content: center; cursor: pointer"><svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8" stroke="#57534e" stroke-width="1.5" stroke-linecap="round"></path></svg></button>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 6px">
+<h2 style="margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -0.02em">Gate</h2>
+<p style="margin: 0; font-size: 14px; line-height: 1.55; color: #44403c">The rule that blocks a merge when a suite falls too far.</p>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 10px">
+<span style="font-size: 12px; font-weight: 500; color: #57534e">For Regression in <span style="font-family: 'Geist Mono', monospace">run_0041</span></span>
+<p style="margin: 0; font-size: 14px; line-height: 1.55">Regression passed <b style="font-weight: 600">85.1%</b> (could be 78–92%). It needs 95%, so this gate is blocking the merge.</p>
+<div role="img" aria-label="Range 78 to 92%, rate 85.1%, gate 95%" style="position: relative; height: 6px; border-radius: 3px; background: #f1f0ec; margin-top: 6px"><span style="position: absolute; left: 78%; width: 14%; top: 0; bottom: 0; border-radius: 3px; background: rgba(29,78,216,0.22)"></span><span style="position: absolute; left: 85.1%; top: -3px; width: 2px; height: 12px; margin-left: -1px; border-radius: 1px; background: #1c1917"></span><span style="position: absolute; left: 95%; top: -6px; height: 18px; border-left: 1.5px dashed #b91c1c"></span></div>
+<span style="display: flex; justify-content: space-between; font-size: 11.5px; color: #57534e"><span>range 78–92</span><span>rate 85.1</span><span style="color: #b91c1c">gate 95</span></span>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 10px">
+<span style="font-size: 12px; font-weight: 500; color: #57534e">Next step</span>
+<p style="margin: 0; font-size: 14px; line-height: 1.55">Both tasks that broke failed only on the tone judge. Decide whether the judge is right.</p>
+<span style="display: flex; flex-wrap: wrap; gap: 6px">
+<a href="DecideP.dc.html" style="min-height: 44px; display: inline-flex; align-items: center; padding: 0 14px; border-radius: 9px; background: #1c1917; color: #fafaf9; font-weight: 600; text-decoration: none">Decide 3 replies</a>
+<a href="#" class="gh" style="min-height: 44px; display: inline-flex; align-items: center; padding: 0 12px; border-radius: 9px; color: #1c1917; font-weight: 500; text-decoration: none">Edit this gate</a>
+</span>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 12px; padding-top: 16px; border-top: 1px solid #efede8; font-size: 13px; line-height: 1.55; color: #44403c">
+<span><b style="font-weight: 600; color: #1c1917">Good looks like:</b> at or above the gate, with no drop beyond noise.</span>
+<span><b style="font-weight: 600; color: #1c1917">Why it matters:</b> a gate turns the numbers into a decision, so nobody has to argue about a two-point dip.</span>
+<span><b style="font-weight: 600; color: #1c1917">Related:</b> <a href="#" style="font-weight: 500; text-decoration: none">Margin of error</a> · <a href="#" style="font-weight: 500; text-decoration: none">Noise</a> · <a href="#" style="font-weight: 500; text-decoration: none">Regression suite</a></span>
+</div>
+
+<div style="margin-top: auto; display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: #57534e">
+<a href="#" style="font-weight: 500; text-decoration: none; min-height: 32px; display: inline-flex; align-items: center">Learn more: Master Class, chapter 19</a>
+<span>Numbers computed from <span style="font-family: 'Geist Mono', monospace">runs/run_0041.json</span> and <span style="font-family: 'Geist Mono', monospace">litmustest.yaml</span>. No AI.</span>
+</div>
+</aside>
+</div>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() { return { yes: true }; }
+}
+</script>
+</body>
+</html>

@@ -29,7 +29,7 @@ describe("judges API", () => {
     const r = await api("/api/judges");
     expect(r.status).toBe(200);
     const tm = r.body.judges.find((j: { name: string }) => j.name === "tone_mismatch");
-    expect(tm.status).toBe("trusted"); expect(tm.used_by).toBe(40); expect(tm.labels).toBe(50);
+    expect(tm.status).toBe("trusted"); expect(tm.used_by).toBe(41); expect(tm.labels).toBe(50);
     expect(r.body.judges.find((j: { name: string }) => j.name === "missed_refund").status).toBe("stale");
     expect(r.body.candidates.map((c: { name: string }) => c.name)).toContain("over_searching");
   });

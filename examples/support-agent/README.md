@@ -7,7 +7,7 @@ A small but real target for litmustest: a billing support agent for a subscripti
 ```bash
 git clone https://github.com/ulrichmonthe/litmustest && cd litmustest
 npm install
-npm run example:seed                                   # 300 traces + the evals/ directory, no API key needed
+npm run example:seed                                   # 300 traces, the evals/ directory and the two seeded runs' transcripts, no API key needed
 npm run build
 node packages/cli/dist/main.js ingest examples/support-agent/traces/support.jsonl --dir examples/support-agent/evals
                                                        # clusters the traces and writes a review batch with a coverage report
@@ -32,7 +32,7 @@ The Review queue opens on the batch: `j`/`k` move, `p`/`f` label, `n` focuses th
 | `src/seed_evals.ts` | Writes the rest of `evals/`: failure modes, tasks, refs, graders, labels, suites, runs |
 | `traces/support.jsonl` | The plain log a team would have before litmustest (adapter input) |
 | `traces/planted_truth.jsonl` | Which failures were planted in which trace, so calibration numbers can be checked |
-| `environments/harbor/` | A Harbor task for the same agent (untested until decision #2) |
+| `environments/Dockerfile`, `environments/README.md` | One image for `runs.environment: docker` and `harbor` (neither run for real yet) |
 
 ## Planted failure rates
 
@@ -51,11 +51,11 @@ Realised counts print when you run `npm run generate-traces`. Because some modes
 ## The seeded evals
 
 - **7 failure modes**, the table above.
-- **40 tasks** in three suites: regression (promoted from traces), capability (written from the spec), quality (judge-only, tone). One is deliberately broken (`refund_ghost_account_frustrated`: the account does not exist, so no agent can verify it; the run summaries flag it `likely_broken`) and one is flaky (`invoice_copy_frustrated`, flagged `flaky`). The three `cancel_monthly_*` tasks sit in the capability suite because the agent has no cancellation tool yet; they are the hill to climb.
+- **41 tasks** in three suites: regression (promoted from traces), capability (written from the spec), quality (judge-only, tone). One is deliberately broken (`refund_ghost_account_frustrated`: the account does not exist, so no agent can verify it; the run summaries flag it `likely_broken`) and one is flaky (`invoice_copy_frustrated`, flagged `flaky`). The three `cancel_monthly_*` tasks sit in the capability suite because the agent has no cancellation tool yet; they are the hill to climb. One capability task is multi-turn (`vat_invoice_followup_business`): its input asks for a simulated customer who follows up after the first answer. It is not in the seeded runs, because running it needs a model.
 - **2 code checks**: `identity_verified_first.py`, `confirmation_sent.py`.
 - **2 judges**: `tone_mismatch` is trusted (test TPR 90 / TNR 100); `missed_refund` is stale because its prompt was edited after its test run, so its verdicts are excluded from gates until it is re-calibrated.
 - **100 labels** over the two judged failure modes, balanced, drawn from the planted truth.
-- **2 run summaries** (`run_0040`, `run_0041`) so `compare` has something to compare.
+- **2 run summaries** (`run_0040`, `run_0041`) so `compare` has something to compare, with a transcript and grades for every trial under `.litmustest/transcripts/` (git-ignored, written by `npm run example:seed`) so the Transcript screen has a timeline to show.
 
 ## Running the suites
 
@@ -71,7 +71,7 @@ node packages/cli/dist/main.js compare run_0041 <new run id> --dir examples/supp
 ```bash
 export ANTHROPIC_API_KEY=...   # or `ant auth login`
 npm run trial -- --task duplicate_charge_frustrated          # one turn
-npm run trial -- --task cancel_monthly_business --multi      # simulated customer keeps talking
+npm run trial -- --task cancel_monthly_business --multi      # simulated customer keeps talking; a task with input.simulate does this on its own
 ```
 
 Each trial gets its own copy of the database under `.litmustest/trials/`. A safety refusal from the model ends the turn and is recorded in the transcript as `[refusal]`.

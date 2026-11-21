@@ -12,20 +12,37 @@
 </head>
 <body>
 <div id="app" class="shell">
-  <nav class="nav" aria-label="Main">
-    <a class="brand" href="#/review" aria-label="litmustest home">
-      <svg width="26" height="26" viewBox="0 0 64 64" aria-hidden="true"><path d="M13 31 L26 44 L50 16" fill="none" stroke="var(--blue)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 56 H54 M10 50 V62 M54 50 V62" fill="none" stroke="var(--ink)" stroke-width="5" stroke-linecap="round"/></svg>
-      <span class="brand-text"><span class="wordmark">litmus<span class="wordmark-accent">test</span></span><span class="brand-sub" id="brand-sub">evals</span></span>
+  <nav class="sidebar" id="sidebar" aria-label="Main">
+    <a class="project" href="#/home">
+      <svg width="22" height="22" viewBox="0 0 64 64" aria-hidden="true"><path d="M13 31 L26 44 L50 16" fill="none" stroke="var(--blue)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 56 H54 M10 50 V62 M54 50 V62" fill="none" stroke="var(--ink)" stroke-width="5" stroke-linecap="round"/></svg>
+      <span class="project-name" id="project-name">litmustest</span>
     </a>
+    <button type="button" class="search-btn" id="search-btn" aria-haspopup="dialog">
+      <svg class="icon" width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M10.5 10.5L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      <span class="search-label">Search or jump to</span><kbd id="search-kbd">⌘K</kbd>
+    </button>
     <div class="nav-items" id="nav-items"></div>
     <div class="nav-spacer"></div>
     <a class="tray" id="tray" href="#/pending" hidden>
-      <span class="tray-row"><span>Pending changes</span><span class="count" id="tray-count">0</span></span>
-      <span class="mono tray-branch" id="tray-branch"></span>
-      <span class="tray-link">Review and commit</span>
+      <svg class="icon" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="4.5" cy="3.5" r="1.6" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="4.5" cy="12.5" r="1.6" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="11.5" cy="6" r="1.6" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M4.5 5.1v5.8M11.5 7.6c0 2-2 2.4-5.5 3.4" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>
+      <span class="tray-text"><span class="tray-count" id="tray-count">0 pending changes</span><span class="mono tray-branch" id="tray-branch"></span></span>
+      <span class="tray-link">Review</span>
     </a>
+    <div class="user" id="user" hidden><span class="avatar" id="user-initials" aria-hidden="true"></span><span class="user-name" id="user-name"></span></div>
   </nav>
-  <main class="page" id="page"><div class="column"><p class="t-body muted">Loading…</p></div></main>
+  <div class="sheet">
+    <header class="topbar">
+      <button type="button" class="btn nav-toggle" id="nav-toggle" aria-expanded="false" aria-controls="sidebar">Menu</button>
+      <nav class="crumbs" id="nav-current" aria-label="Breadcrumb"></nav>
+      <span class="topbar-spacer"></span>
+      <span class="conn" id="conn" role="status" hidden></span>
+      <a class="nav-pending" id="nav-pending" href="#/pending" hidden>0</a>
+      <span class="topbar-explain" id="topbar-explain"></span>
+    </header>
+    <main class="page" id="page"><div class="column"><p class="t-body muted">Loading…</p></div></main>
+  </div>
+  <nav class="bottombar" id="bottombar" aria-label="Places"></nav>
+  <div class="scrim" id="scrim" aria-hidden="true"></div>
   <aside class="explain-panel" id="explain-panel" aria-label="Explanation" aria-live="polite" hidden></aside>
 </div>
 <script type="module" src="/app.js"></script>

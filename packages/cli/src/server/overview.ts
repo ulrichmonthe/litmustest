@@ -5,6 +5,7 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { parse as parseYaml } from "yaml";
 import { sha256 } from "../validate.ts";
+import { pairedDelta, wilson } from "../stats.ts";
 
 type Obj = Record<string, unknown>;
 const readYaml = (p: string) => parseYaml(readFileSync(p, "utf8")) as Obj;
@@ -44,15 +45,22 @@ function failsByMode(run: Obj | undefined, cm: Map<string, Map<string, string>>)
   for (const [tid, t] of Object.entries((run.tasks as Record<string, Obj>) ?? {})) for (const tr of (t.trials as Obj[]) ?? []) for (const c of (tr.failed_checks as string[]) ?? []) { const mode = cm.get(tid)?.get(c); if (mode) out.set(mode, (out.get(mode) ?? 0) + 1); }
   return out;
 }
-export function judgeStatus(j: { judge?: Obj; calibration?: Obj }, threshold: number): { status: string; label: string; tpr?: number; tnr?: number } {
+/** 95% Wilson intervals for TPR and TNR from a confusion matrix, so neither is shown without its margin. */
+export function matrixIntervals(m: Obj | undefined): { tpr_ci?: { low: number; high: number }; tnr_ci?: { low: number; high: number } } {
+  if (!m) return {};
+  const tp = Number(m.tp ?? 0), fn = Number(m.fn ?? 0), tn = Number(m.tn ?? 0), fp = Number(m.fp ?? 0);
+  const ci = (k: number, n: number) => { const w = wilson(k, n); return { low: Math.round(w.low), high: Math.round(w.high) }; };
+  return { ...(tp + fn ? { tpr_ci: ci(tp, tp + fn) } : {}), ...(tn + fp ? { tnr_ci: ci(tn, tn + fp) } : {}) };
+}
+export function judgeStatus(j: { judge?: Obj; calibration?: Obj }, threshold: number): { status: string; label: string; tpr?: number; tnr?: number; tpr_ci?: { low: number; high: number }; tnr_ci?: { low: number; high: number } } {
   const c = j.calibration; const test = c?.test as Obj | null | undefined;
   if (!j.judge) return { status: "none", label: "No judge" };
   if (!c) return { status: "untested", label: "Judge, untested" };
   const status = String(c.status);
-  if (status === "trusted") return { status, label: "Judge · trusted", tpr: Number(test?.tpr), tnr: Number(test?.tnr) };
+  if (status === "trusted") return { status, label: "Judge · trusted", tpr: Number(test?.tpr), tnr: Number(test?.tnr), ...matrixIntervals(test?.matrix as Obj | undefined) };
   if (status === "stale") return { status, label: "Judge · stale", tpr: test ? Number(test.tpr) : undefined, tnr: test ? Number(test.tnr) : undefined };
   const dev = c.dev as Obj | undefined;
-  if (dev && dev.tpr !== undefined && (Number(dev.tpr) < threshold || Number(dev.tnr) < threshold)) return { status: "dev", label: "Judge · below target", tpr: Number(dev.tpr), tnr: Number(dev.tnr) };
+  if (dev && dev.tpr !== undefined && (Number(dev.tpr) < threshold || Number(dev.tnr) < threshold)) return { status: "dev", label: "Judge · below target", tpr: Number(dev.tpr), tnr: Number(dev.tnr), ...matrixIntervals(dev.matrix as Obj | undefined) };
   return { status, label: status === "dev" ? "Judge · dev" : "Judge · untested" };
 }
 
@@ -112,15 +120,20 @@ export function overview(evalsDir: string): Obj {
   const cm = checkModes(f.tasks);
   const threshold = Number((f.config.judges as Obj | undefined)?.trust_threshold ?? 90);
   const latest = f.runs[f.runs.length - 1]; const prev = f.runs[f.runs.length - 2];
-  const suites = f.suites.map((s) => {
+  const order = ["regression", "capability", "quality"];
+  const suites = f.suites.slice().sort((a, b) => (order.indexOf(String(a.kind)) + 1 || 9) - (order.indexOf(String(b.kind)) + 1 || 9)).map((s) => {
     const name = String(s.name);
     const hist = f.runs.map((r) => ((r.suites as Record<string, Obj>)?.[name])).filter(Boolean) as Obj[];
     const cur = (latest?.suites as Record<string, Obj> | undefined)?.[name]; const before = (prev?.suites as Record<string, Obj> | undefined)?.[name];
+    // The same paired delta as `litmustest compare`: per-task differences over the tasks both runs share, bootstrapped over tasks.
     let delta: Obj | undefined;
-    if (cur && before) {
-      const d = Number(cur.pass_rate) - Number(before.pass_rate);
-      const half = ((Number((cur.ci as Obj).high) - Number((cur.ci as Obj).low)) / 2 + (Number((before.ci as Obj).high) - Number((before.ci as Obj).low)) / 2) / Math.SQRT2;
-      delta = { pts: +d.toFixed(1), significant: Math.abs(d) > half, note: Math.abs(d) > half ? "significant" : "within noise" };
+    if (cur && before && latest && prev) {
+      const ids = Object.keys(latest.tasks as Record<string, Obj>).filter((t) => (latest.tasks as Record<string, Obj>)[t]!.suite === name && (prev.tasks as Record<string, Obj>)[t]?.suite === name);
+      const trialsOf = (run: Obj, t: string) => ((((run.tasks as Record<string, Obj>)[t]!.trials as Obj[]) ?? []).filter((x) => !x.infra_error)).map((x) => Boolean(x.pass));
+      if (ids.length) {
+        const d = pairedDelta(ids.map((t) => trialsOf(prev, t)), ids.map((t) => trialsOf(latest, t)));
+        delta = { pts: d.delta, ci: { low: d.ci.low, high: d.ci.high }, significant: d.significant, note: d.significant ? "significant" : "within noise", vs: prev.run_id };
+      }
     }
     return { name, kind: s.kind, description: s.description, n_tasks: ((s.tasks as unknown[]) ?? []).length, current: cur ?? null, delta: delta ?? null, history: hist.map((h) => Number(h.pass_rate)), gate: s.gate ?? (f.config.gates as Record<string, Obj> | undefined)?.[name] ?? null };
   });
@@ -150,7 +163,7 @@ export function overview(evalsDir: string): Obj {
   const modes = f.modes.filter((m) => !m.retired).map((m) => { const name = String(m.name); const count = source === "run" ? (fails.get(name) ?? 0) : (labelFails.get(name) ?? 0); return { name, severity: m.severity, count, prev: source === "run" && prev ? (failsPrev.get(name) ?? 0) : null }; }).sort((a, b) => b.count - a.count);
   const total = modes.reduce((a, m) => a + m.count, 0); const top3 = modes.slice(0, 3).reduce((a, m) => a + m.count, 0);
   // judges
-  const judges = f.judges.map((j) => { const s = judgeStatus(j, threshold); return { name: j.name, status: s.status, label: s.label.replace(/^Judge · /, ""), tpr: s.tpr ?? null, tnr: s.tnr ?? null, labels: f.labels.filter((l) => l.failure_mode === j.name).length }; });
+  const judges = f.judges.map((j) => { const s = judgeStatus(j, threshold); return { name: j.name, status: s.status, label: s.label.replace(/^Judge · /, ""), tpr: s.tpr ?? null, tnr: s.tnr ?? null, tpr_ci: s.tpr_ci ?? null, tnr_ci: s.tnr_ci ?? null, labels: f.labels.filter((l) => l.failure_mode === j.name).length }; });
   // flips
   const flips: Obj[] = [];
   if (latest && prev) for (const [tid, t] of Object.entries((latest.tasks as Record<string, Obj>) ?? {})) {

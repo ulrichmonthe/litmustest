@@ -1,0 +1,8 @@
+project: support_agent
+sources: { traces: { format: jsonl, path: logs/traces/*.jsonl } }
+runs: { trials: 5 }
+judges: { default_model: claude-sonnet-4-5-20250929 }
+gates: { regression: { min_pass_rate: 95 } }
+storage:
+  summaries: evals/runs
+  transcripts: { backend: s3, bucket: acme-evals, prefix: support-agent/transcripts, region: eu-west-1 }

@@ -1,4 +1,5 @@
 // The local server's request handling. Every write is validated before it stays on disk; every change is tracked as pending.
+import { wilson } from "../stats.ts";
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, readdirSync, realpathSync, rmSync, statSync, writeFileSync, appendFileSync } from "node:fs";
 import { dirname, join, relative, resolve, sep } from "node:path";
@@ -9,6 +10,7 @@ import { validateEvals, sha256, type Problem, type ValidateResult } from "../val
 import { traceView } from "../trace_view.ts";
 import { Git, commitBranch, defaultSlug } from "./git.ts";
 import { modesView, overview, loadFiles } from "./overview.ts";
+import { home } from "./home.ts";
 import { compareRuns, evaluateGates, comparisonMarkdown } from "../compare.ts";
 import { applyGraduations, doctor, graduationProposals } from "../graduate.ts";
 import { Pending } from "./pending.ts";
@@ -35,19 +37,32 @@ export function kindOf(rel: string): string | undefined {
   return undefined;
 }
 
+/** What hosted mode swaps: the git and pending layer, who is acting, and how a pull request is opened. The disk stays. */
+export interface Backend { git?: Git; pending?: Pending; identity?: () => string; openPr?: (title?: string, body?: string) => Reply; onWrote?: (rels: string[]) => void }
+
 export class App {
   readonly evalsDir: string;
   readonly git: Git;
   readonly pending: Pending;
+  private backend: Backend;
   private schemas = new SchemaSet();
   private listeners = new Set<Listener>();
   private validation: ValidateResult | undefined;
 
-  constructor(evalsDir: string) {
+  constructor(evalsDir: string, backend: (evalsDir: string) => Backend = () => ({})) {
     if (!existsSync(join(resolve(evalsDir), "litmustest.yaml"))) throw new Error(`${resolve(evalsDir)}/litmustest.yaml not found; run litmustest init first`);
     this.evalsDir = realpathSync(resolve(evalsDir));
-    this.git = new Git(this.evalsDir);
-    this.pending = new Pending(this.git, this.evalsDir);
+    this.backend = backend(this.evalsDir);
+    this.git = this.backend.git ?? new Git(this.evalsDir);
+    this.pending = this.backend.pending ?? new Pending(this.git, this.evalsDir);
+  }
+
+  /** The one post-write path. Every writer that leaves a file under evals/ ends here: putFile, putFiles, appendLabel,
+   *  and the routes whose writers work on the files directly (calibrate, the two drafts, dispute). Locally it tracks
+   *  the files for the Pending tray; in hosted mode the backend also commits them to the pull-request branch. */
+  wrote(absPaths: string[]): void {
+    for (const p of absPaths) this.pending.track(p);
+    this.backend.onWrote?.(absPaths.map((p) => this.git.rel(p)));
   }
 
   subscribe(l: Listener): () => void { this.listeners.add(l); return () => this.listeners.delete(l); }
@@ -71,9 +86,9 @@ export class App {
   health(): Reply {
     const v = this.validate();
     let annotator = "";
-    try { annotator = this.git.run(["config", "user.name"]).trim(); } catch { /* unset */ }
+    try { annotator = this.backend.identity ? this.backend.identity() : this.git.run(["config", "user.name"]).trim(); } catch { /* unset */ }
     const project = (() => { try { return String((parseYaml(readFileSync(join(this.evalsDir, "litmustest.yaml"), "utf8")) as Obj).project ?? ""); } catch { return ""; } })();
-    return { status: 200, body: { evals: this.evalsDir, repo: this.git.root, project, branch: this.git.branch(), head: this.git.head(), annotator, errors: v.errors, warnings: v.warnings, pending: this.pending.count() } };
+    return { status: 200, body: { evals: this.evalsDir, repo: this.git.root, project, branch: this.git.branch(), head: this.git.head(), annotator, errors: v.errors, warnings: v.warnings, pending: this.pending.count(), model_key: Boolean(process.env.ANTHROPIC_API_KEY) } };
   }
   modes(): Reply { return { status: 200, body: { failure_modes: modesView(this.evalsDir) } }; }
   graduate(): Reply { return { status: 200, body: graduationProposals(this.evalsDir) }; }
@@ -83,15 +98,17 @@ export class App {
   tasks(): Reply {
     const f = loadFiles(this.evalsDir); const last5 = f.runs.slice(-5);
     const prop = graduationProposals(this.evalsDir);
-    const tasks = f.tasks.map((t) => { const id = String(t.id); const hist = last5.map((r) => { const x = (r.tasks as Record<string, Obj>)?.[id]; if (!x) return null; const tr = ((x.trials as Obj[]) ?? []).filter((y) => !y.infra_error); return { run: r.run_id, strict_pass: x.strict_pass, passed: tr.filter((y) => y.pass).length, trials: tr.length, flaky: Boolean(x.flaky), likely_broken: Boolean(x.likely_broken) }; }); const latest = hist[hist.length - 1];
-      return { id, suite: t.suite, source: t.source, description: t.description, checks: ((t.checks as Obj[]) ?? []).map((c) => ({ id: c.id, type: c.type, failure_mode: c.failure_mode, weight: c.weight ?? 1 })), trials: t.trials, graduated_from: t.graduated_from, history: hist, pass_at_1: latest?.strict_pass ?? null, pass_hat_k: latest ? (latest.trials && latest.passed === latest.trials ? 100 : 0) : null, status: latest?.likely_broken ? "broken" : latest?.flaky ? "flaky" : prop.proposals.some((p) => p.task === id) ? "graduate" : latest ? (latest.passed === latest.trials ? "passing" : latest.passed === 0 ? "failing" : "mixed") : "no runs", path: findPath(this.evalsDir, id) }; });
-    const suites = f.suites.map((s) => { const ids = tasks.filter((t) => t.suite === s.name); const latest = f.runs[f.runs.length - 1]; const cur = (latest?.suites as Record<string, Obj> | undefined)?.[String(s.name)]; return { name: s.name, kind: s.kind, description: s.description, n: ids.length, pass_rate: cur ? cur.pass_rate : null, broken: ids.filter((t) => t.status === "broken").length, flaky: ids.filter((t) => t.status === "flaky").length, graduate: ids.filter((t) => t.status === "graduate").length, gate: s.gate ?? (f.config.gates as Record<string, Obj> | undefined)?.[String(s.name)] ?? null }; });
+    const tasks = f.tasks.map((t) => { const id = String(t.id); const hist = last5.map((r) => { const x = (r.tasks as Record<string, Obj>)?.[id]; if (!x) return null; const tr = ((x.trials as Obj[]) ?? []).filter((y) => !y.infra_error); const passed = tr.filter((y) => y.pass).length; const w = wilson(passed, tr.length); return { run: r.run_id, strict_pass: x.strict_pass, ci: { low: Math.round(w.low), high: Math.round(w.high) }, passed, trials: tr.length, flaky: Boolean(x.flaky), likely_broken: Boolean(x.likely_broken) }; }); const latest = hist[hist.length - 1];
+      return { id, suite: t.suite, source: t.source, description: t.description, checks: ((t.checks as Obj[]) ?? []).map((c) => ({ id: c.id, type: c.type, failure_mode: c.failure_mode, weight: c.weight ?? 1 })), trials: t.trials, graduated_from: t.graduated_from, history: hist, pass_at_1: latest?.strict_pass ?? null, pass_at_1_ci: latest?.ci ?? null, latest_run: latest?.run ?? null, pass_hat_k: latest ? (latest.trials && latest.passed === latest.trials ? 100 : 0) : null, status: latest?.likely_broken ? "broken" : latest?.flaky ? "flaky" : prop.proposals.some((p) => p.task === id) ? "graduate" : latest ? (latest.passed === latest.trials ? "passing" : latest.passed === 0 ? "failing" : "mixed") : "no runs", path: findPath(this.evalsDir, id) }; });
+    const suites = f.suites.map((s) => { const ids = tasks.filter((t) => t.suite === s.name); const latest = f.runs[f.runs.length - 1]; const cur = (latest?.suites as Record<string, Obj> | undefined)?.[String(s.name)]; return { name: s.name, kind: s.kind, description: s.description, n: ids.length, pass_rate: cur ? cur.pass_rate : null, ci: cur ? cur.ci : null, run: latest?.run_id ?? null, broken: ids.filter((t) => t.status === "broken").length, flaky: ids.filter((t) => t.status === "flaky").length, graduate: ids.filter((t) => t.status === "graduate").length, gate: s.gate ?? (f.config.gates as Record<string, Obj> | undefined)?.[String(s.name)] ?? null }; });
     const balance = (() => { const should = f.tasks.filter((t) => ((t.checks as Obj[]) ?? []).some((c) => c.type === "outcome" && Object.values((c.expect as Obj) ?? {}).some((v) => v !== 0 && v !== "none" && v !== false))).length; return f.tasks.length ? Math.round((100 * should) / f.tasks.length) : 0; })();
     return { status: 200, body: { tasks, suites, balance_should_pct: balance, saturation: prop.saturation, proposals: prop.proposals, runs: last5.map((r) => r.run_id) } };
   }
   runs(): Reply { const f = loadFiles(this.evalsDir); return { status: 200, body: { runs: f.runs.map((r) => ({ run_id: r.run_id, commit: r.commit, branch: r.branch, started_at: r.started_at, trials: r.trials, suites: Object.keys(r.suites as Obj), n_tasks: Object.keys(r.tasks as Obj).length, cost_usd: r.cost_usd, infra_error_rate: r.infra_error_rate })).reverse() } }; }
   compare(a: string, b: string): Reply { try { const c = compareRuns(this.evalsDir, a, b); const g = evaluateGates(c); return { status: 200, body: { ...c, gates_passed: g.passed, markdown: comparisonMarkdown(c) } }; } catch (e) { throw new HttpError(404, (e as Error).message); } }
   overview(): Reply { return { status: 200, body: overview(this.evalsDir) }; }
+  /** Home: the verdict, every gate and the ranked Up next list (docs/stories/redesign.md, R2). */
+  home(): Reply { return { status: 200, body: home(this.evalsDir) }; }
   /** Failure modes with their grader status and label counts, for chips and the "so far" panel. */
   failureModes(): Reply {
     const dir = join(this.evalsDir, "failure_modes");
@@ -171,8 +188,7 @@ export class App {
       return { status: 422, body: { error: "invalid", message: `${rel} would break the evals directory`, problems: fresh } };
     }
     this.validation = after;
-    this.pending.track(abs);
-    for (const s of side) this.pending.track(s.abs);
+    this.wrote([abs, ...side.map((x) => x.abs)]);
     this.emit({ type: "saved", path: rel, hash: sha256(content), side_effects: side.map((s) => s.rel) });
     const problems = after.problems.filter((p) => p.file === rel || side.some((s) => s.rel === p.file));
     return { status: 200, body: { path: rel, hash: sha256(content), status: "saved to branch", branch: this.git.branch(), problems, side_effects: side.map((s) => s.rel) } };
@@ -196,7 +212,7 @@ export class App {
     const fresh = after.problems.filter((p) => p.level === "error" && !baseline.has(`${p.file}|${p.message}`));
     if (fresh.length) { for (const p of prepared) { if (p.before === undefined) rmSync(p.abs); else writeFileSync(p.abs, p.before); } this.invalidate(); return { status: 422, body: { error: "invalid", message: "the change would break the evals directory", problems: fresh } }; }
     this.validation = after;
-    for (const p of prepared) this.pending.track(p.abs);
+    this.wrote(prepared.map((p) => p.abs));
     this.emit({ type: "saved", path: prepared[0]?.rel, side_effects: prepared.slice(1).map((p) => p.rel) });
     return { status: 200, body: { files: prepared.map((p) => ({ path: p.rel, hash: sha256(p.content) })), status: "saved to branch", branch: this.git.branch() } };
   }
@@ -247,7 +263,7 @@ export class App {
     const abs = join(this.evalsDir, "labels", `${safe}.jsonl`);
     mkdirSync(dirname(abs), { recursive: true });
     appendFileSync(abs, JSON.stringify(full) + "\n");
-    this.pending.track(abs); this.invalidate();
+    this.wrote([abs]); this.invalidate();
     this.emit({ type: "label", path: `labels/${safe}.jsonl`, label: full });
     void v;
     return { status: 200, body: { path: `labels/${safe}.jsonl`, label: full } };
@@ -267,6 +283,7 @@ export class App {
     return { status: 200, body: { branch, commit, message: msg, files: st.files.map((f) => f.path) } };
   }
   openPr(title?: string, body?: string): Reply {
+    if (this.backend.openPr) return this.backend.openPr(title, body);
     const branch = this.git.branch();
     if (!branch.startsWith("evals/")) throw new HttpError(400, "commit to an evals/ branch first");
     if (this.pending.state().files.length) throw new HttpError(400, "commit or discard pending changes first");

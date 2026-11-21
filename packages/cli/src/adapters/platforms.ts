@@ -1,6 +1,7 @@
 // Platform adapters: pull traces from Langfuse or Braintrust over their HTTP APIs, without a manual export, and
 // hand them to the JSONL adapter as plain lines. `fetch` is injectable so tests run against recorded payloads.
 // Tested against recorded response shapes, not live accounts: field names follow the public API docs as of 2026-10.
+import { newMessages } from "../trace_view.ts";
 type Obj = Record<string, unknown>;
 export type Fetch = (url: string, init?: { method?: string; headers?: Record<string, string>; body?: string }) => Promise<{ ok: boolean; status: number; json: () => Promise<unknown>; text: () => Promise<string> }>;
 export interface PullOptions { since?: string; limit?: number; fetch?: Fetch; env?: Record<string, string | undefined> }
@@ -33,11 +34,12 @@ export async function pullLangfuse(o: PullOptions = {}): Promise<PullResult> {
 }
 export function langfuseLine(t: Obj, observations: Obj[]): Obj {
   const gens = observations.filter((ob) => ob.type === "GENERATION").sort((a, b) => String(a.startTime).localeCompare(String(b.startTime)));
-  const messages: Obj[] = []; const toolCalls: Obj[] = []; let turn = 0;
+  const messages: Obj[] = []; const toolCalls: Obj[] = []; let turn = 0; let seen = 0; let continuing = false;
   for (const g of gens) {
     const input = g.input; const output = g.output;
-    if (Array.isArray(input)) for (const m of input as Obj[]) { if (m.role === "user" || m.role === "system") { if (!messages.some((x) => x.role === m.role && x.content === toText(m.content))) messages.push({ role: m.role, content: toText(m.content) }); } }
+    if (Array.isArray(input)) { const fresh = newMessages(input as Obj[], seen, continuing); seen += fresh.counted; for (const m of fresh.messages) messages.push({ role: m.role, content: toText(m.content) }); }
     else if (input !== undefined && !messages.length) messages.push({ role: "user", content: toText(input) });
+    { const o = (Array.isArray(output) ? (output as Obj[])[0] : output) as Obj | undefined; continuing = Boolean(o && typeof o === "object" && Array.isArray(o.tool_calls) && (o.tool_calls as unknown[]).length && !toText(o.content ?? o.text ?? "").trim()); }
     const out = (Array.isArray(output) ? (output as Obj[])[0] : output) as Obj | string | undefined;
     const outObj = out && typeof out === "object" ? out : undefined;
     if (outObj?.tool_calls) for (const c of outObj.tool_calls as Obj[]) toolCalls.push({ id: c.id, name: String((c.function as Obj | undefined)?.name ?? c.name ?? "tool"), arguments: parseMaybe((c.function as Obj | undefined)?.arguments ?? c.arguments), turn });
@@ -73,7 +75,8 @@ export function braintrustLine(root: string, events: Obj[]): Obj {
   const llm = sorted.filter((e) => ((e.span_attributes as Obj | undefined)?.type ?? "") === "llm");
   const tools = sorted.filter((e) => ((e.span_attributes as Obj | undefined)?.type ?? "") === "tool");
   const messages: Obj[] = []; const toolCalls: Obj[] = [];
-  llm.forEach((e, turn) => { const input = e.input; if (Array.isArray(input)) for (const m of input as Obj[]) if ((m.role === "user" || m.role === "system") && !messages.some((x) => x.role === m.role && x.content === toText(m.content))) messages.push({ role: m.role, content: toText(m.content) }); const out = (Array.isArray(e.output) ? (e.output as Obj[])[0] : e.output) as Obj | string; const outObj = out && typeof out === "object" ? out : undefined; if (outObj?.tool_calls) for (const c of outObj.tool_calls as Obj[]) toolCalls.push({ id: c.id, name: String((c.function as Obj | undefined)?.name ?? c.name ?? "tool"), arguments: parseMaybe((c.function as Obj | undefined)?.arguments ?? c.arguments), turn }); messages.push({ role: "assistant", content: toText(outObj ? outObj.content ?? "" : out) }); });
+  let seen = 0; let continuing = false;
+  llm.forEach((e, turn) => { const input = e.input; if (Array.isArray(input)) { const fresh = newMessages(input as Obj[], seen, continuing); seen += fresh.counted; for (const m of fresh.messages) messages.push({ role: m.role, content: toText(m.content) }); } { const o = (Array.isArray(e.output) ? (e.output as Obj[])[0] : e.output) as Obj | undefined; continuing = Boolean(o && typeof o === "object" && Array.isArray(o.tool_calls) && (o.tool_calls as unknown[]).length && !toText(o.content ?? o.text ?? "").trim()); } const out = (Array.isArray(e.output) ? (e.output as Obj[])[0] : e.output) as Obj | string; const outObj = out && typeof out === "object" ? out : undefined; if (outObj?.tool_calls) for (const c of outObj.tool_calls as Obj[]) toolCalls.push({ id: c.id, name: String((c.function as Obj | undefined)?.name ?? c.name ?? "tool"), arguments: parseMaybe((c.function as Obj | undefined)?.arguments ?? c.arguments), turn }); messages.push({ role: "assistant", content: toText(outObj ? outObj.content ?? "" : out) }); });
   for (const t of tools) { const name = String((t.span_attributes as Obj).name ?? "tool"); const tc = toolCalls.find((c) => c.name === name && c.result === undefined); if (tc) tc.result = t.output; else toolCalls.push({ name, arguments: t.input ?? {}, result: t.output, turn: Math.max(0, messages.filter((m) => m.role === "assistant").length - 1) }); }
   const metrics = (llm[0]?.metrics as Obj) ?? {};
   return { id: root, input: toText(rootEv.input ?? messages.find((m) => m.role === "user")?.content ?? ""), output: toText(rootEv.output ?? [...messages].reverse().find((m) => m.role === "assistant")?.content ?? ""), messages: messages.length ? messages : undefined, tool_calls: toolCalls.length ? toolCalls : undefined, timestamp: rootEv.created, model: (llm[0]?.metadata as Obj | undefined)?.model as string | undefined, metadata: { ...((rootEv.metadata as Obj) ?? {}), ...(metrics.tokens ? { tokens: metrics.tokens } : {}) } };

@@ -2,21 +2,58 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://litmustest.dev/schemas/v1/check.outcome.json",
   "title": "Outcome check",
-  "description": "Reads the real end state after a trial (a database row, a file, an HTTP resource, a page) and compares it to what should be there.",
+  "description": "Reads the real end state after a trial (a database row, a file, an HTTP resource, a page) and compares it to what should be there. Without `read` the state is `trial.state`, the snapshot the agent's own script wrote into trial.json. With `read` the runner reads the state itself, so the agent's script cannot report a state that is not there.",
   "type": "object",
   "required": ["id", "type", "expect"],
   "additionalProperties": false,
   "properties": {
     "id": { "$ref": "common.json#/$defs/name" },
     "type": { "const": "outcome" },
-    "backend": { "type": "string", "enum": ["sql", "fs", "http", "page"], "default": "sql", "description": "How the state is read." },
+    "backend": { "type": "string", "enum": ["sql", "fs", "http", "page"], "default": "sql", "description": "What kind of state this is. It selects the reader when `read` is set; page has no reader and always uses trial.state." },
+    "read": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "description": "How the runner reads the state after the trial. sql: `file` and `queries`. fs: `file` or `exists`. http: `url`. Paths are relative to the trial directory and may not leave it. `validate --deep` and `run --dry-run` have no trial directory, so there the check is compared against the reference solution's `state`.",
+      "properties": {
+        "file": { "type": "string", "minLength": 1, "description": "sql: a SQLite file in the trial directory, opened read-only. fs: a JSON file in the trial directory; the parsed JSON is the state." },
+        "queries": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": { "type": "string", "pattern": "^\\s*([Ss][Ee][Ll][Ee][Cc][Tt]|[Ww][Ii][Tt][Hh])\\b" },
+          "description": "sql: one SELECT per `expect` key. The first column of the first row is the value; no row is null."
+        },
+        "exists": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 }, "description": "fs: paths to test. The state is { exists: [true, false, ...] } in the same order, so expect exists[0]: true." },
+        "url": { "type": "string", "minLength": 1, "description": "http: the resource to fetch; the JSON response is the state. {trial_dir}, {task} and {trial} are filled, and ${NAME} takes an environment variable. A network failure or a 5xx is an infra error, not a failed check; a 4xx gives the state { http_status }." },
+        "method": { "type": "string", "enum": ["GET", "POST"], "default": "GET" },
+        "headers": { "type": "object", "additionalProperties": { "type": "string" }, "description": "http: request headers; ${NAME} takes an environment variable, so a token never sits in the task file." }
+      }
+    },
     "expect": {
       "type": "object",
       "minProperties": 1,
-      "propertyNames": { "pattern": "^[A-Za-z_][A-Za-z0-9_]*(\\.[A-Za-z0-9_\\[\\]]+)*$" },
-      "description": "Dotted path to a value in the state snapshot, e.g. refunds.status: processed. Every entry must match."
+      "propertyNames": { "pattern": "^[A-Za-z_][A-Za-z0-9_]*(\\[[0-9]+\\])*(\\.[A-Za-z0-9_\\[\\]]+)*$" },
+      "description": "Dotted path to a value in the state, e.g. refunds.status: processed, or rows[0].id. Every entry must match."
     },
     "weight": { "type": "number", "exclusiveMinimum": 0, "default": 1 },
     "failure_mode": { "$ref": "common.json#/$defs/name" }
-  }
+  },
+  "allOf": [
+    {
+      "if": { "required": ["read"], "properties": { "backend": { "const": "sql" } } },
+      "then": { "properties": { "read": { "type": "object", "required": ["file", "queries"], "properties": { "exists": false, "url": false, "method": false, "headers": false } } } }
+    },
+    {
+      "if": { "required": ["read", "backend"], "properties": { "backend": { "const": "fs" } } },
+      "then": { "properties": { "read": { "type": "object", "oneOf": [{ "required": ["file"] }, { "required": ["exists"] }], "properties": { "queries": false, "url": false, "method": false, "headers": false } } } }
+    },
+    {
+      "if": { "required": ["read", "backend"], "properties": { "backend": { "const": "http" } } },
+      "then": { "properties": { "read": { "type": "object", "required": ["url"], "properties": { "file": false, "queries": false, "exists": false } } } }
+    },
+    {
+      "if": { "required": ["backend"], "properties": { "backend": { "const": "page" } } },
+      "then": { "properties": { "read": false } }
+    }
+  ]
 }

@@ -1,0 +1,5 @@
+id: report_written
+type: outcome
+backend: fs
+read: { exists: [out/report.md, out/data.csv] }
+expect: { "exists[0]": true, "exists[1]": true }

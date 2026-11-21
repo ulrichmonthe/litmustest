@@ -12,7 +12,7 @@ describe("modes view on the example", () => {
     const tm = modes.find((m) => m.name === "tone_mismatch")!;
     expect(tm.grader).toMatchObject({ kind: "judge", status: "trusted" });
     expect(tm.labels).toBe(50); expect(tm.fail_labels).toBeGreaterThan(0);
-    expect((tm.tasks as unknown[]).length).toBe(40);
+    expect((tm.tasks as unknown[]).length).toBe(41);
     expect(String(tm.hash)).toMatch(/^[a-f0-9]{64}$/);
     expect(tm.has_runs).toBe(true); expect((tm.trend as number[]).length).toBe(2);
     const mr = modes.find((m) => m.name === "missed_refund")!;

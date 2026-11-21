@@ -12,12 +12,12 @@ const ROOT = join(here, "..");
 export const N_TRACES = 300;
 const MODEL = "claude-opus-5-5";
 
-const OPENERS: Record<Persona, string[]> = {
+export const OPENERS: Record<Persona, string[]> = {
   frustrated: ["I understand, and I'm sorry you've had to write again.", "I'm sorry. Let me deal with this now."],
   business: ["Thank you for the details.", "Understood."],
   first_time: ["Welcome, and thanks for checking.", "Good question."],
 };
-const BREEZY = ["No worries at all!! 😊 Let's get this sorted!", "Oops! Happens to the best of us! Let me take a peek!", "Hey there! Great question! Super easy fix!"];
+export const BREEZY = ["No worries at all!! 😊 Let's get this sorted!", "Oops! Happens to the best of us! Let me take a peek!", "Hey there! Great question! Super easy fix!"];
 
 export interface Planted { trace_id: string; scenario: string; persona: Persona; failures: string[] }
 

@@ -11,19 +11,21 @@ export function traceView(trace: Obj): TraceView {
   const spans = ([...(trace.spans as Span[])]).sort((a, b) => a.start_time.localeCompare(b.start_time));
   const turns: ViewTurn[] = []; const calls: ViewCall[] = [];
   let model: string | undefined; let inTok = 0, outTok = 0;
-  const seenUser = new Set<string>();
+  let seenUser = 0; // user and system messages already turned into turns, counted in conversation order
+  let continuing = false; // the previous model call ended by calling tools
   for (const s of spans) {
     const a = (s.attributes ?? {}) as Obj;
     const op = a["gen_ai.operation.name"];
     if (op === "chat" || op === "text_completion" || op === "generate_content") {
       model ??= (a["gen_ai.response.model"] ?? a["gen_ai.request.model"]) as string | undefined;
       inTok += Number(a["gen_ai.usage.input_tokens"] ?? 0); outTok += Number(a["gen_ai.usage.output_tokens"] ?? 0);
-      for (const m of (a["gen_ai.input.messages"] as Obj[] | undefined) ?? []) {
-        if (m.role !== "user" && m.role !== "system") continue;
-        const text = partsText(m.parts as Obj[]);
-        if (!text || seenUser.has(text)) continue; // the same user turn is resent on every request
-        seenUser.add(text); turns.push({ role: m.role as "user" | "system", content: text, span_id: s.span_id });
-      }
+      const fresh = newMessages((a["gen_ai.input.messages"] as Obj[] | undefined) ?? [], seenUser, continuing);
+      seenUser += fresh.counted;
+      for (const m of fresh.messages) { const text = partsText(m.parts as Obj[]); if (text) turns.push({ role: m.role as "user" | "system", content: text, span_id: s.span_id }); }
+      const out = (a["gen_ai.output.messages"] as Obj[] | undefined) ?? [];
+      // Called tools and said nothing: the next call carries the results, not a new customer turn. (An output that also
+      // has text is an answer, whatever its finish_reason says; older JSONL ingests mark those "tool_call".)
+      continuing = out.some((m) => ((m.parts as Obj[] | undefined) ?? []).some((p) => p.type === "tool_call") && !partsText(m.parts as Obj[]));
       for (const m of (a["gen_ai.output.messages"] as Obj[] | undefined) ?? []) {
         const text = partsText(m.parts as Obj[]);
         if (text) turns.push({ role: "agent", content: text, span_id: s.span_id });
@@ -39,6 +41,20 @@ export function traceView(trace: Obj): TraceView {
     }
   }
   return { id: String(trace.id), turns, calls, model, input_tokens: inTok, output_tokens: outTok, metadata: (trace.metadata as Obj) ?? {} };
+}
+
+/**
+ * The user and system messages a model call adds to the conversation. When the call's input carries the history
+ * (it holds an earlier assistant or tool message, as the OpenTelemetry GenAI conventions ask), the new ones are those
+ * past the `seen` already counted. When it carries only the new turn, all of them are new, unless the previous call
+ * ended by calling tools (`continuing`): then this call runs the tool results and no one has spoken since. Never by
+ * text: a customer who answers "yes" twice said it twice.
+ */
+export function newMessages(input: Obj[], seen: number, continuing = false): { messages: Obj[]; counted: number } {
+  const own = input.filter((m) => m.role === "user" || m.role === "system");
+  const history = input.some((m) => m.role !== "user" && m.role !== "system");
+  const messages = history ? own.slice(seen) : continuing ? [] : own;
+  return { messages, counted: messages.length };
 }
 
 function partsText(parts: Obj[] | undefined): string {

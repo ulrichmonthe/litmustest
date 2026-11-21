@@ -9,6 +9,8 @@ description: Run error analysis on a product's traces with litmustest. Ingest an
 
 You are running an error-analysis session. The team has traces of an AI product (a JSONL log, or an OpenTelemetry export) and wants to find out how it fails. The output of this skill is a set of named, defined, counted failure modes under `evals/failure_modes/`, proposed as a diff on a branch. A person commits them.
 
+**Where the evals directory is.** The commands here are written for `evals/` at the repository root. Find the directory that holds `litmustest.yaml` first. If it is somewhere else (the sample repo keeps it at `examples/support-agent/evals`), add `--dir <evals dir>` to every `litmustest` command and read the `evals/...` paths below as inside that directory. A command pointed at a directory that is not there fails; it never reports a clean result. `litmustest <command> --help` prints that command's flags.
+
 Three rules from `CLAUDE.md` bind you:
 
 1. `evals/` in git is the source of truth. You write files there; nothing else.
@@ -20,6 +22,8 @@ This skill is for interactive sessions. If the session is non-interactive (`clau
 ## Progress updates
 
 Say what you are about to do before each phase and what you found after it. "Ingesting 300 traces from logs/support.jsonl into 8 clusters." "The reviewer has labelled 14 traces; grouping 11 notes." Do not go silent while a command or the model runs.
+
+**If reviewers have already left notes** (non-empty files under `evals/labels/`), skip to Phase 4. Do not ingest again unless the reviewer wants more traces: a second `ingest` writes a new batch. Labels may already carry a failure mode; group the Fail notes, and when every note already maps to an existing mode, say there is nothing new to propose. Do not invent one.
 
 ## Phase 1: Set up the evals directory
 
@@ -65,7 +69,7 @@ litmustest discover --apply    # save the proposed files as pending changes on t
 
 `discover` reads every label with a note, pulls a short excerpt of each trace, shows the existing failure modes, and asks the model to group the notes into modes: create, update, keep or retire, each with a definition that says what Pass and Fail look like, a severity, example trace ids from the notes, and a one-sentence rationale. Each proposal is shown as a diff of `evals/failure_modes/<name>.yaml`. The dashboard offers the same thing as "Ask Claude to regroup notes" on the review queue.
 
-You can do the grouping yourself instead of calling the model through the CLI; you are the same model. If you do, write the files to `evals/failure_modes/` with the schema in `docs/SCHEMAS.md` and run `litmustest validate`. Either way the result is uncommitted files on the branch, visible in the Pending changes tray, and you present them to the user as a diff and stop. Do not commit.
+You can do the grouping yourself instead of calling the model through the CLI; you are the same model. If you do, write the files to `evals/failure_modes/` with the schema in `docs/SCHEMAS.md` in the litmustest repository and run `litmustest validate`. Either way the result is uncommitted files on the branch, visible in the Pending changes tray, and you present them to the user as a diff and stop. Do not commit.
 
 Rules for a good mode, from the course:
 
