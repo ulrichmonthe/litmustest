@@ -11,7 +11,7 @@ import { serve, type Running } from "../packages/cli/src/serve.ts";
 
 const EXAMPLE = join(import.meta.dirname, "..", "examples", "support-agent", "evals");
 const git = (cwd: string, ...a: string[]) => execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@t", ...a], { cwd, encoding: "utf8" });
-const ROUTES = ["overview", "review", "modes", "tasks", "compare", "transcripts", "judges", "coverage", "settings", "pending"];
+const ROUTES = ["home", "teach/label", "teach/modes", "cover/tasks", "ship", "library/runs", "teach/judges", "cover", "library/settings", "pending"];
 
 function repo(fill: (cwd: string) => void): string {
   const cwd = mkdtempSync(join(tmpdir(), "litmustest-ui-"));
@@ -61,8 +61,30 @@ describe("dashboard smoke", () => {
     const s = await serve({ evalsDir: join(cwd, "evals"), port: 0, watch: false }); servers.push(s);
     const t = (await (await fetch(`${s.url}/api/transcripts`)).json()) as { run: { run_id: string }; tasks: { id: string; suite: string }[] };
     const task = t.tasks[0];
-    const deep = [`tasks/${task.suite}/${task.id}`, `transcripts/${t.run.run_id}/${task.id}/1`, "judges/tone_mismatch", "modes/tone_mismatch"];
+    const deep = [`cover/tasks/${task.suite}/${task.id}`, `library/runs/${t.run.run_id}/${task.id}/1`, "teach/judges/tone_mismatch", "teach/modes/tone_mismatch"];
     expect(await visit(s.url, [...ROUTES, ...deep])).toEqual({});
+  }, 60_000);
+
+  it("an old link goes to its place, and Back still works", async (ctx) => {
+    if (!browser) return ctx.skip();
+    const cwd = repo((c) => cpSync(EXAMPLE, join(c, "evals"), { recursive: true }));
+    const s = await serve({ evalsDir: join(cwd, "evals"), port: 0, watch: false }); servers.push(s);
+    const page = await browser.newPage();
+    const MOVED: [string, string][] = [["", "#/home"], ["overview", "#/home"], ["compare", "#/ship"], ["review", "#/teach/label"], ["discover", "#/teach/group"],
+      ["modes/tone_mismatch", "#/teach/modes/tone_mismatch"], ["judges/tone_mismatch", "#/teach/judges/tone_mismatch"], ["coverage/traffic", "#/cover/traffic"],
+      ["tasks/regression?status=broken", "#/cover/tasks/regression?status=broken"], ["transcripts/run_0041", "#/library/runs/run_0041"], ["settings", "#/library/settings"]];
+    for (const [from, to] of MOVED) {
+      await page.goto(`${s.url}/#/${from}`);
+      await page.waitForFunction((want) => location.hash === want, to);
+    }
+    // the sidebar marks the current place, and the top bar names where you are
+    await page.goto(`${s.url}/#/teach/judges/tone_mismatch`); await page.waitForSelector('#nav-items a[aria-current="page"]');
+    expect(await page.textContent('#nav-items a[aria-current="page"]')).toContain("Teach");
+    expect(await page.$$eval("#nav-current > :not(.sep)", (els) => els.map((e) => e.textContent))).toEqual(["Teach", "Trust judges", "tone_mismatch"]);
+    // a redirect replaces the history entry, so Back skips it
+    await page.goto(`${s.url}/#/home`); await page.evaluate(() => { location.hash = "#/judges"; }); await page.waitForFunction(() => location.hash === "#/teach/judges");
+    await page.goBack(); await page.waitForFunction(() => location.hash === "#/home");
+    await page.close();
   }, 60_000);
 
   it("renders every route on a fresh init", async (ctx) => {
@@ -76,7 +98,7 @@ describe("dashboard smoke", () => {
 // The explainer (docs/EXPLAINER.md): every header, stat label and pill on the screens is either a glossary term or a plain word on this list.
 const PLAIN = new Set(["a", "b", "a → b", "actual", "agent", "change", "customer", "expected", "fail", "failed", "failing", "passing", "pass", "high", "med", "low", "human", "item", "last runs", "model", "mode", "none", "path", "source", "status", "suite health", "tool", "trend", "used by", "why", "what happened", "what it tests", "what this means", "to make it pass", "judge's critique", "covered by", "has check", "measured", "not measured in v1", "not measured", "needs labels", "failing check in b", "no grader", "only a judge failed it", "mixed", "high severity", "review queue", "dev tpr / tnr", "test tpr / tnr", "checks"]);
 const ALSO: Record<string, string> = { broke: "flip", fixed: "flip", significant: "confidence_interval", "within noise": "confidence_interval" };
-const ROUTES_ALL = ["overview", "review", "modes", "tasks", "compare", "transcripts", "judges", "judges/tone_mismatch", "coverage", "settings", "pending"];
+const ROUTES_ALL = ["home", "teach/label", "teach/modes", "cover/tasks", "ship", "library/runs", "teach/judges", "teach/judges/tone_mismatch", "cover", "library/settings", "pending"];
 /** Pills that are not status words: the explain card's own kind label and the AI pill. */
 const NOT_STATUS = /^(AI|Claude|Sample data)/i;
 
@@ -363,7 +385,7 @@ describe("explainer, Epic 4 (docs/stories/explainer.md)", () => {
 });
 
 describe("phone layout and themes", () => {
-  it("at 390px the nav is one bar with a working Menu, the title is in the first screen and the page does not scroll sideways", async (ctx) => {
+  it("at 390px the top bar names the page, Menu opens the sidebar, the four places sit in a bottom bar, the title is in the first screen and the page does not scroll sideways", async (ctx) => {
     if (!browser) return ctx.skip();
     const cwd = repo((c) => cpSync(EXAMPLE, join(c, "evals"), { recursive: true }));
     const s = await serve({ evalsDir: join(cwd, "evals"), port: 0, watch: false }); servers.push(s);
@@ -372,8 +394,8 @@ describe("phone layout and themes", () => {
     for (const r of ROUTES) {
       await page.goto(`${s.url}/#/${r}`);
       await page.waitForFunction(() => { const p = document.querySelector("#page"); return p && !/Loading…/.test(p.textContent ?? "") && p.querySelector("h1"); });
-      const m = await page.evaluate(() => ({ h1: document.querySelector("#page h1")!.getBoundingClientRect().top, items: getComputedStyle(document.querySelector("#nav-items")!).display, sideways: document.documentElement.scrollWidth - document.documentElement.clientWidth, toggle: document.querySelector("#nav-toggle")!.getBoundingClientRect().height, current: document.querySelector("#nav-current")!.textContent }));
-      if (m.items !== "none") bad.push(`${r}: nav items shown before Menu is pressed`);
+      const m = await page.evaluate(() => ({ h1: document.querySelector("#page h1")!.getBoundingClientRect().top, items: getComputedStyle(document.querySelector("#sidebar")!).display, sideways: document.documentElement.scrollWidth - document.documentElement.clientWidth, toggle: document.querySelector("#nav-toggle")!.getBoundingClientRect().height, current: document.querySelector("#nav-current")!.textContent }));
+      if (m.items !== "none") bad.push(`${r}: the sidebar shows before Menu is pressed`);
       if (m.h1 > 300) bad.push(`${r}: title starts ${Math.round(m.h1)}px down`);
       if (m.sideways > 1) bad.push(`${r}: page scrolls sideways by ${m.sideways}px`);
       if (m.toggle < 44) bad.push(`${r}: Menu is ${m.toggle}px tall`);
@@ -382,9 +404,14 @@ describe("phone layout and themes", () => {
     expect(bad).toEqual([]);
     await page.click("#nav-toggle");
     expect(await page.getAttribute("#nav-toggle", "aria-expanded")).toBe("true");
-    expect(await page.evaluate(() => getComputedStyle(document.querySelector("#nav-items")!).display)).toBe("flex");
-    await page.click('#nav-items a[href="#/modes"]');
-    await page.waitForFunction(() => location.hash === "#/modes" && document.querySelector("#nav-toggle")!.getAttribute("aria-expanded") === "false");
+    expect(await page.evaluate(() => getComputedStyle(document.querySelector("#sidebar")!).display)).toBe("flex");
+    await page.click('#nav-items a[href="#/library/settings"]');
+    await page.waitForFunction(() => location.hash === "#/library/settings" && document.querySelector("#nav-toggle")!.getAttribute("aria-expanded") === "false");
+    // the bottom bar holds the four places, each at least 44px, and marks the current one
+    const bottom = await page.$$eval("#bottombar a", (as) => as.map((a) => ({ text: a.textContent, h: a.getBoundingClientRect().height, current: a.getAttribute("aria-current") })));
+    expect(bottom.map((b) => b.text)).toEqual(["Home", "Ship", "Teach", "Cover"]);
+    expect(bottom.every((b) => b.h >= 44)).toBe(true);
+    await page.click('#bottombar a[href="#/ship"]'); await page.waitForFunction(() => document.querySelector('#bottombar a[href="#/ship"]')!.getAttribute("aria-current") === "page");
     await page.close();
   }, 90_000);
 
