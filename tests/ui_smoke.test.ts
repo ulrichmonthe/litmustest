@@ -11,7 +11,7 @@ import { serve, type Running } from "../packages/cli/src/serve.ts";
 
 const EXAMPLE = join(import.meta.dirname, "..", "examples", "support-agent", "evals");
 const git = (cwd: string, ...a: string[]) => execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@t", ...a], { cwd, encoding: "utf8" });
-const ROUTES = ["home", "teach/label", "teach/modes", "cover/tasks", "ship", "library/runs", "teach/judges", "cover", "library/settings", "pending"];
+const ROUTES = ["home", "teach/label", "teach/group", "teach/modes", "cover/tasks", "ship", "library/runs", "teach/judges", "cover", "library/settings", "pending"];
 
 function repo(fill: (cwd: string) => void): string {
   const cwd = mkdtempSync(join(tmpdir(), "litmustest-ui-"));
@@ -61,7 +61,7 @@ describe("dashboard smoke", () => {
     const s = await serve({ evalsDir: join(cwd, "evals"), port: 0, watch: false }); servers.push(s);
     const t = (await (await fetch(`${s.url}/api/transcripts`)).json()) as { run: { run_id: string }; tasks: { id: string; suite: string }[] };
     const task = t.tasks[0];
-    const deep = [`cover/tasks/${task.suite}/${task.id}`, `library/runs/${t.run.run_id}/${task.id}/1`, "teach/judges/tone_mismatch", "teach/modes/tone_mismatch"];
+    const deep = [`cover/tasks/${task.suite}/${task.id}`, `library/runs/${t.run.run_id}/${task.id}/1`, "teach/judges/tone_mismatch", "teach/modes/tone_mismatch", "teach/judges/new?mode=ungrounded_policy", "ship/decide"];
     expect(await visit(s.url, [...ROUTES, ...deep])).toEqual({});
   }, 60_000);
 
@@ -96,7 +96,7 @@ describe("dashboard smoke", () => {
 });
 
 // The explainer (docs/EXPLAINER.md): every header, stat label and pill on the screens is either a glossary term or a plain word on this list.
-const PLAIN = new Set(["a", "b", "a → b", "actual", "before", "after", "agent", "change", "customer", "expected", "fail", "failed", "failing", "passing", "pass", "high", "med", "low", "human", "item", "last runs", "model", "mode", "none", "path", "source", "status", "suite health", "tool", "trend", "used by", "why", "what happened", "what it tests", "what this means", "to make it pass", "judge's critique", "covered by", "has check", "measured", "not measured in v1", "not measured", "needs labels", "failing check in b", "no grader", "only a judge failed it", "mixed", "high severity", "review queue", "dev tpr / tnr", "test tpr / tnr", "checks"]);
+const PLAIN = new Set(["a", "b", "a → b", "actual", "before", "after", "action", "actions", "agent", "change", "customer", "expected", "fail", "failed", "failing", "passing", "pass", "high", "med", "low", "human", "item", "last runs", "model", "mode", "none", "path", "source", "status", "suite health", "tool", "trend", "used by", "why", "what happened", "what it tests", "what this means", "to make it pass", "judge's critique", "covered by", "has check", "measured", "not measured in v1", "not measured", "needs labels", "failing check in b", "no grader", "only a judge failed it", "mixed", "high severity", "review queue", "dev tpr / tnr", "test tpr / tnr", "checks"]);
 const ALSO: Record<string, string> = { broke: "flip", fixed: "flip", significant: "confidence_interval", "within noise": "confidence_interval" };
 const ROUTES_ALL = ["home", "teach/label", "teach/modes", "cover/tasks", "ship", "library/runs", "teach/judges", "teach/judges/tone_mismatch", "cover", "library/settings", "pending"];
 /** Pills that are not status words: the explain card's own kind label and the AI pill. */
@@ -510,6 +510,33 @@ describe("Home, Ship and Decide (docs/stories/redesign.md, R2)", () => {
     expect(pending.files.some((f) => /labels\/disputes-run_0041\.jsonl$/.test(f.path))).toBe(true);
     const label = readFileSync(join(cwd, "evals", "labels", "disputes-run_0041.jsonl"), "utf8").trim().split("\n").map((l) => JSON.parse(l)).pop();
     expect(label).toMatchObject({ label: "Skip", failure_mode: "tone_mismatch" });
+    await page.close();
+  }, 90_000);
+});
+
+describe("Teach (docs/stories/redesign.md, R3)", () => {
+  it("every step shows the rail with the current step marked; notes can be grouped by hand into a failure mode", async (ctx) => {
+    if (!browser) return ctx.skip();
+    const cwd = repo((c) => cpSync(EXAMPLE, join(c, "evals"), { recursive: true }));
+    const s = await serve({ evalsDir: join(cwd, "evals"), port: 0, watch: false }); servers.push(s);
+    const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+    for (const [route, step] of [["teach/label", "Label"], ["teach/group", "Group notes"], ["teach/modes", "Failure modes"], ["teach/judges", "Trust judges"], ["teach/judges/tone_mismatch", "Trust judges"]]) {
+      await page.goto(`${s.url}/#/${route}`); await page.waitForSelector('#page .teach-rail a[aria-current="step"]');
+      expect(await page.textContent('#page .teach-rail a[aria-current="step"] .rail-title'), route).toMatch(new RegExp(`^${step}( \\(done\\))?$`));
+      expect(await page.$$eval("#page .teach-rail a", (as) => as.length)).toBe(4);
+    }
+    expect(await page.textContent('#page .teach-rail a[href="#/teach/label"] .rail-sub')).toBe("18 of 60");
+    // by hand: show tagged notes, pick one, add it to tone_mismatch as an example
+    await page.goto(`${s.url}/#/teach/group`); await page.waitForSelector("#page .hand-tab");
+    await page.check("#page .hand-notes .inline-check input"); await page.waitForSelector("#page .note-row");
+    const trace = (await page.textContent("#page .note-row .mono"))!.trim();
+    await page.click("#page .note-row"); await page.waitForSelector('#page .note-row[aria-pressed="true"]');
+    await page.click('#page .mode-target:has-text("tone_mismatch")');
+    await page.waitForFunction(() => /is in Pending changes/.test(document.querySelector("#page .status")?.textContent ?? ""));
+    expect(readFileSync(join(cwd, "evals", "failure_modes", "tone_mismatch.yaml"), "utf8")).toContain(trace);
+    // the new-judge screen explains what drafting needs when there is no model key
+    await page.goto(`${s.url}/#/teach/judges/new?mode=ungrounded_policy`); await page.waitForSelector("#page .facts");
+    expect(await page.textContent("#page")).toMatch(/ANTHROPIC_API_KEY|Draft the judge with Claude/);
     await page.close();
   }, 90_000);
 });

@@ -1,5 +1,5 @@
 // litmustest dashboard: screens/modes.js
-import { step } from "../components.js";
+import { step, teachRail } from "../components.js";
 import { count, num, plain, term } from "../explainer.js";
 import { $, api, h } from "../lib/dom.js";
 import { stale, state } from "../lib/state.js";
@@ -87,7 +87,8 @@ export async function renderModes(selName) {
     catch (e) { alert(`Not created: ${e.body?.problems?.[0]?.message ?? e.message}`); }
   };
   page.replaceChildren(h("div", { class: "column" },
-    h("header", { class: "page-header" }, h("div", { class: "titles" }, h("h1", { class: "t-page-title" }, "Failure modes"), h("p", { class: "subtitle" }, `${live.length} named problems from ${modes.reduce((a, m) => a + m.labels, 0)} labels · each one is a file in `, h("span", { class: "mono" }, "evals/failure_modes/"))),
-      h("div", { class: "verdict" }, h("a", { href: `#/discover/${encodeURIComponent(state.batches[0]?.name ?? "")}`, class: "btn" }, "Ask Claude to regroup from new notes"), h("button", { type: "button", class: "btn primary", onclick: create }, "New failure mode"))),
+    teachRail("modes"),
+    h("header", { class: "page-header" }, h("div", { class: "titles" }, h("h1", { class: "teach-title" }, "Failure modes"), h("p", { class: "subtitle" }, `${live.length} named problems from ${modes.reduce((a, m) => a + m.labels, 0)} labels · each one is a file in `, h("span", { class: "mono" }, "evals/failure_modes/"))),
+      h("div", { class: "verdict" }, h("a", { href: "#/teach/group", class: "btn" }, "Group new notes"), h("button", { type: "button", class: "btn primary", onclick: create }, "New failure mode"))),
     h("div", { class: "two-col" }, pareto, editor)));
 }

@@ -152,7 +152,7 @@ Usage:
       and your label is appended for that judge's failure mode. Human-only,
       like label.
 
-  litmustest promote <trace> [--suite regression] [--id task_id] [--dir evals] [--json]
+  litmustest promote <trace> [--suite capability] [--id task_id] [--dir evals] [--json]
       Turn a reviewed trace into a task: the task file, a reference drafted
       from what the agent did, and the suite entry, as one pending change.
       Prints the checks the drafted reference fails, for a person to fix.
@@ -161,7 +161,7 @@ Usage:
       Mark a task that flipped between runs A and B as expected (or --undo).
       It explains the change in the comparison; it never waives a gate.
 
-  litmustest mode new|set|merge|retire <name> [into] [--definition s] [--severity high|med|low] [--owner o] [--dir evals] [--json]
+  litmustest mode new|set|merge|retire|add-notes <name> [into | trace...] [--definition s] [--severity high|med|low] [--owner o] [--dir evals] [--json]
       Create or edit a failure mode, merge it into another, or retire it.
 
   litmustest set <path> [key=value]... [--unset key]... [--from file] [--dir evals] [--json]

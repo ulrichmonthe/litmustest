@@ -1,24 +1,81 @@
 // litmustest dashboard: screens/judges.js
-import { header, step } from "../components.js";
+import { header, statusWord, step, teachHead, teachRail } from "../components.js";
 import { command, num, plain, rate, term } from "../explainer.js";
 import { $, ago, api, h } from "../lib/dom.js";
 import { stale, state } from "../lib/state.js";
 import { review } from "./review.js";
 import { refreshHealth } from "../shell.js";
 
-// ---------------- judges
+// ---------------- judges (design/mockups/v2/JudgesP): every judge with its status, its rates with their ranges, and one action;
+// then the failure modes with no judge yet, each with a way to start one.
+const JSTATUS = { trusted: ["good", "Trusted"], stale: ["warn", "Stale"], dev: ["warn", "Below the bar"], untested: ["none", "Untested"] };
 export async function renderJudges() {
   const seq = state.seq; const page = $("#page");
   const d = await api("/api/judges"); if (stale(seq)) return;
-  const pill = (s) => h("span", { class: `pill ${s === "trusted" ? "good" : s === "stale" || s === "dev" ? "warn" : ""}` }, s === "trusted" ? "Trusted" : s === "stale" ? "Stale" : s === "dev" ? "Dev" : "Untested");
-  const rows = d.judges.map((j) => h("tr", {}, h("td", {}, h("a", { class: "mono", href: `#/judges/${encodeURIComponent(j.name)}` }, j.name)), h("td", {}, num(j.status === "trusted" ? "trusted" : j.status === "stale" ? "stale" : "calibration", "judge", { judge: j.name }, pill(j.status))), h("td", { class: "num" }, j.dev ? [rate(j.dev.tpr, j.dev.tpr_ci), " / ", rate(j.dev.tnr, j.dev.tnr_ci)] : "—"), h("td", { class: "num" }, j.test ? [rate(j.test.tpr, j.test.tpr_ci), " / ", rate(j.test.tnr, j.test.tnr_ci)] : "—"), h("td", { class: "num" }, String(j.labels)), h("td", { class: "num" }, String(j.used_by)), h("td", { class: "mono", style: "font-weight:400;font-size:12px" }, `${j.model} · v${j.version}`)));
+  const enc = encodeURIComponent;
+  const trusted = d.judges.filter((j) => j.status === "trusted").length;
   const status = h("span", { class: "status", "aria-live": "polite" });
-  const draft = async (mode, kind) => { status.textContent = `Drafting ${kind} for ${mode}…`; status.className = "status"; try { const r = await api(`/api/${kind === "judge" ? "judges" : "checks"}/${encodeURIComponent(mode)}/draft`, { method: "POST", body: "{}" }); status.textContent = `${r.files.length} files in the Pending changes tray${r.agreement ? ` · agreement ${r.agreement.agree}/${r.agreement.n}` : ""}`; status.className = "status good"; await refreshHealth(); if (kind === "judge") location.hash = `#/judges/${encodeURIComponent(mode)}`; else renderJudges(); } catch (e) { status.textContent = e.message; status.className = "status bad"; } };
-  const cands = d.candidates.map((c) => h("div", { class: "alert named" }, h("span", { class: "mono" }, c.name), h("span", { class: "body" }, h("span", {}, num(c.name, "failure_mode", { mode: c.name }, `${c.labels} labels`), c.has_code_check ? " · has a code check" : "")), h("div", { class: "verdict" }, h("button", { type: "button", class: "btn", disabled: c.labels < 6, title: c.labels < 6 ? "Needs at least 6 labels" : "", onclick: () => draft(c.name, "judge") }, "Draft judge from labels"), h("button", { type: "button", class: "btn", disabled: c.labels < 4, onclick: () => draft(c.name, "check") }, "Draft code check"))));
+  const draftCheck = async (mode) => { status.textContent = `Drafting a code check for ${mode}…`; status.className = "status"; try { const r = await api(`/api/checks/${enc(mode)}/draft`, { method: "POST", body: "{}" }); status.textContent = `${r.files.length} files in Pending changes`; status.className = "status good"; await refreshHealth(); renderJudges(); } catch (e) { status.textContent = e.message; status.className = "status bad"; } };
+  const action = (j) => j.status === "stale" ? "Run on dev set" : j.status === "dev" ? "Label more, then run" : j.status === "untested" ? "Run on dev set" : "Open";
+  const rows = d.judges.map((j) => { const [lv, word] = JSTATUS[j.status] ?? ["none", j.status]; return h("tr", {},
+    h("td", {}, h("a", { class: "mono", href: `#/teach/judges/${enc(j.name)}` }, j.name)),
+    h("td", {}, num(j.status === "trusted" ? "trusted" : j.status === "stale" ? "stale" : "calibration", "judge", { judge: j.name }, statusWord(lv, word))),
+    h("td", { class: "num" }, j.dev ? [rate(j.dev.tpr, j.dev.tpr_ci), " / ", rate(j.dev.tnr, j.dev.tnr_ci)] : "—"),
+    h("td", { class: "num" }, j.test ? [rate(j.test.tpr, j.test.tpr_ci), " / ", rate(j.test.tnr, j.test.tnr_ci)] : "—"),
+    h("td", { class: "num" }, String(j.labels)),
+    h("td", { class: "mono judge-model" }, `${j.model} · v${j.version}`),
+    h("td", { class: "row-action" }, h("a", { href: `#/teach/judges/${enc(j.name)}` }, action(j)))); });
+  const sev = (name) => state.modes.find((m) => m.name === name)?.severity ?? "";
+  const cands = d.candidates.slice().sort((a, b) => ["high", "med", "low", ""].indexOf(sev(a.name)) - ["high", "med", "low", ""].indexOf(sev(b.name)));
   page.replaceChildren(h("div", { class: "column" },
-    h("header", { class: "page-header" }, h("div", { class: "titles" }, h("h1", { class: "t-page-title" }, "Judges"), h("p", { class: "subtitle" }, `One failure mode each · trusted at TPR and TNR ≥ ${d.threshold}% on a held-out test set, run once · ${d.judges.filter((j) => j.status === "trusted").length} of ${d.judges.length} trusted`)), status),
-    h("section", { class: "card", "aria-label": "Judges" }, d.judges.length ? h("table", { class: "plain" }, h("thead", {}, h("tr", {}, h("th", { scope: "col" }, "Judge"), h("th", { scope: "col" }, "Status"), h("th", { scope: "col", style: "text-align:right" }, term("dev_set", "Dev"), " ", term("tpr", "TPR"), " / ", term("tnr", "TNR")), h("th", { scope: "col", style: "text-align:right" }, term("test_set", "Test"), " TPR / TNR"), h("th", { scope: "col", style: "text-align:right" }, "Labels"), h("th", { scope: "col", style: "text-align:right" }, "Used by"), h("th", { scope: "col" }, "Model"))), h("tbody", {}, ...rows)) : h("p", { class: "muted", style: "margin:0" }, "No judges yet.")),
-    h("section", { class: "card", "aria-label": "Failure modes without a judge", style: `--name-ch:${Math.max(0, ...d.candidates.map((c) => c.name.length)) + 1}ch` }, h("div", { class: "card-head" }, h("h2", { class: "t-section-title" }, "Failure modes without a judge"), h("span", { class: "caption" }, "draft from labels; code checks first where a function can decide")), ...(cands.length ? cands : [h("p", { class: "muted", style: "margin:0" }, d.judges.length ? "Every failure mode has a judge." : h("span", {}, "No failure modes yet. Name them from review notes first: ", h("a", { href: "#/modes" }, "Failure modes"), "."))]))));
+    teachRail("judges"),
+    teachHead(`${trusted} of ${d.judges.length} ${d.judges.length === 1 ? "judge" : "judges"} can be trusted`, [`A judge counts in scores and gates only once it passes its `, term("test_set", "test set"), `, run once, with `, term("tpr", "TPR"), " and ", term("tnr", "TNR"), ` at ${d.threshold}% or more. Code checks need no calibrating.`], status),
+    h("section", { class: "judges-list", "aria-label": "Judges" }, d.judges.length ? h("table", { class: "plain" },
+      h("thead", {}, h("tr", {}, h("th", { scope: "col" }, "Judge"), h("th", { scope: "col" }, "Status"), h("th", { scope: "col", class: "num" }, term("dev_set", "Dev"), " TPR / TNR"), h("th", { scope: "col", class: "num" }, "Test TPR / TNR"), h("th", { scope: "col", class: "num" }, "Labels"), h("th", { scope: "col" }, "Model"), h("th", { scope: "col" }, h("span", { class: "sr-only" }, "Action")))),
+      h("tbody", {}, ...rows)) : h("p", { class: "empty-quiet" }, "No judges yet. Start one for a failure mode below.")),
+    h("section", { class: "judges-list", "aria-label": "Failure modes without a judge" },
+      h("div", { class: "section-head" }, h("h2", {}, "Failure modes with no judge"), h("span", { class: "caption muted" }, "Code checks first, where a function can decide")),
+      cands.length ? h("table", { class: "plain" },
+        h("thead", {}, h("tr", {}, h("th", { scope: "col" }, "Failure mode"), h("th", { scope: "col" }, "Severity"), h("th", { scope: "col", class: "num" }, "Labels"), h("th", { scope: "col" }, h("span", { class: "sr-only" }, "Actions")))),
+        h("tbody", {}, ...cands.map((c) => h("tr", {},
+          h("td", {}, h("a", { class: "mono", href: `#/teach/modes/${enc(c.name)}` }, c.name)),
+          h("td", {}, sev(c.name) || "—"),
+          h("td", { class: "num" }, num(c.name, "failure_mode", { mode: c.name }, String(c.labels))),
+          h("td", { class: "row-action" }, c.has_code_check ? h("span", { class: "muted" }, "Has a code check") : null,
+            h("a", { href: `#/teach/judges/new?mode=${enc(c.name)}` }, "New judge"),
+            h("button", { type: "button", class: "linklike", disabled: c.labels < 4, title: c.labels < 4 ? "Needs at least 4 labels" : "", onclick: () => draftCheck(c.name) }, "Draft code check"))))))
+        : h("p", { class: "empty-quiet" }, d.judges.length ? "Every failure mode has a judge." : h("span", {}, "No failure modes yet. ", h("a", { href: "#/teach/group" }, "Group your notes"), " first.")))));
+}
+
+// ---------------- new judge (design/mockups/v2/NewJudgeP): Claude drafts a judge for one failure mode from its definition
+// and labels; the files land in Pending changes and the judge starts untrusted.
+export async function renderNewJudge(mode) {
+  const seq = state.seq; const page = $("#page");
+  const [d, modes] = await Promise.all([api("/api/judges"), api("/api/modes")]); if (stale(seq)) return;
+  const enc = encodeURIComponent;
+  const m = modes.failure_modes.find((x) => x.name === mode);
+  const status = h("p", { class: "status", "aria-live": "polite" });
+  if (!m) { page.replaceChildren(h("div", { class: "column" }, teachRail("judges"), teachHead("New judge", "Pick a failure mode that has no judge yet."), h("ul", { class: "plain-list" }, ...d.candidates.map((c) => h("li", {}, h("a", { class: "mono", href: `#/teach/judges/new?mode=${enc(c.name)}` }, c.name), ` · ${c.labels} labels`))))); return; }
+  if (d.judges.some((j) => j.name === mode)) { location.replace(`#/teach/judges/${enc(mode)}`); return; }
+  const fails = Number(m.fail_labels ?? 0), labels = Number(m.labels ?? 0);
+  const enough = labels >= 6;
+  const key = Boolean(state.health?.model_key);
+  const draft = async (btn) => { btn.disabled = true; status.className = "status"; status.textContent = `Claude is drafting the ${mode} judge from its definition and ${labels} labels…`;
+    try { const r = await api(`/api/judges/${enc(mode)}/draft`, { method: "POST", body: "{}" }); await refreshHealth(); status.className = "status good"; status.textContent = `${r.files.length} files in Pending changes.`; location.hash = `#/teach/judges/${enc(mode)}`; }
+    catch (e) { status.className = "status bad"; status.textContent = e.message; btn.disabled = false; } };
+  page.replaceChildren(h("div", { class: "column" },
+    teachRail("judges"),
+    teachHead(["New judge for ", h("span", { class: "mono" }, mode)], ["A ", term("judge"), " grades one failure mode with Pass, Fail or Unknown. It starts untrusted and counts only once it passes its test set."]),
+    h("dl", { class: "facts" },
+      h("dt", {}, "Failure mode"), h("dd", {}, h("a", { class: "mono", href: `#/teach/modes/${enc(mode)}` }, mode), m.severity ? ` · ${m.severity}` : ""),
+      h("dt", {}, "Definition"), h("dd", {}, m.definition),
+      h("dt", {}, "Your labels"), h("dd", {}, `${fails} Fail and ${labels - fails} Pass. `, fails < 10 ? "With so few failures the test set will hold only a handful, so its rates will have wide ranges. Labeling more failures first narrows them." : "")),
+    h("p", { class: "caption muted" }, "Examples shown to the judge come only from the train split; the dev split measures it; the test set is held back until you run it once."),
+    h("div", { class: "home-actions" },
+      key ? h("button", { type: "button", class: "btn primary", disabled: !enough, title: enough ? "" : "Needs at least 6 labels", onclick: (e) => draft(e.currentTarget) }, "Draft the judge with Claude") : null,
+      h("a", { class: key ? "btn quiet" : "btn primary", href: "#/teach/label" }, "Label more first")),
+    key ? null : h("p", { class: "caption muted" }, "Drafting needs a model key: set ", h("span", { class: "mono" }, "ANTHROPIC_API_KEY"), " in the shell that runs ", h("span", { class: "mono" }, "litmustest serve"), ", or run ", h("span", { class: "mono" }, `litmustest draft-judge ${mode}`), " in a terminal that has one."),
+    status));
 }
 
 export const judgePage = { name: null, mode: "form", draft: null, hashes: null, state: "", cls: "", conflict: null };
@@ -96,7 +153,8 @@ export async function renderJudge(name) {
   const disagreements = h("section", { class: "card", "aria-label": "Disagreements" }, h("div", { class: "card-head" }, h("div", {}, h("h2", { class: "t-section-title" }, "Disagreements on dev"), h("div", { class: "caption muted" }, `${dis.length} traces where judge and human differ · a disputed verdict becomes a label`)), h("a", { href: "#/review" }, "Open queue")),
     dis.length ? h("table", { class: "plain" }, h("thead", {}, h("tr", {}, h("th", { scope: "col" }, "Trace"), h("th", { scope: "col" }, "Human"), h("th", { scope: "col" }, "Judge"), h("th", { scope: "col" }, "Judge's critique"))), h("tbody", {}, ...dis.slice(0, 30).map((x) => h("tr", {}, h("td", {}, h("a", { class: "mono", href: `#/review/${encodeURIComponent(state.batches[0]?.name ?? "")}/${encodeURIComponent(x.trace_id)}` }, x.trace_id)), h("td", {}, h("span", { class: `pill ${x.human === "Fail" ? "bad" : "good"}` }, x.human)), h("td", {}, h("span", { class: `pill ${x.judge === "Fail" ? "bad" : x.judge === "Pass" ? "good" : ""}` }, x.judge)), h("td", { style: "font-size:13px;color:var(--ink-muted)" }, x.critique ?? ""))))) : h("p", { class: "muted", style: "margin:0" }, "None recorded."));
   page.replaceChildren(h("div", { class: "column" },
-    h("header", { class: "page-header" }, h("div", { class: "titles" }, h("nav", { class: "breadcrumb", "aria-label": "Breadcrumb" }, h("a", { href: "#/judges" }, "Judges"), h("span", { class: "sep" }, "/"), h("span", { class: "mono" }, name)), h("div", { class: "title-row" }, h("h1", { class: "t-page-title mono" }, name), h("span", { class: `pill ${d.status === "trusted" ? "good" : d.status === "stale" || d.status === "dev" ? "warn" : ""}` }, `${d.label.replace(/^Judge · /, "")} · v${d.judge.data.version ?? 1}`)), h("p", { class: "subtitle" }, d.mode?.definition ?? "", ` Used by ${d.used_by.length} task${d.used_by.length === 1 ? "" : "s"}.`)), h("div", { class: "verdict" }, h("a", { href: `#/modes/${encodeURIComponent(name)}`, class: "btn" }, "Open failure mode"))),
+    teachRail("judges"),
+    h("header", { class: "page-header" }, h("div", { class: "titles" }, h("div", { class: "title-row" }, h("h1", { class: "teach-title mono" }, name), h("span", { class: `pill ${d.status === "trusted" ? "good" : d.status === "stale" || d.status === "dev" ? "warn" : ""}` }, `${d.label.replace(/^Judge · /, "")} · v${d.judge.data.version ?? 1}`)), h("p", { class: "subtitle" }, d.mode?.definition ?? "", ` Used by ${d.used_by.length} task${d.used_by.length === 1 ? "" : "s"}.`)), h("div", { class: "verdict" }, h("a", { href: `#/modes/${encodeURIComponent(name)}`, class: "btn" }, "Open failure mode"))),
     stepper, banner,
     h("div", { class: "two-col" }, definition, calibration),
     disagreements));

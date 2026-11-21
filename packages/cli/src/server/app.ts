@@ -88,7 +88,7 @@ export class App {
     let annotator = "";
     try { annotator = this.backend.identity ? this.backend.identity() : this.git.run(["config", "user.name"]).trim(); } catch { /* unset */ }
     const project = (() => { try { return String((parseYaml(readFileSync(join(this.evalsDir, "litmustest.yaml"), "utf8")) as Obj).project ?? ""); } catch { return ""; } })();
-    return { status: 200, body: { evals: this.evalsDir, repo: this.git.root, project, branch: this.git.branch(), head: this.git.head(), annotator, errors: v.errors, warnings: v.warnings, pending: this.pending.count() } };
+    return { status: 200, body: { evals: this.evalsDir, repo: this.git.root, project, branch: this.git.branch(), head: this.git.head(), annotator, errors: v.errors, warnings: v.warnings, pending: this.pending.count(), model_key: Boolean(process.env.ANTHROPIC_API_KEY) } };
   }
   modes(): Reply { return { status: 200, body: { failure_modes: modesView(this.evalsDir) } }; }
   graduate(): Reply { return { status: 200, body: graduationProposals(this.evalsDir) }; }

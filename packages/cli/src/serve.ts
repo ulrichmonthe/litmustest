@@ -1,5 +1,6 @@
 // litmustest serve: the local HTTP server over evals/, with a file watcher and server-sent events.
 import { commentRoute, promoteTrace, setExpectedFlip } from "./server/promote.ts";
+import { addNotes, notesList, teachSummary } from "./server/teach.ts";
 import { glossaryHereRoute, glossaryRoute } from "./server/glossary_route.ts";
 import { prefsRoute, putPrefsRoute } from "./server/prefs.ts";
 import { coverageRoute } from "./server/coverage_route.ts";
@@ -72,6 +73,9 @@ async function handle(app: App, req: IncomingMessage, res: ServerResponse, ask?:
     if (path === "/api/modes" && req.method === "GET") return send(app.modes());
     if (path === "/api/overview" && req.method === "GET") return send(app.overview());
     if (path === "/api/home" && req.method === "GET") return send(app.home());
+    if (path === "/api/teach" && req.method === "GET") return send({ status: 200, body: teachSummary(app.evalsDir) });
+    if (path === "/api/modes/notes" && req.method === "POST") return send(addNotes(app, body));
+    if (path === "/api/teach/notes" && req.method === "GET") return send({ status: 200, body: notesList(app.evalsDir) });
     if (path === "/api/coverage" && req.method === "GET") return send(coverageRoute(app));
     if (path === "/api/glossary" && req.method === "GET") return send(glossaryRoute(app));
     if (path === "/api/prefs" && req.method === "GET") return send(prefsRoute(app));

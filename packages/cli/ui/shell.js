@@ -66,4 +66,4 @@ export function renderNav() {
   $("#user-initials").textContent = who.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join("");
 }
 
-export async function refreshHealth() { state.health = await api("/api/health"); state.homeData = await api("/api/home").catch(() => null); state.batches = (await api("/api/batches")).batches; state.modes = (await api("/api/failure_modes")).failure_modes; renderNav(); }
+export async function refreshHealth() { state.health = await api("/api/health"); state.homeData = await api("/api/home").catch(() => null); state.teach = await api("/api/teach").catch(() => null); state.batches = (await api("/api/batches")).batches; state.modes = (await api("/api/failure_modes")).failure_modes; renderNav(); }

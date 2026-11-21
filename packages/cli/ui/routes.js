@@ -69,7 +69,7 @@ export function crumbs(parts) {
     case "teach": {
       const step = STEP[b ?? "label"] ?? "Label";
       const out = [["Teach", "#/teach/label"], [step, c ? hashOf(["teach", b]) : null]];
-      if (c && (b === "judges" || b === "modes")) out.push([c, null, "mono"]);
+      if (c && (b === "judges" || b === "modes")) out.push(c === "new" && b === "judges" ? ["New judge", null] : [c, null, "mono"]);
       return out;
     }
     case "cover": {

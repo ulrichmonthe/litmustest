@@ -1,5 +1,6 @@
 // litmustest dashboard: components.js
 import { $, h } from "./lib/dom.js";
+import { state } from "./lib/state.js";
 
 export function step(time, dotClass, body) { return h("li", { class: "step" }, h("span", { class: "time" }, time), h("div", { class: "rail", "aria-hidden": "true" }, h("span", { class: `dot ${dotClass}` }), h("span", { class: "line" })), h("div", { class: "step-body" }, ...body)); }
 export function header(title, sub) { return h("header", { class: "page-header" }, h("div", { class: "titles" }, h("h1", { class: "t-page-title" }, title), sub && h("p", { class: "subtitle" }, sub))); }
@@ -29,3 +30,22 @@ export const roundCi = (ci) => (ci ? { low: Math.round(ci.low), high: Math.round
 export const signed = (n) => (n > 0 ? `+${n}` : n < 0 ? `−${Math.abs(n)}` : "0");
 /** A paired change in points with its range, and whether it is real or within noise. */
 export const deltaText = (d) => (d ? `${signed(d.pts)} pts (${signed(Math.round(d.ci.low))} to ${signed(Math.round(d.ci.high))})` : "");
+
+/** The Teach rail (design/mockups/v2/TeachP): four steps, each a link with its count and a check mark when it is done. */
+export function teachRail(current) {
+  const t = state.teach;
+  const steps = [
+    ["label", "Label", t?.label.total ? `${t.label.done} of ${t.label.total}` : "No batch yet", Boolean(t?.label.total && t.label.done === t.label.total), "#/teach/label"],
+    ["group", "Group notes", t ? `${t.group.notes} ${t.group.notes === 1 ? "note" : "notes"}` : "", Boolean(t && t.group.notes > 0 && t.group.loose === 0), "#/teach/group"],
+    ["modes", "Failure modes", t ? `${t.modes.named} named` : "", Boolean(t && t.modes.named > 0), "#/teach/modes"],
+    ["judges", "Trust judges", t?.judges.total ? `${t.judges.trusted} of ${t.judges.total} trusted` : "None yet", Boolean(t?.judges.total && t.judges.trusted === t.judges.total), "#/teach/judges"],
+  ];
+  return h("nav", { class: "teach-rail", "aria-label": "Teach steps" }, h("ol", {}, ...steps.map(([key, title, sub, done, href], i) =>
+    h("li", {}, h("a", { href, "aria-current": key === current ? "step" : undefined, class: done ? "done" : undefined },
+      h("span", { class: "rail-n", "aria-hidden": "true" }, done ? "✓" : String(i + 1)),
+      h("span", { class: "rail-text" }, h("span", { class: "rail-title" }, title, done ? h("span", { class: "sr-only" }, " (done)") : null), h("span", { class: "rail-sub" }, sub)))))));
+}
+/** A Teach page heading: the step's question, a line under it, and the page's actions on the right. */
+export function teachHead(title, sub, ...actions) {
+  return h("header", { class: "teach-head" }, h("div", { class: "titles" }, h("h1", { class: "teach-title" }, title), sub ? h("p", { class: "subtitle" }, ...[sub].flat()) : null), actions.filter(Boolean).length ? h("div", { class: "teach-actions" }, ...actions) : null);
+}

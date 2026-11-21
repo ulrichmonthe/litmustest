@@ -8,6 +8,7 @@ import { App, HttpError, type Reply } from "./server/app.ts";
 import { dispute, setTriage } from "./server/transcripts.ts";
 import { prefsRoute, putPrefsRoute } from "./server/prefs.ts";
 import { commentRoute, promoteTrace, setExpectedFlip } from "./server/promote.ts";
+import { addNotes } from "./server/teach.ts";
 
 type Obj = Record<string, unknown>;
 interface Args { values: Map<string, string[]>; flags: Set<string>; positional: string[]; one: (k: string) => string | undefined }
@@ -123,10 +124,16 @@ async function runDispute(rest: string[]): Promise<number> {
 function runMode(rest: string[]): number {
   const a = parse(rest, ["--dir", "--definition", "--severity", "--owner"], ["--json"]);
   const [sub, name, into] = a.positional;
-  const usage = "usage: litmustest mode new <name> --definition s --severity high|med|low [--owner o] | mode set <name> [--definition s] [--severity x] [--owner o] | mode merge <name> <into> | mode retire <name>";
-  if (!sub || !name || !["new", "set", "merge", "retire"].includes(sub)) throw new Usage(usage);
+  const usage = "usage: litmustest mode new <name> --definition s --severity high|med|low [--owner o] | mode set <name> [--definition s] [--severity x] [--owner o] | mode merge <name> <into> | mode retire <name> | mode add-notes <name> <trace>...";
+  if (!sub || !name || !["new", "set", "merge", "retire", "add-notes"].includes(sub)) throw new Usage(usage);
   const app = open(a); const path = `failure_modes/${name}.yaml`; const exists = existsSync(join(app.evalsDir, path));
   const json = a.flags.has("--json");
+  if (sub === "add-notes") {
+    const traces = a.positional.slice(2);
+    if (!traces.length) throw new Usage("usage: litmustest mode add-notes <name> <trace>...");
+    try { return report("mode", addNotes(app, { mode: name, traces }), (b) => `added ${traces.length} note${traces.length === 1 ? "" : "s"} to ${name}: ${String(b.path)} (pending on ${String(b.branch)})`, json); }
+    catch (e) { if (e instanceof HttpError) { err(`mode: ${e.message}`); return 1; } throw e; }
+  }
   if (sub === "new") {
     if (exists) { err(`mode: ${path} already exists; use litmustest mode set`); return 1; }
     if (!a.one("--definition") || !a.one("--severity")) throw new Usage("mode new needs --definition and --severity");
@@ -221,7 +228,7 @@ function runPrefs(rest: string[]): number {
 
 function runPromote(rest: string[]): number {
   const a = parse(rest, ["--dir", "--suite", "--id"], ["--json"]);
-  const [trace] = a.positional; if (!trace) throw new Usage("usage: litmustest promote <trace> [--suite regression] [--id task_id]");
+  const [trace] = a.positional; if (!trace) throw new Usage("usage: litmustest promote <trace> [--suite capability] [--id task_id]");
   const r = promoteTrace(open(a), trace, { ...(a.one("--suite") ? { suite: a.one("--suite") } : {}), ...(a.one("--id") ? { id: a.one("--id") } : {}) });
   return report("promote", r, (b) => {
     const files = (b.files as { path: string }[]).map((f) => f.path); const probs = (b.reference_problems as string[]) ?? []; const ungraded = (b.ungraded_modes as string[]) ?? [];

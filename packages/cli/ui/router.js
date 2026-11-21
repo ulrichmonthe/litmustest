@@ -7,7 +7,7 @@ import { renderCompare } from "./screens/ship.js";
 import { decidePage, renderDecide } from "./screens/decide.js";
 import { renderCoverage } from "./screens/coverage.js";
 import { renderDiscover } from "./screens/discover.js";
-import { renderJudge, renderJudges } from "./screens/judges.js";
+import { renderJudge, renderJudges, renderNewJudge } from "./screens/judges.js";
 import { renderModes } from "./screens/modes.js";
 import { renderHome } from "./screens/home.js";
 import { renderPending } from "./screens/pending.js";
@@ -40,7 +40,7 @@ export async function render() {
       case "discover": await renderDiscover(state.route[1]); break;
       case "modes": await renderModes(state.route[1]); break;
       case "overview": await renderHome(); break;
-      case "judges": if (state.route[1]) await renderJudge(state.route[1]); else await renderJudges(); break;
+      case "judges": if (state.route[1] === "new") await renderNewJudge(state.query.mode); else if (state.route[1]) await renderJudge(state.route[1]); else await renderJudges(); break;
       case "coverage": await renderCoverage(state.route[1], state.route[2] ? decodeURIComponent(state.route[2]) : undefined); break;
       case "compare": if (state.route[1] === "decide") { await renderDecide(); document.addEventListener("keydown", decideKeys); } else await renderCompare(state.route[1], state.route[2]); break;
       case "tasks": await renderTasks(state.route[1], state.route[2]); break;

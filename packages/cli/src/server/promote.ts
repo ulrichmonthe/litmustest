@@ -25,7 +25,8 @@ export function promoteTrace(app: App, traceId: string, body: Obj): Reply {
   if (!existsSync(tracePath)) throw new HttpError(404, `no trace ${traceId}`);
   const trace = JSON.parse(readFileSync(tracePath, "utf8")) as Obj; const view = traceView(trace);
   const f = loadFiles(app.evalsDir);
-  const suiteName = String(body.suite ?? "regression");
+  // Capability by default: the conversation failed, so its reference cannot pass yet and must not block merges until it does.
+  const suiteName = String(body.suite ?? "capability");
   const suite = f.suites.find((s) => s.name === suiteName); if (!suite) throw new HttpError(400, `no suite ${suiteName}`);
   const firstUser = view.turns.find((t) => t.role === "user")?.content ?? "";
   const meta = view.metadata;
