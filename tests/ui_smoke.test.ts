@@ -1,7 +1,7 @@
 // Loads every dashboard route in a real browser and fails on a script error, a page that never renders, or a control under 44px.
 // Uses the installed Chrome through playwright-core (no browser download); skipped where no Chrome is found.
 import { execFileSync } from "node:child_process";
-import { cpSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { chromium, type Browser } from "playwright-core";
@@ -96,7 +96,7 @@ describe("dashboard smoke", () => {
 });
 
 // The explainer (docs/EXPLAINER.md): every header, stat label and pill on the screens is either a glossary term or a plain word on this list.
-const PLAIN = new Set(["a", "b", "a → b", "actual", "agent", "change", "customer", "expected", "fail", "failed", "failing", "passing", "pass", "high", "med", "low", "human", "item", "last runs", "model", "mode", "none", "path", "source", "status", "suite health", "tool", "trend", "used by", "why", "what happened", "what it tests", "what this means", "to make it pass", "judge's critique", "covered by", "has check", "measured", "not measured in v1", "not measured", "needs labels", "failing check in b", "no grader", "only a judge failed it", "mixed", "high severity", "review queue", "dev tpr / tnr", "test tpr / tnr", "checks"]);
+const PLAIN = new Set(["a", "b", "a → b", "actual", "before", "after", "agent", "change", "customer", "expected", "fail", "failed", "failing", "passing", "pass", "high", "med", "low", "human", "item", "last runs", "model", "mode", "none", "path", "source", "status", "suite health", "tool", "trend", "used by", "why", "what happened", "what it tests", "what this means", "to make it pass", "judge's critique", "covered by", "has check", "measured", "not measured in v1", "not measured", "needs labels", "failing check in b", "no grader", "only a judge failed it", "mixed", "high severity", "review queue", "dev tpr / tnr", "test tpr / tnr", "checks"]);
 const ALSO: Record<string, string> = { broke: "flip", fixed: "flip", significant: "confidence_interval", "within noise": "confidence_interval" };
 const ROUTES_ALL = ["home", "teach/label", "teach/modes", "cover/tasks", "ship", "library/runs", "teach/judges", "teach/judges/tone_mismatch", "cover", "library/settings", "pending"];
 /** Pills that are not status words: the explain card's own kind label and the AI pill. */
@@ -429,12 +429,12 @@ describe("phone layout and themes", () => {
     await page.waitForFunction(async () => (await (await fetch("/api/prefs")).json()).theme === "dark");
     await page.reload(); await page.waitForSelector("#theme-setting");
     expect(await page.evaluate(() => document.documentElement.dataset.theme)).toBe("dark");
-    // The verdict strip's dot is a token, so it follows the theme.
-    await page.goto(`${s.url}/#/overview`); await page.waitForSelector(".verdict-strip .dot");
-    const dot = await page.evaluate(() => getComputedStyle(document.querySelector(".verdict-strip .dot")!).backgroundColor);
+    // Home's status dot is a token, so it follows the theme.
+    await page.goto(`${s.url}/#/home`); await page.waitForSelector("#page .eyebrow-status .sdot");
+    const dot = await page.evaluate(() => getComputedStyle(document.querySelector("#page .eyebrow-status .sdot")!).backgroundColor);
     await page.goto(`${s.url}/#/settings`); await page.waitForSelector("#theme-setting"); await page.selectOption("#theme-setting", "light");
-    await page.goto(`${s.url}/#/overview`); await page.waitForSelector(".verdict-strip .dot");
-    expect(await page.evaluate(() => getComputedStyle(document.querySelector(".verdict-strip .dot")!).backgroundColor)).not.toBe(dot);
+    await page.goto(`${s.url}/#/home`); await page.waitForSelector("#page .eyebrow-status .sdot");
+    expect(await page.evaluate(() => getComputedStyle(document.querySelector("#page .eyebrow-status .sdot")!).backgroundColor)).not.toBe(dot);
     await context.close();
   }, 90_000);
 });
@@ -453,7 +453,8 @@ describe("numbers carry their margin and link down", () => {
     // every percentage in these columns is a rate with its interval
     expect(await bare("tasks/regression", "#page table.plain td.num")).toEqual([]);
     expect(await bare("transcripts", "#page .task-row .num")).toEqual([]);
-    expect(await bare("overview", '#page [aria-label="Judge trust"] td.num')).toEqual([]);
+    expect(await bare("home", '#page [aria-label="Gates"] .gate-value')).toEqual([]);
+    expect(await bare("ship", '#page [aria-label="Gates"] .ship-rate')).toEqual([]);
     expect(await bare("judges", "#page table.plain td.num")).toEqual([]);
     // a task's rate links to its trial
     await page.goto(`${s.url}/#/tasks/regression`); await ready();
@@ -465,13 +466,50 @@ describe("numbers carry their margin and link down", () => {
     expect(await page.$$eval("#page table.plain tbody tr", (r) => r.length)).toBe(1);
     expect(await page.textContent("#page table.plain tbody tr")).toContain("refund_ghost_account_frustrated");
     await page.click(".filter-note a"); await page.waitForFunction(() => !document.querySelector(".filter-note"));
-    // a failure mode's count on Run compare opens the transcripts that failed on it
-    await page.goto(`${s.url}/#/compare`); await ready();
+    // a failure mode's count on Ship opens the trials that failed on it
+    await page.goto(`${s.url}/#/ship`); await ready();
     const modeHref = await page.getAttribute('#page [aria-label="Failure-mode deltas"] a.count-link', "href");
-    expect(modeHref).toBe("#/transcripts/run_0041?mode=tone_mismatch");
+    expect(modeHref).toBe("#/library/runs/run_0041?mode=tone_mismatch");
     await page.goto(`${s.url}/${modeHref}`); await page.waitForSelector(".filter-note");
     const all = ((await (await fetch(`${s.url}/api/transcripts`)).json()) as { tasks: { failed_modes: string[] }[] }).tasks;
     expect(await page.$$eval("#page .task-row a.mono", (r) => r.length)).toBe(all.filter((t) => t.failed_modes.includes("tone_mismatch")).length);
+    await page.close();
+  }, 90_000);
+});
+
+describe("Home, Ship and Decide (docs/stories/redesign.md, R2)", () => {
+  it("Home states the verdict from the files, draws every gate as a margin bar and ranks Up next; Ship shows trial dots; Decide writes a label to Pending changes", async (ctx) => {
+    if (!browser) return ctx.skip();
+    const cwd = repo((c) => cpSync(EXAMPLE, join(c, "evals"), { recursive: true }));
+    const s = await serve({ evalsDir: join(cwd, "evals"), port: 0, watch: false }); servers.push(s);
+    const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+    const ready = () => page.waitForFunction(() => { const p = document.querySelector("#page"); return p && !/Loading…/.test(p.textContent ?? "") && p.querySelector("h1"); });
+    await page.goto(`${s.url}/#/home`); await ready();
+    expect(await page.textContent("#page .eyebrow-status")).toMatch(/Hold · 2 of 2 gates fail/);
+    expect(await page.textContent("#page .home-lead")).toMatch(/Regression is at 85\.1% \(could be \d+–\d+%\) and needs 95%\./);
+    const bars = await page.$$eval('#page [aria-label="Gates"] .mbar', (els) => els.map((e) => e.getAttribute("aria-label")));
+    expect(bars).toHaveLength(3); expect(bars[0]).toMatch(/^Regression: 85\.1%, could be \d+ to \d+%, gate at 95%$/);
+    const rows = await page.$$eval("#page .up-row", (els) => els.map((e) => e.querySelector(".up-title")!.textContent));
+    expect(rows.slice(0, 2)).toEqual(["Regression is below its gate", "Quality is below its gate"]);
+    expect(await page.textContent('#nav-items a[href="#/ship"]')).toContain("Hold");
+    // Ship: every changed task shows its trials as dots, labelled in words
+    await page.click('#page a.btn.quiet[href="#/ship"]'); await page.waitForSelector("#page .change-row .tdots");
+    const dots = await page.$$eval("#page .change-row .tdots", (els) => els.map((e) => e.getAttribute("aria-label")));
+    expect(dots.length).toBeGreaterThan(0); expect(dots[0]).toMatch(/^Before: \d of \d passed/);
+    await page.waitForSelector("#page .ship-aside .aside-actions");
+    // Decide: "Can't tell" saves a Skip label through the dispute route, and the next reply comes up.
+    // Transcripts are not in git, so store a minimal trial for the first reply to decide.
+    const d = ((await (await fetch(`${s.url}/api/home`)).json()) as { decide: { task: string; n: number }[] }).decide[0]!;
+    const dir = join(cwd, ".litmustest", "transcripts", "run_0041", d.task, String(d.n)); mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, "trial.json"), JSON.stringify({ transcript: [{ role: "user", content: "I want my money back." }, { role: "assistant", content: "Hey there! Great question!" }], tool_calls: [], state: {} }));
+    await page.goto(`${s.url}/#/ship/decide?task=${d.task}`); await page.waitForSelector("#page .choices");
+    const first = await page.textContent("#page .decide-head .mono");
+    await page.keyboard.press("3");
+    await page.waitForFunction((was) => document.querySelector("#page .decide-head .mono")?.textContent !== was, first);
+    const pending = (await (await fetch(`${s.url}/api/pending`)).json()) as { files: { path: string }[] };
+    expect(pending.files.some((f) => /labels\/disputes-run_0041\.jsonl$/.test(f.path))).toBe(true);
+    const label = readFileSync(join(cwd, "evals", "labels", "disputes-run_0041.jsonl"), "utf8").trim().split("\n").map((l) => JSON.parse(l)).pop();
+    expect(label).toMatchObject({ label: "Skip", failure_mode: "tone_mismatch" });
     await page.close();
   }, 90_000);
 });

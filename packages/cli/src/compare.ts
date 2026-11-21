@@ -7,7 +7,9 @@ import { loadFiles } from "./server/overview.ts";
 
 type Obj = Record<string, unknown>;
 export interface SuiteDelta { name: string; kind: string; n_tasks: number; a: number; b: number; delta: number; ci: { low: number; high: number }; significant: boolean; note: string; flips: number; a_ci: Obj; b_ci: Obj; gate: Obj | null; gate_result?: { passed: boolean; reasons: string[] } }
-export interface Flip { task: string; suite: string; change: "Broke" | "Fixed" | "Flaky"; a: string; b: string; check: string | null; transcript_ref?: string; transcript?: string; expected?: boolean; note?: string }
+/** One trial as a dot: passed, failed, or an infrastructure error that is not counted. */
+export type Dot = "pass" | "fail" | "infra";
+export interface Flip { task: string; suite: string; change: "Broke" | "Fixed" | "Flaky"; a: string; b: string; check: string | null; transcript_ref?: string; transcript?: string; expected?: boolean; note?: string; dots_a?: Dot[]; dots_b?: Dot[] }
 export interface CoverageDelta { map: string; a: number; b: number; delta: number; total_a: number; total_b: number; newly_uncovered: string[] }
 export interface Comparison { coverage?: CoverageDelta[]; a: Obj; b: Obj; suites: SuiteDelta[]; flips: Flip[]; modes: { name: string; severity?: string; a: number; b: number; delta: number }[]; cost: { a: number; b: number; delta: number; tokens_a: number; tokens_b: number; latency_a: number; latency_b: number; infra_a: number; infra_b: number }; verdict: { tone: "good" | "bad" | "neutral"; text: string }; common_tasks: number }
 
@@ -42,6 +44,8 @@ export function compareRuns(evalsDir: string, aId: string, bId: string, opts: { 
     const all = (bTasks[x.task]!.trials as Obj[]) ?? []; const firstFail = all.findIndex((tr) => !tr.pass && !tr.infra_error);
     x.transcript = `#/transcripts/${encodeURIComponent(bId)}/${encodeURIComponent(x.task)}/${(firstFail < 0 ? 0 : firstFail) + 1}`;
     const e = expected.find((y) => y.task === x.task); if (e) { x.expected = true; if (e.note) x.note = String(e.note); }
+    const dots = (tr: Obj[]): Dot[] => tr.map((t) => (t.infra_error ? "infra" : t.pass ? "pass" : "fail"));
+    x.dots_a = dots((aTasks[x.task]!.trials as Obj[]) ?? []); x.dots_b = dots(all);
   }
   const suites: SuiteDelta[] = suiteNames.map((name) => {
     const ids = common.filter((t) => bTasks[t]!.suite === name && aTasks[t]!.suite === name);

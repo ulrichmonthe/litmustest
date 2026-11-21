@@ -147,7 +147,7 @@ Usage:
   litmustest triage <run> <task> <n> agent|grader|task|infra [--note s] [--by name] [--dir evals] [--json]
       Confirm or override why a trial failed; written to the run summary.
 
-  litmustest dispute <run> <task> <n> <check> pass|fail [--note s] [--annotator name] [--dir evals] [--json]
+  litmustest dispute <run> <task> <n> <check> pass|fail|skip [--note s] [--annotator name] [--dir evals] [--json]
       Disagree with a judge's verdict on a trial: the trial becomes a trace
       and your label is appended for that judge's failure mode. Human-only,
       like label.

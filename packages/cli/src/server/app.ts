@@ -10,6 +10,7 @@ import { validateEvals, sha256, type Problem, type ValidateResult } from "../val
 import { traceView } from "../trace_view.ts";
 import { Git, commitBranch, defaultSlug } from "./git.ts";
 import { modesView, overview, loadFiles } from "./overview.ts";
+import { home } from "./home.ts";
 import { compareRuns, evaluateGates, comparisonMarkdown } from "../compare.ts";
 import { applyGraduations, doctor, graduationProposals } from "../graduate.ts";
 import { Pending } from "./pending.ts";
@@ -106,6 +107,8 @@ export class App {
   runs(): Reply { const f = loadFiles(this.evalsDir); return { status: 200, body: { runs: f.runs.map((r) => ({ run_id: r.run_id, commit: r.commit, branch: r.branch, started_at: r.started_at, trials: r.trials, suites: Object.keys(r.suites as Obj), n_tasks: Object.keys(r.tasks as Obj).length, cost_usd: r.cost_usd, infra_error_rate: r.infra_error_rate })).reverse() } }; }
   compare(a: string, b: string): Reply { try { const c = compareRuns(this.evalsDir, a, b); const g = evaluateGates(c); return { status: 200, body: { ...c, gates_passed: g.passed, markdown: comparisonMarkdown(c) } }; } catch (e) { throw new HttpError(404, (e as Error).message); } }
   overview(): Reply { return { status: 200, body: overview(this.evalsDir) }; }
+  /** Home: the verdict, every gate and the ranked Up next list (docs/stories/redesign.md, R2). */
+  home(): Reply { return { status: 200, body: home(this.evalsDir) }; }
   /** Failure modes with their grader status and label counts, for chips and the "so far" panel. */
   failureModes(): Reply {
     const dir = join(this.evalsDir, "failure_modes");

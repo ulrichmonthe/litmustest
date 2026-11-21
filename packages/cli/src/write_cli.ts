@@ -111,8 +111,8 @@ function runTriage(rest: string[]): number {
 
 async function runDispute(rest: string[]): Promise<number> {
   const a = parse(rest, ["--dir", "--note", "--annotator"], ["--json"]);
-  const usage = "usage: litmustest dispute <run> <task> <n> <check> pass|fail [--note s] [--annotator name]";
-  const t = trialArgs(a, usage); const [check, v] = t.rest; const label = verdictOf(v);
+  const usage = "usage: litmustest dispute <run> <task> <n> <check> pass|fail|skip [--note s] [--annotator name]";
+  const t = trialArgs(a, usage); const [check, v] = t.rest; const label = String(v ?? "").toLowerCase() === "skip" ? "Skip" : verdictOf(v);
   if (!check || !label) throw new Usage(usage);
   const app = open(a);
   const annotator = annotatorFor("dispute", a, app); if (!annotator) return 2;

@@ -34,7 +34,7 @@ tests/                    # vitest: schemas/examples/<schema>/{valid,invalid}.*,
 scripts/gen-schema-docs.ts  # writes docs/SCHEMAS.md from the schema descriptions
 scripts/gen-tokens-css.ts   # writes packages/cli/ui/tokens.css from brand/tokens.json
 packages/cli/ui/          # the dashboard: static HTML, CSS and ES modules, no build step; served by `litmustest serve`. app.js boots; routes.js maps places (#/home, #/ship, #/teach/…, #/cover/…, #/library/…) to screens; shell.js, explainer.js, screens/*.js
-packages/cli/src/server/  # app (routes and validated writes), pending (the tray), overview (read models), judges, discover_route, promote (trace to task, expected flips, PR comment)
+packages/cli/src/server/  # app (routes and validated writes), pending (the tray), overview (read models), home (the verdict, gates and ranked Up next), judges, discover_route, promote (trace to task, expected flips, PR comment)
 packages/cli/src/{stats,judge_run,calibrate,draft}.ts  # error bars and judge-error correction; running a judge; the calibration workflow; drafting graders
 packages/cli/src/server/hosted.ts  # hosted mode: GitHub App auth, a server-side clone, HostedGit and HostedPending, sign-in, a commit and push per save; built, not deployed (docs/HOSTED.md)
 packages/cli/src/write_cli.ts  # the dashboard's writes as commands (label, triage, dispute, mode, set, pending, prefs, promote, flip), each a call into the App method its route uses; tests/parity.test.ts maps every write route to its command

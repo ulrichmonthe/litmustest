@@ -71,6 +71,7 @@ async function handle(app: App, req: IncomingMessage, res: ServerResponse, ask?:
     if (path === "/api/failure_modes" && req.method === "GET") return send(app.failureModes());
     if (path === "/api/modes" && req.method === "GET") return send(app.modes());
     if (path === "/api/overview" && req.method === "GET") return send(app.overview());
+    if (path === "/api/home" && req.method === "GET") return send(app.home());
     if (path === "/api/coverage" && req.method === "GET") return send(coverageRoute(app));
     if (path === "/api/glossary" && req.method === "GET") return send(glossaryRoute(app));
     if (path === "/api/prefs" && req.method === "GET") return send(prefsRoute(app));

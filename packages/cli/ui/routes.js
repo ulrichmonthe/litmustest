@@ -64,7 +64,7 @@ export function crumbs(parts) {
   const [a, b, c, d, e] = parts;
   switch (a) {
     case "home": return [["Home", null]];
-    case "ship": return [["Ship", null]];
+    case "ship": return b === "decide" ? [["Ship", "#/ship"], ["Decide", null]] : [["Ship", null]];
     case "pending": return [["Pending changes", null]];
     case "teach": {
       const step = STEP[b ?? "label"] ?? "Label";

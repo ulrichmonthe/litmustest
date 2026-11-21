@@ -22,7 +22,7 @@ const TEXT: [string, string[]][] = [
   ["warn", [...GROUNDS, "warn-tint"]],
   ["bad", [...GROUNDS, "bad-tint"]],
   ["slate-ink", ["slate"]],
-  ["ground", ["blue"]], // the primary button's label
+  ["ground", ["blue", "ink"]], // the primary button's label: ink since the redesign, blue on v1 screens
 ];
 const MARKS: [string, string[]][] = [
   ["slate-good", ["slate"]], ["slate-bad", ["slate"]], ["slate-neutral", ["slate"]],

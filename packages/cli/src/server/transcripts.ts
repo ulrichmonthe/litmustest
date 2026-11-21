@@ -114,7 +114,7 @@ export function setTriage(app: App, runId: string, taskId: string, n: number, bo
 /** Dispute a judge's verdict: the trial becomes a trace under datasets/traces/ and the human's label is appended for that judge's failure mode. */
 export async function dispute(app: App, runId: string, taskId: string, n: number, body: Obj, o?: StoreOptions): Promise<Reply> {
   const check = String(body.check ?? ""); const label = String(body.label ?? "");
-  if (!["Pass", "Fail"].includes(label)) throw new HttpError(400, "label must be Pass or Fail");
+  if (!["Pass", "Fail", "Skip"].includes(label)) throw new HttpError(400, "label must be Pass, Fail or Skip (could not tell)");
   const f = loadFiles(app.evalsDir);
   const taskFile = f.tasks.find((x) => x.id === taskId); if (!taskFile) throw new HttpError(404, `no task ${taskId}`);
   const c = ((taskFile.checks as Obj[]) ?? []).find((x) => x.id === check && x.type === "judge"); if (!c) throw new HttpError(400, `${check} is not a judge check on ${taskId}`);

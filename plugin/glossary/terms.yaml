@@ -252,7 +252,7 @@
         {gate.min_pass_rate | percent}. These tasks used to work, so this blocks a merge.
       next:
         - when: prev.exists
-          say: Look at the flips in Run compare to see which tasks broke.
+          say: Look at the flips on Ship to see which tasks broke.
           link: "#/compare/{prev.run_id}/{run_id}"
         - say: Open the failing tasks in this run.
     - source: suite
@@ -286,7 +286,7 @@
         - when: not prev.significant
           say: The change is within noise. Keep climbing; compare again after your next change.
           link: "#/compare/{prev.run_id}/{run_id}"
-        - say: Look at the flips in Run compare to see what got worse.
+        - say: Look at the flips on Ship to see what got worse.
           link: "#/compare/{prev.run_id}/{run_id}"
     - source: suite
       when: kind == 'capability'
@@ -969,7 +969,7 @@
         {gate.min_pass_rate | percent}. This blocks a merge.
       next:
         - when: prev.exists
-          say: Look at the flips in Run compare to see which tasks dropped.
+          say: Look at the flips on Ship to see which tasks dropped.
           link: "#/compare/{prev.run_id}/{run_id}"
         - say: Open the failing tasks in this run.
     - source: suite
@@ -978,7 +978,7 @@
         {suite} dropped {prev.delta | pts} since {prev.run_id} (could be {prev.delta_ci | prange}), more than the
         {gate.max_drop_pts | points} its gate allows. This blocks a merge.
       next:
-        - say: Look at the flips in Run compare to see which tasks dropped.
+        - say: Look at the flips on Ship to see which tasks dropped.
           link: "#/compare/{prev.run_id}/{run_id}"
     - source: suite
       when: gate.min_pass_rate != null and gate.max_drop_pts != null
@@ -1007,7 +1007,7 @@
         {suite} passed {rate_b | pct} in {b} (could be {rate_b_ci | range}), under the gate's minimum of
         {gate.min_pass_rate | percent}. This blocks a merge.
       next:
-        - say: Look at the flips in Run compare to see which tasks dropped.
+        - say: Look at the flips on Ship to see which tasks dropped.
           link: "#/compare/{a}/{b}"
     - source: delta
       when: gate.passed == false
@@ -1015,7 +1015,7 @@
         {suite} dropped {delta | pts} from {a} to {b} (could be {delta_ci | prange}), more than the
         {gate.max_drop_pts | points} its gate allows. This blocks a merge.
       next:
-        - say: Look at the flips in Run compare to see which tasks dropped.
+        - say: Look at the flips on Ship to see which tasks dropped.
           link: "#/compare/{a}/{b}"
     - source: delta
       when: gate.passed

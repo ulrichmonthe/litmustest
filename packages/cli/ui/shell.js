@@ -30,8 +30,11 @@ $("#nav-toggle").addEventListener("click", () => setNavOpen($("#nav-toggle").get
 $("#scrim").addEventListener("click", () => setNavOpen(false));
 addEventListener("keydown", (e) => { if (e.key === "Escape" && $("#app").classList.contains("nav-open")) setNavOpen(false); });
 
-/** What sits beside a nav item: plain text the item's own label explains. Ship, Home and Cover get theirs in R2–R4. */
+/** What sits beside a nav item: plain text the item's own label explains (Home's count is its Up next list), or Ship's verdict as a dot and a word. */
 function status(n) {
+  const hm = state.homeData;
+  if (n.icon === "home" && hm && hm.up_next?.length) return h("span", { class: "nav-status", title: `${hm.up_next.length} in Up next` }, String(hm.up_next.length));
+  if (n.icon === "ship" && hm && hm.state !== "no_runs") return h("span", { class: `nav-status status-word ${hm.state === "hold" ? "bad" : "good"}` }, h("span", { class: `sdot ${hm.state === "hold" ? "bad" : "good"}`, "aria-hidden": "true" }), hm.state === "hold" ? "Hold" : "Safe");
   if (n.icon === "teach" && state.batches.length) { const b = state.batches[0]; const left = b.items - b.labelled; if (left > 0) return h("span", { class: "nav-status", title: `${left} to label` }, `${left} to label`); }
   return null;
 }
@@ -63,4 +66,4 @@ export function renderNav() {
   $("#user-initials").textContent = who.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join("");
 }
 
-export async function refreshHealth() { state.health = await api("/api/health"); state.batches = (await api("/api/batches")).batches; state.modes = (await api("/api/failure_modes")).failure_modes; renderNav(); }
+export async function refreshHealth() { state.health = await api("/api/health"); state.homeData = await api("/api/home").catch(() => null); state.batches = (await api("/api/batches")).batches; state.modes = (await api("/api/failure_modes")).failure_modes; renderNav(); }
