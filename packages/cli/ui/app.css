@@ -625,3 +625,30 @@ kbd { font-family: var(--font-mono); font-size: 11px; color: var(--ink-muted); b
 .facts dt { color: var(--ink-muted); }
 .facts dd { margin: 0; color: var(--ink-soft); max-width: 70ch; }
 .plain-list { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; }
+
+/* Cover (design/mockups/v2/CoverP): the biggest gaps above the coverage maps. */
+.gaps { display: flex; flex-direction: column; gap: 10px; }
+.gap-list { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; }
+.gap-row { display: flex; align-items: flex-start; gap: 14px; padding: 16px 8px; border-bottom: 1px solid var(--line-faint); }
+.gap-n { flex: none; width: 24px; height: 24px; border-radius: 50%; border: 1px solid var(--line); display: inline-flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; color: var(--ink-muted); }
+.gap-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; color: var(--ink-soft); }
+.gap-head { display: flex; align-items: baseline; gap: 10px; }
+.error-state { display: flex; flex-direction: column; gap: 12px; max-width: 70ch; padding: 24px 0; }
+/* The v1 screens' page headers in the redesign's type until each is rebuilt. */
+h1.t-page-title { font-size: 26px; line-height: 1.2; font-weight: 600; letter-spacing: -0.03em; }
+.setup-section { display: flex; flex-direction: column; gap: 14px; }
+.setup-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 52px; padding: 6px 4px; border-bottom: 1px solid var(--line-faint); }
+.setup-row > div { display: flex; flex-direction: column; }
+.setup-name { font-weight: 500; }
+.planned-tag { font-size: 12px; font-weight: 600; padding: 4px 8px; border-radius: var(--radius-sm); background: var(--neutral-tint); color: var(--ink-muted); }
+
+/* Runs (design/mockups/v2/RunsP): a suite's trend with its range and gate, then every run. */
+.trend-card { display: flex; flex-direction: column; gap: 12px; align-items: flex-start; }
+.trend { width: 100%; max-width: 760px; height: auto; }
+.trend-band { fill: color-mix(in srgb, var(--blue) 18%, transparent); }
+.trend-line { stroke: var(--blue); stroke-width: 2; }
+.trend-dot { fill: var(--blue); }
+.trend-gate { stroke: var(--bad); stroke-width: 1.5; stroke-dasharray: 5 4; }
+input.pick { width: 20px; height: 20px; }
+.pick-label { display: inline-flex; align-items: center; justify-content: center; min-width: 44px; min-height: 44px; cursor: pointer; }
+.conn { font-size: 12px; font-weight: 500; color: var(--bad); padding: 6px 10px; border-radius: var(--radius-md); background: var(--bad-tint); }

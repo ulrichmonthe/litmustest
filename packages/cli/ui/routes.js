@@ -73,7 +73,7 @@ export function crumbs(parts) {
       return out;
     }
     case "cover": {
-      if (b !== "tasks") return b ? [["Cover", "#/cover"], [b, null]] : [["Cover", null]];
+      if (b !== "tasks") return b ? [["Cover", "#/cover"], [b === "setup" ? "Set up coverage" : b, null]] : [["Cover", null]];
       const out = [["Cover", "#/cover"], ["Tasks and suites", c ? "#/cover/tasks" : null]];
       if (c) out.push([c, d ? hashOf(["cover", "tasks", c]) : null]);
       if (d) out.push([d, null, "mono"]);

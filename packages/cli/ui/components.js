@@ -49,3 +49,18 @@ export function teachRail(current) {
 export function teachHead(title, sub, ...actions) {
   return h("header", { class: "teach-head" }, h("div", { class: "titles" }, h("h1", { class: "teach-title" }, title), sub ? h("p", { class: "subtitle" }, ...[sub].flat()) : null), actions.filter(Boolean).length ? h("div", { class: "teach-actions" }, ...actions) : null);
 }
+
+/** Cover's two sections as tabs (design/mockups/v2/CoverP, TasksP). */
+export function coverTabs(current, ...right) {
+  const tab = (key, href, label) => h("a", { href, "aria-current": key === current ? "page" : undefined }, label);
+  return h("div", { class: "ship-toolbar" }, h("nav", { class: "tabs", "aria-label": "Cover sections" }, tab("gaps", "#/cover", "Gaps and maps"), tab("tasks", "#/cover/tasks", "Tasks and suites")), right.length ? h("div", { class: "teach-actions" }, ...right) : null);
+}
+/** A screen that could not load: what happened, that nothing was lost, and one thing to do next (design/mockups/v2/ErrorStatesP). */
+export function errorState(title, message, action) {
+  return h("div", { class: "column" }, h("div", { class: "error-state", role: "alert" },
+    h("p", { class: "eyebrow-status" }, h("span", { class: "status-word bad" }, h("span", { class: "sdot bad", "aria-hidden": "true" }), "Not loaded")),
+    h("h1", { class: "teach-title" }, title),
+    h("p", { class: "home-lead" }, message),
+    h("p", { class: "caption muted" }, "Nothing was changed or lost: the files under evals/ are as they were."),
+    h("div", { class: "home-actions" }, action ?? h("button", { type: "button", class: "btn primary", onclick: () => location.reload() }, "Try again"), h("a", { class: "btn quiet", href: "#/home" }, "Go to Home"))));
+}

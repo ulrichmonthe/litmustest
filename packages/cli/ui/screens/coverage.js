@@ -1,7 +1,9 @@
 // litmustest dashboard: screens/coverage.js
-import { plain } from "../explainer.js";
+import { coverTabs, statusWord } from "../components.js";
+import { plain, term } from "../explainer.js";
 import { $, api, h } from "../lib/dom.js";
 import { stale, state } from "../lib/state.js";
+import { refreshHealth } from "../shell.js";
 
 // ---------------- coverage
 export const DEPTHS = [["guarded", "Guarded", "A passing regression task: the merge gate protects it."], ["checked", "Checked", "A passing task outside regression."], ["planned", "Planned", "Only capability tasks, or tasks that have not passed."], ["none", "None", "No task covers it."]];
@@ -85,11 +87,65 @@ export async function renderCoverage(mapKey, area) {
   const scope = h("details", { class: "card scope", open: !localStorage.getItem("litmustest.coverage.scope-seen") || undefined, ontoggle: (e) => { if (!e.target.open) try { localStorage.setItem("litmustest.coverage.scope-seen", "1"); } catch {} } },
     h("summary", {}, h("strong", {}, "What coverage measures, and what it does not")),
     h("div", { class: "scope-cols" }, h("div", {}, h("span", { class: "eyebrow" }, "Measured"), h("ul", {}, ...c.scope.measures.map((x) => h("li", {}, x)))), h("div", {}, h("span", { class: "eyebrow" }, "Not measured"), h("ul", {}, ...c.scope.not_measured.map((x) => h("li", {}, x))))));
+  const gaps = mapKey ? null : await gapsSection(); if (stale(seq)) return;
+  const unset = maps.filter((m) => m.configured === false && (m.key === "spec" || m.key === "code"));
   page.replaceChildren(h("div", { class: "column" },
-    h("header", { class: "page-header" }, h("div", { class: "titles" }, h("h1", { class: "t-page-title" }, "Coverage"), h("p", { class: "subtitle" }, "How much of the application an eval would catch if it broke", c.run_id ? [" · against ", h("span", { class: "mono" }, c.run_id)] : " · no runs yet, so nothing is checked or guarded"))),
+    coverTabs("gaps", unset.length ? h("a", { class: "btn", href: "#/cover/setup" }, "Set up coverage") : null),
+    mapKey ? h("header", { class: "page-header" }, h("div", { class: "titles" }, h("h1", { class: "teach-title" }, `Coverage: ${maps.find((m) => m.key === key)?.label ?? key}`), h("p", { class: "subtitle" }, "How much of the application an eval would catch if it broke", c.run_id ? [" · against ", h("span", { class: "mono" }, c.run_id)] : " · no runs yet, so nothing is checked or guarded"))) : gaps,
     scope,
     h("div", { class: "cov-tiles" }, ...maps.map(tile)),
     plain("coverage", "coverage", { map: key }),
     ...(c.warnings.length ? [h("div", { class: "card warn-card" }, ...c.warnings.map((w) => h("p", { class: "caption", style: "margin:0" }, w)))] : []),
     h("div", { class: "two-col" }, h("div", { class: "main", style: "display:flex;flex-direction:column;gap:var(--space-4)" }, chartCard, itemTable), gapList)));
+}
+
+// ---------------- the biggest gaps (design/mockups/v2/CoverP): high-severity failure modes with no check you can trust
+async function gapsSection() {
+  const { failure_modes: modes } = await api("/api/modes");
+  const enc = encodeURIComponent;
+  const order = ["high", "med", "low"];
+  const gaps = modes.filter((m) => m.severity === "high" && m.grader?.status !== "trusted").sort((a, b) => order.indexOf(a.severity) - order.indexOf(b.severity));
+  const why = (m) => m.grader?.kind === "judge" ? (m.grader.status === "stale" ? "Has a judge, but it changed after its test, so nothing it says counts." : "Has a judge that is not trusted yet.") : `${m.fail_labels ?? 0} failures in your labels. No check.`;
+  const act = (m) => m.grader?.kind === "judge" ? h("a", { class: "btn", href: `#/teach/judges/${enc(m.name)}` }, m.grader.status === "stale" ? "Re-check judge" : "Open judge") : h("a", { class: "btn", href: `#/teach/judges/new?mode=${enc(m.name)}` }, "New judge");
+  return h("section", { class: "gaps", "aria-label": "Biggest gaps" },
+    h("p", { class: "eyebrow-status" }, gaps.length ? statusWord("warn", `${gaps.length} ${gaps.length === 1 ? "gap" : "gaps"}`) : statusWord("good", "No high-severity gaps")),
+    h("h1", { class: "teach-title" }, gaps.length ? `${gaps.length} high-severity ${gaps.length === 1 ? "failure mode has" : "failure modes have"} no check you can trust` : "Every high-severity failure mode has a check you can trust"),
+    h("p", { class: "subtitle" }, "“Covered” means a check would run, not that it catches every bug. ", term("coverage", "Coverage"), " below shows how much of the product the tasks reach."),
+    gaps.length ? h("ol", { class: "gap-list" }, ...gaps.map((m, i) => h("li", { class: "gap-row" },
+      h("span", { class: "gap-n", "aria-hidden": "true" }, String(i + 1)),
+      h("div", { class: "gap-text" }, h("span", { class: "gap-head" }, h("a", { class: "mono", href: `#/teach/modes/${enc(m.name)}` }, m.name), statusWord("bad", "High")), h("span", {}, m.definition), h("span", { class: "caption muted" }, why(m))),
+      act(m)))) : null);
+}
+
+// ---------------- set up coverage (design/mockups/v2/CoverageSetupP): the spec and code maps, written to litmustest.yaml
+// through a validated write. Story connectors (Linear, Jira, GitHub Issues) are planned, not built.
+export async function renderCoverageSetup() {
+  const seq = state.seq; const page = $("#page");
+  const f = await api(`/api/file?path=${encodeURIComponent("litmustest.yaml")}`); if (stale(seq)) return;
+  const cfg = f.data ?? {}; const cov = cfg.coverage ?? {};
+  const status = h("p", { class: "status", "aria-live": "polite" });
+  const field = (id, label, value, hint, placeholder) => h("label", { class: "field" }, h("span", {}, label), h("input", { class: "text mono", id, value: value ?? "", placeholder }), hint ? h("span", { class: "caption muted" }, hint) : null);
+  const planned = (name, what) => h("div", { class: "setup-row" }, h("div", {}, h("span", { class: "setup-name" }, name), h("span", { class: "caption muted" }, what)), h("span", { class: "planned-tag" }, "Planned"));
+  async function save() {
+    const files = $("#spec-files").value.split(",").map((x) => x.trim()).filter(Boolean); const pattern = $("#spec-pattern").value.trim(); const report = $("#code-report").value.trim();
+    const next = { ...cov };
+    if (files.length) next.spec = { ...(cov.spec ?? {}), files, id_pattern: pattern || "[A-Z]+-\\d+" }; else delete next.spec;
+    if (report) next.code = { ...(cov.code ?? {}), report }; else delete next.code;
+    status.className = "status"; status.textContent = "Saving…";
+    try { await api("/api/file", { method: "PUT", body: JSON.stringify({ path: "litmustest.yaml", data: { ...cfg, coverage: next }, base_hash: f.hash }) }); await refreshHealth(); status.className = "status good"; status.textContent = "Saved to evals/litmustest.yaml. It is in Pending changes; the maps appear on Cover."; }
+    catch (e) { status.className = "status bad"; status.textContent = `Not saved · ${e.body?.problems?.[0]?.message ?? e.message}`; }
+  }
+  page.replaceChildren(h("div", { class: "column setup" },
+    coverTabs("gaps"),
+    h("header", { class: "page-header" }, h("div", { class: "titles" }, h("h1", { class: "teach-title" }, "Measure two more kinds of coverage"), h("p", { class: "subtitle" }, "Both are optional. Each adds a map to Cover and a list of gaps you can turn into tasks."))),
+    h("section", { class: "setup-section", "aria-label": "Your spec" },
+      h("div", { class: "section-head" }, h("h2", {}, "Your spec"), h("span", { class: "caption muted" }, "Which acceptance criteria have a task")),
+      field("spec-files", "Spec files", (cov.spec?.files ?? []).join(", "), "Paths or globs from the repository root, comma separated. Every match of the pattern in them is one criterion.", "docs/spec.md"),
+      field("spec-pattern", "Criterion id pattern", cov.spec?.id_pattern, "A regular expression; a task covers a criterion with covers: or source: spec:<id>.", "[A-Z]+-\\d+"),
+      planned("Linear", "Read stories and their acceptance criteria"), planned("Jira", "Read issues of type Story"), planned("GitHub Issues", "Read issues with a label you choose")),
+    h("section", { class: "setup-section", "aria-label": "Your code" },
+      h("div", { class: "section-head" }, h("h2", {}, "Your code"), h("span", { class: "caption muted" }, "Which code paths the tasks reach")),
+      field("code-report", "Coverage report", cov.code?.report, "An lcov or Istanbul JSON file your agent's process writes during litmustest run. litmustest never runs your coverage tool for you.", "coverage/lcov.info")),
+    h("div", { class: "home-actions" }, h("button", { type: "button", class: "btn primary", onclick: save }, "Save to Pending changes"), h("a", { class: "btn quiet", href: "#/cover" }, "Back to Cover")),
+    status));
 }

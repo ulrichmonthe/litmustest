@@ -97,3 +97,18 @@ export function home(evalsDir: string): Obj {
     labels: o.labels,
   };
 }
+
+/** Run history (design/mockups/v2/RunsP): every run, newest first, with each suite's rate and range and the verdict of its
+ *  minimum-pass-rate gates. A drop gate needs a pair of runs, so it is judged on Ship, not here. */
+export function runHistory(evalsDir: string): Obj {
+  const f = loadFiles(evalsDir);
+  const gateOf = (name: string) => (f.suites.find((s) => s.name === name)?.gate as Obj | undefined) ?? ((f.config.gates as Record<string, Obj> | undefined)?.[name]) ?? {};
+  const names = f.suites.map((s) => String(s.name));
+  const runs = f.runs.slice().reverse().map((r) => {
+    const suites: Record<string, Obj> = {};
+    for (const [name, s] of Object.entries((r.suites as Record<string, Obj>) ?? {})) { const ci = s.ci as Obj | undefined; suites[name] = { rate: Number(s.pass_rate), ci: ci ? { low: Number(ci.low), high: Number(ci.high) } : null }; }
+    const failing = Object.entries(suites).filter(([name, s]) => { const g = gateOf(name); return !g.report_only && g.min_pass_rate !== undefined && Number(s.rate) < Number(g.min_pass_rate); }).map(([n]) => n);
+    return { run_id: r.run_id, started_at: r.started_at ?? null, branch: r.branch ?? null, commit: r.commit ?? null, cost_usd: r.cost_usd ?? null, suites, failing, verdict: failing.length ? "hold" : "safe" };
+  });
+  return { suites: names, gates: Object.fromEntries(names.map((n) => [n, gateOf(n)])), runs };
+}

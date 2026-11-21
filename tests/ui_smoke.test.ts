@@ -61,7 +61,7 @@ describe("dashboard smoke", () => {
     const s = await serve({ evalsDir: join(cwd, "evals"), port: 0, watch: false }); servers.push(s);
     const t = (await (await fetch(`${s.url}/api/transcripts`)).json()) as { run: { run_id: string }; tasks: { id: string; suite: string }[] };
     const task = t.tasks[0];
-    const deep = [`cover/tasks/${task.suite}/${task.id}`, `library/runs/${t.run.run_id}/${task.id}/1`, "teach/judges/tone_mismatch", "teach/modes/tone_mismatch", "teach/judges/new?mode=ungrounded_policy", "ship/decide"];
+    const deep = [`cover/tasks/${task.suite}/${task.id}`, `library/runs/${t.run.run_id}/${task.id}/1`, "teach/judges/tone_mismatch", "teach/modes/tone_mismatch", "teach/judges/new?mode=ungrounded_policy", "ship/decide", "library/runs/run_0041", "cover/setup", "cover/traffic"];
     expect(await visit(s.url, [...ROUTES, ...deep])).toEqual({});
   }, 60_000);
 
@@ -96,7 +96,7 @@ describe("dashboard smoke", () => {
 });
 
 // The explainer (docs/EXPLAINER.md): every header, stat label and pill on the screens is either a glossary term or a plain word on this list.
-const PLAIN = new Set(["a", "b", "a → b", "actual", "before", "after", "action", "actions", "agent", "change", "customer", "expected", "fail", "failed", "failing", "passing", "pass", "high", "med", "low", "human", "item", "last runs", "model", "mode", "none", "path", "source", "status", "suite health", "tool", "trend", "used by", "why", "what happened", "what it tests", "what this means", "to make it pass", "judge's critique", "covered by", "has check", "measured", "not measured in v1", "not measured", "needs labels", "failing check in b", "no grader", "only a judge failed it", "mixed", "high severity", "review queue", "dev tpr / tnr", "test tpr / tnr", "checks"]);
+const PLAIN = new Set(["a", "b", "a → b", "actual", "before", "after", "action", "actions", "pick", "run", "date", "verdict", "quality", "agent", "change", "customer", "expected", "fail", "failed", "failing", "passing", "pass", "high", "med", "low", "human", "item", "last runs", "model", "mode", "none", "path", "source", "status", "suite health", "tool", "trend", "used by", "why", "what happened", "what it tests", "what this means", "to make it pass", "judge's critique", "covered by", "has check", "measured", "not measured in v1", "not measured", "needs labels", "failing check in b", "no grader", "only a judge failed it", "mixed", "high severity", "review queue", "dev tpr / tnr", "test tpr / tnr", "checks"]);
 const ALSO: Record<string, string> = { broke: "flip", fixed: "flip", significant: "confidence_interval", "within noise": "confidence_interval" };
 const ROUTES_ALL = ["home", "teach/label", "teach/modes", "cover/tasks", "ship", "library/runs", "teach/judges", "teach/judges/tone_mismatch", "cover", "library/settings", "pending"];
 /** Pills that are not status words: the explain card's own kind label and the AI pill. */
@@ -452,7 +452,8 @@ describe("numbers carry their margin and link down", () => {
     };
     // every percentage in these columns is a rate with its interval
     expect(await bare("tasks/regression", "#page table.plain td.num")).toEqual([]);
-    expect(await bare("transcripts", "#page .task-row .num")).toEqual([]);
+    expect(await bare("library/runs/run_0041", "#page .task-row .num")).toEqual([]);
+    expect(await bare("library/runs", '#page [aria-label="Runs"] td.num')).toEqual([]);
     expect(await bare("home", '#page [aria-label="Gates"] .gate-value')).toEqual([]);
     expect(await bare("ship", '#page [aria-label="Gates"] .ship-rate')).toEqual([]);
     expect(await bare("judges", "#page table.plain td.num")).toEqual([]);
@@ -537,6 +538,34 @@ describe("Teach (docs/stories/redesign.md, R3)", () => {
     // the new-judge screen explains what drafting needs when there is no model key
     await page.goto(`${s.url}/#/teach/judges/new?mode=ungrounded_policy`); await page.waitForSelector("#page .facts");
     expect(await page.textContent("#page")).toMatch(/ANTHROPIC_API_KEY|Draft the judge with Claude/);
+    await page.close();
+  }, 90_000);
+});
+
+describe("Cover and the Library (docs/stories/redesign.md, R4)", () => {
+  it("Cover leads with the biggest gaps; coverage setup writes litmustest.yaml; runs compare two on Ship; a lost server says so", async (ctx) => {
+    if (!browser) return ctx.skip();
+    const cwd = repo((c) => cpSync(EXAMPLE, join(c, "evals"), { recursive: true }));
+    const s = await serve({ evalsDir: join(cwd, "evals"), port: 0, watch: false });
+    const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+    await page.goto(`${s.url}/#/cover`); await page.waitForSelector('#page [aria-label="Biggest gaps"] .gap-row');
+    expect(await page.textContent("#page .gaps h1")).toBe("3 high-severity failure modes have no check you can trust");
+    expect(await page.getAttribute('#page .gap-row:has-text("missed_refund") a.btn', "href")).toBe("#/teach/judges/missed_refund");
+    // coverage setup: a code report path lands in litmustest.yaml as a validated, pending write
+    await page.goto(`${s.url}/#/cover/setup`); await page.waitForSelector("#code-report");
+    await page.fill("#code-report", "coverage/lcov.info"); await page.click('#page button.primary:has-text("Save")');
+    await page.waitForFunction(() => /Saved to evals\/litmustest\.yaml/.test(document.querySelector("#page .status")?.textContent ?? ""));
+    expect(readFileSync(join(cwd, "evals", "litmustest.yaml"), "utf8")).toMatch(/code:\s+report: coverage\/lcov\.info/);
+    // runs: pick two and compare them on Ship
+    await page.goto(`${s.url}/#/library/runs`); await page.waitForSelector("#page input.pick");
+    await page.check("#page tbody tr:nth-child(1) input.pick"); await page.waitForSelector("#page tbody tr:nth-child(1) input.pick:checked");
+    await page.check("#page tbody tr:nth-child(2) input.pick");
+    await page.waitForSelector('#page a.btn.primary[href^="#/ship/"]');
+    expect(await page.getAttribute('#page a.btn.primary[href^="#/ship/"]', "href")).toBe("#/ship/run_0040/run_0041");
+    // the server stops (open connections drop, as when the process ends): the top bar says the connection is lost
+    const closed = s.close(); s.server.closeAllConnections(); await closed;
+    await page.waitForFunction(() => !document.querySelector("#conn")!.hidden, null, { timeout: 15_000 });
+    expect(await page.textContent("#conn")).toMatch(/Lost connection to litmustest serve/);
     await page.close();
   }, 90_000);
 });
