@@ -29,8 +29,8 @@ const servers: Running[] = [];
 beforeAll(async () => {
   try { browser = await chromium.launch({ channel: "chrome" }); }
   catch (e) { if (process.env.CI) throw e; browser = undefined; } // GitHub's runners have Chrome; never skip there.
-});
-afterAll(async () => { await browser?.close(); for (const s of servers) await s.close(); });
+}, 60_000); // a cold Chrome start on a busy CI runner can take longer than the 10s default
+afterAll(async () => { await browser?.close(); for (const s of servers) await s.close(); }, 60_000);
 
 async function visit(url: string, hashes: string[]): Promise<Record<string, string[]>> {
   const page = await browser!.newPage(); const problems: Record<string, string[]> = {}; let current = "";

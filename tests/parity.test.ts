@@ -94,6 +94,9 @@ beforeAll(async () => {
   viaHttp = mkdtempSync(join(tmpdir(), "litmustest-parity-http-")); viaCli = mkdtempSync(join(tmpdir(), "litmustest-parity-cli-"));
   for (const r of [viaHttp, viaCli]) { cpSync(seed, r, { recursive: true }); git(r, "init", "-q", "-b", "main"); git(r, "config", "user.name", "t"); git(r, "config", "user.email", "t@t"); git(r, "add", "-A"); git(r, "commit", "-q", "-m", "seed"); }
   srv = await serve({ evalsDir: join(viaHttp, "evals"), port: 0, watch: false });
+  // The CLI half of each test runs through spawnSync, which blocks this process, and with it the server, for seconds.
+  // With Node's 5s keep-alive the server then drops the idle socket just as the next fetch reuses it (ECONNRESET in CI).
+  srv.server.keepAliveTimeout = 120_000;
 });
 afterAll(async () => { await srv.close(); });
 
