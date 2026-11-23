@@ -4,6 +4,8 @@ The `litmustest` CLI (npm) and the plugin (Claude Code; the Codex manifest ships
 
 ## 0.2.0 (2026-11-21)
 
+The CLI is published on npm as **`@concertedlabs/litmustest`**: `npm install -g @concertedlabs/litmustest`. The command it installs is still `litmustest`, and so is the plugin's name. (The unscoped name `litmustest` was refused by npm as too close to an existing package.)
+
 ### The dashboard, redesigned around jobs
 - One ranked **Home**: the verdict as a sentence built from the run files, every suite's gate as a margin bar, and an **Up next** list ranked by fixed rules (what blocks the merge, what keeps the numbers honest, what improves the evals).
 - **Ship**: two runs compared on the same tasks, the tasks that changed as trial dots, the selected task's checks, and **Decide**, one reply at a time, for tasks that broke only on a judge.

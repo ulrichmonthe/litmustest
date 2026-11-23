@@ -28,7 +28,7 @@ It reconciles two sources: the evals-skills course method (error analysis → bi
 plugin/                   # the plugin: .claude-plugin/plugin.json (name litmustest), skills/<name>/SKILL.md; .codex-plugin ships untested
                           # modified upstream skills carry the Apache 2.0 attribution comment
 schemas/                  # JSON Schema 2020-12 for every file under evals/; $id versioned under /v1/
-packages/cli/             # the `litmustest` npm package (TypeScript, Node >= 22); schemas copied in at publish
+packages/cli/             # the CLI, published on npm as `@concertedlabs/litmustest` (command: `litmustest`; TypeScript, Node >= 22); schemas copied in at publish
 examples/support-agent/   # the sample repo: agent, trace generator, seed evals, a Dockerfile for the container environments
 tests/                    # vitest: schemas/examples/<schema>/{valid,invalid}.*, fixtures/{good,bad}/evals
 scripts/gen-schema-docs.ts  # writes docs/SCHEMAS.md from the schema descriptions
