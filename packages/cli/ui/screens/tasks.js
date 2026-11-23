@@ -1,5 +1,6 @@
 // litmustest dashboard: screens/tasks.js
 import { coverTabs, header } from "../components.js";
+import { runButton } from "./live.js";
 import { command, count, filterNote, num, plain, rate, term } from "../explainer.js";
 import { $, api, h } from "../lib/dom.js";
 import { stale, state } from "../lib/state.js";
@@ -41,6 +42,7 @@ export async function renderTasks(suiteName, taskId) {
 }
 
 export async function renderTaskEditor(d, taskId) {
+  const runStatus = h("span", { class: "status", "aria-live": "polite" });
   const page = $("#page"); const t = d.tasks.find((x) => x.id === taskId);
   if (!t) { page.replaceChildren(h("div", { class: "column" }, header("Task not found", taskId))); return; }
   const file = await api(`/api/file?path=${encodeURIComponent(t.path)}`);
@@ -55,7 +57,7 @@ export async function renderTaskEditor(d, taskId) {
   const promotedBanner = fresh ? h("div", { class: `banner${fresh.problems.length ? "" : " good"}`, role: "status" }, h("span", {}, h("strong", {}, `Promoted from ${fresh.from}. `), fresh.problems.length ? "The reference below is what the agent did, and it does not pass this task's checks yet. Edit it to what the agent should have done, then save:" : "The task, its reference and the suite entry are in Pending changes. The reference is what the agent did; read it before you commit.", fresh.problems.length ? h("ul", {}, ...fresh.problems.map((m) => h("li", {}, m.replace(/^deep: /, "")))) : null, fresh.ungraded.length ? h("span", {}, ` No grader exists yet for ${fresh.ungraded.join(", ")}, so no check was added for ${fresh.ungraded.length > 1 ? "them" : "it"}.`) : null)) : null;
   page.replaceChildren(h("div", { class: "column" },
     coverTabs("tasks"),
-    h("header", { class: "page-header" }, h("div", { class: "titles" }, h("div", { class: "title-row" }, h("h1", { class: "t-page-title mono" }, t.id), h("span", { class: "pill" }, t.source)), h("p", { class: "subtitle" }, t.description ?? "", ` · ${t.checks.length} checks · ${t.trials ?? "config"} trials${t.graduated_from ? ` · graduated from ${t.graduated_from}` : ""}`)), h("div", { class: "verdict" }, t.history.some(Boolean) ? h("a", { class: "btn", href: `#/transcripts/${encodeURIComponent(t.history.filter(Boolean).slice(-1)[0].run)}/${encodeURIComponent(t.id)}/1` }, "Latest transcript") : null, h("button", { type: "button", class: "btn", onclick: move }, t.suite === "capability" ? "Graduate to regression" : "Move to another suite"))),
+    h("header", { class: "page-header" }, h("div", { class: "titles" }, h("div", { class: "title-row" }, h("h1", { class: "t-page-title mono" }, t.id), h("span", { class: "pill" }, t.source)), h("p", { class: "subtitle" }, t.description ?? "", ` · ${t.checks.length} checks · ${t.trials ?? "config"} trials${t.graduated_from ? ` · graduated from ${t.graduated_from}` : ""}`)), h("div", { class: "verdict" }, t.history.some(Boolean) ? h("a", { class: "btn", href: `#/transcripts/${encodeURIComponent(t.history.filter(Boolean).slice(-1)[0].run)}/${encodeURIComponent(t.id)}/1` }, "Latest transcript") : null, h("button", { type: "button", class: "btn", onclick: move }, t.suite === "capability" ? "Graduate to regression" : "Move to another suite"), runButton({ tasks: [t.id] }, "Run this task", runStatus, "btn"), runStatus)),
     promotedBanner,
     h("div", { class: "two-col" },
       h("section", { class: "card main", "aria-label": "Task spec" }, h("div", { class: "card-head" }, h("h2", { class: "t-section-title" }, "Task file"), stateEl), h("label", { class: "field" }, h("span", { class: "mono", style: "font-weight:400;font-size:12px" }, `evals/${t.path}`), yamlEl), ref ? h("label", { class: "field" }, h("span", { class: "mono", style: "font-weight:400;font-size:12px" }, `evals/${refPath} · must pass every check`), refEl) : null, h("div", { class: "verdict" }, h("button", { type: "button", class: "btn primary", onclick: save }, "Save"), h("span", { class: "caption muted", style: "align-self:center" }, "Saved files are validated against their schema and the cross-file rules; a reference that fails a check is refused by litmustest validate --deep."))),

@@ -2,6 +2,11 @@
 
 The `litmustest` CLI (npm) and the plugin (Claude Code; the Codex manifest ships untested) share one version.
 
+## Unreleased
+
+- **Run from the dashboard.** "Run the suites" on Runs and trials and "Run this task" in the task editor start the same runner as `litmustest run`. A live screen follows the run trial by trial with its budget; Cancel stops the running trials and saves nothing; a run that hits its budget says so and links to its partial results. Runs start only from the local dashboard, never in hosted mode.
+- **The local server answers only its own dashboard.** Writes must come from the dashboard's page and be sent as JSON, and every request must be addressed to this machine, so another website cannot write files or start runs through `litmustest serve`.
+
 ## 0.2.0 (2026-11-21)
 
 The CLI is published on npm as **`@concertedlabs/litmustest`**: `npm install -g @concertedlabs/litmustest`. The command it installs is still `litmustest`, and so is the plugin's name. (The unscoped name `litmustest` was refused by npm as too close to an existing package.)

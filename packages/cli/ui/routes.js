@@ -82,6 +82,7 @@ export function crumbs(parts) {
     case "library": {
       if (b === "settings") return [["Library", null], ["Settings", null]];
       const out = [["Library", null], ["Runs and trials", c ? "#/library/runs" : null]];
+      if (c === "live") { out.push(["Run in progress", null]); return out; }
       if (c) out.push([c, d ? hashOf(["library", "runs", c]) : null, "mono"]);
       if (d) out.push([d, null, "mono"]);
       if (e) out.push([`Trial ${e}`, null]);

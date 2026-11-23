@@ -35,11 +35,14 @@ function status(n) {
   const hm = state.homeData;
   if (n.icon === "home" && hm && hm.up_next?.length) return h("span", { class: "nav-status", title: `${hm.up_next.length} in Up next` }, String(hm.up_next.length));
   if (n.icon === "ship" && hm && hm.state !== "no_runs") return h("span", { class: `nav-status status-word ${hm.state === "hold" ? "bad" : "good"}` }, h("span", { class: `sdot ${hm.state === "hold" ? "bad" : "good"}`, "aria-hidden": "true" }), hm.state === "hold" ? "Hold" : "Safe");
+  const rj = state.runJob;
+  if (n.icon === "runs" && rj?.state === "running") return h("span", { class: "nav-status status-word warn", title: `${rj.run_id} is running` }, h("span", { class: "sdot warn", "aria-hidden": "true" }), `${rj.done}/${rj.total}`);
   if (n.icon === "teach" && state.batches.length) { const b = state.batches[0]; const left = b.items - b.labelled; if (left > 0) return h("span", { class: "nav-status", title: `${left} to label` }, `${left} to label`); }
   return null;
 }
 
-export function renderNav() {
+/** Redraw the sidebar's items and their statuses only: safe to call on every live event (it leaves an open phone menu open). */
+export function paintNav() {
   const cur = currentNav(state.path ?? []);
   const item = (n) => h("a", { class: "nav-item", href: n.href, "aria-current": n === cur ? "page" : undefined }, icon(n.icon), h("span", { class: "nav-label" }, n.label), status(n));
   $("#nav-items").replaceChildren(
@@ -47,6 +50,11 @@ export function renderNav() {
     h("span", { class: "nav-section" }, "Library"),
     ...NAV.filter((n) => n.library).map(item),
   );
+}
+
+export function renderNav() {
+  const cur = currentNav(state.path ?? []);
+  paintNav();
   $("#bottombar").replaceChildren(...NAV.filter((n) => n.place).map((n) => h("a", { class: "bottom-item", href: n.href, "aria-current": n === cur ? "page" : undefined }, icon(n.icon), h("span", {}, n.label))));
   const parts = crumbs(state.path ?? []);
   $("#nav-current").replaceChildren(...parts.flatMap(([text, href, kind], i) => [
@@ -66,4 +74,4 @@ export function renderNav() {
   $("#user-initials").textContent = who.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join("");
 }
 
-export async function refreshHealth() { state.health = await api("/api/health"); state.homeData = await api("/api/home").catch(() => null); state.teach = await api("/api/teach").catch(() => null); state.batches = (await api("/api/batches")).batches; state.modes = (await api("/api/failure_modes")).failure_modes; renderNav(); }
+export async function refreshHealth() { state.health = await api("/api/health"); state.homeData = await api("/api/home").catch(() => null); state.teach = await api("/api/teach").catch(() => null); state.runJob = (await api("/api/runs/active").catch(() => ({ job: null }))).job; state.batches = (await api("/api/batches")).batches; state.modes = (await api("/api/failure_modes")).failure_modes; renderNav(); }

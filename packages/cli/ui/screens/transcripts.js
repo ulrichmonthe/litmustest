@@ -4,6 +4,7 @@ import { filterNote, num, rate, term } from "../explainer.js";
 import { $, ago, api, fmtArgs, h, short } from "../lib/dom.js";
 import { stale, state } from "../lib/state.js";
 import { refreshHealth } from "../shell.js";
+import { runButton } from "./live.js";
 
 // ---------------- transcripts
 export async function renderTranscripts(runId) {
@@ -80,8 +81,9 @@ export const runsPage = { suite: "regression", picked: [] };
 export async function renderRuns() {
   const seq = state.seq; const page = $("#page");
   const d = await api("/api/runs/history"); if (stale(seq)) return;
+  const runStatus = h("p", { class: "status", "aria-live": "polite" });
   const enc = encodeURIComponent;
-  if (!d.runs.length) { page.replaceChildren(h("div", { class: "column" }, h("h1", { class: "teach-title" }, "No runs yet"), h("p", { class: "home-lead" }, "Run the suites with ", h("span", { class: "mono" }, "litmustest run"), "; each run's summary lands in evals/runs/ and shows up here."))); return; }
+  if (!d.runs.length) { page.replaceChildren(h("div", { class: "column" }, h("h1", { class: "teach-title" }, "No runs yet"), h("p", { class: "home-lead" }, "Run the suites with ", h("span", { class: "mono" }, "litmustest run"), " in a terminal, or from here; each run's summary lands in evals/runs/ and shows up here."), h("div", { class: "home-actions" }, runButton({}, "Run the suites", runStatus)), runStatus)); return; }
   const suite = d.suites.includes(runsPage.suite) ? runsPage.suite : d.suites[0];
   const order = d.suites.slice().sort((a, b) => ["regression", "quality", "capability"].indexOf(a) - ["regression", "quality", "capability"].indexOf(b));
   const series = d.runs.slice().reverse().filter((r) => r.suites[suite]);
@@ -100,7 +102,8 @@ export async function renderRuns() {
   const headline = series.length < 2 ? `One run so far: ${suite} at ${last}%` : first === last ? `${Suite} held at ${last}% over ${series.length} runs` : `${Suite} went from ${first}% to ${last}% over ${series.length} runs`;
   page.replaceChildren(h("div", { class: "column runs" },
     h("header", { class: "teach-head" }, h("div", { class: "titles" }, h("h1", { class: "teach-title" }, headline), h("p", { class: "subtitle" }, "Run summaries are in ", h("span", { class: "mono" }, "evals/runs/"), "; transcripts are in your configured store. Pick two runs to compare them on Ship.")),
-      h("div", { class: "teach-actions" }, pair ? h("a", { class: "btn primary", href: `#/ship/${enc(pair[0])}/${enc(pair[1])}` }, "Compare the 2 selected") : h("span", { class: "caption muted" }, `${runsPage.picked.length} of 2 picked`))),
+      h("div", { class: "teach-actions" }, pair ? h("a", { class: "btn primary", href: `#/ship/${enc(pair[0])}/${enc(pair[1])}` }, "Compare the 2 selected") : h("span", { class: "caption muted" }, `${runsPage.picked.length} of 2 picked`), runButton({}, "Run the suites", runStatus, pair ? "btn" : "btn primary"))),
+    runStatus,
     h("section", { class: "trend-card", "aria-label": "Trend" },
       h("div", { class: "seg", role: "group", "aria-label": "Suite" }, ...order.map((s) => h("button", { type: "button", "aria-pressed": s === suite ? "true" : "false", onclick: () => { runsPage.suite = s; renderRuns(); } }, s[0].toUpperCase() + s.slice(1)))),
       chart, h("p", { class: "caption muted" }, "The line is the pass rate, the band its likely range, the dashed line the gate.")),

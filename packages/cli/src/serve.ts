@@ -1,6 +1,7 @@
 // litmustest serve: the local HTTP server over evals/, with a file watcher and server-sent events.
 import { commentRoute, promoteTrace, setExpectedFlip } from "./server/promote.ts";
 import { addNotes, notesList, teachSummary } from "./server/teach.ts";
+import { activeRun, cancelRun, startRun } from "./server/runs_route.ts";
 import { runHistory } from "./server/home.ts";
 import { glossaryHereRoute, glossaryRoute } from "./server/glossary_route.ts";
 import { prefsRoute, putPrefsRoute } from "./server/prefs.ts";
@@ -22,6 +23,22 @@ export interface ServeOptions { evalsDir: string; port?: number; host?: string; 
   /** Hosted mode (server/hosted.ts): the server's own clone, GitHub sign-in, and a commit on a pull-request branch per save. */
   hosted?: Hosted }
 const LOOPBACK = new Set(["127.0.0.1", "localhost", "::1"]);
+
+/** The local server answers only this machine's own dashboard. A page on another site can make a browser send requests
+ *  to 127.0.0.1, so a write must come from the dashboard's own origin as JSON (which a cross-site form cannot send
+ *  without the browser asking first), and every request must name this machine as its Host (no DNS rebinding).
+ *  Returns why a request is refused, or null. */
+export function localGuard(req: IncomingMessage): string | null {
+  const host = String(req.headers.host ?? "");
+  const name = host.startsWith("[") ? host.slice(1, host.indexOf("]")) : host.split(":")[0]!;
+  if (!LOOPBACK.has(name)) return `the local server answers only requests addressed to this machine, not ${host || "an unnamed host"}`;
+  if (!["POST", "PUT", "PATCH", "DELETE"].includes(req.method ?? "GET")) return null;
+  const origin = req.headers.origin;
+  if (origin && origin !== "null") { let o = ""; try { o = new URL(origin).host; } catch { /* malformed */ } if (o !== host) return `writes are accepted only from the dashboard itself, not from ${origin}`; }
+  else if (origin === "null") return "writes are accepted only from the dashboard itself";
+  if (req.method !== "DELETE" && !String(req.headers["content-type"] ?? "").toLowerCase().startsWith("application/json")) return "writes must be sent as application/json";
+  return null;
+}
 export interface Running { server: Server; app: App; url: string; close: () => Promise<void> }
 
 export async function serve(o: ServeOptions): Promise<Running> {
@@ -44,7 +61,11 @@ export async function serve(o: ServeOptions): Promise<Running> {
   const hooks = { judgeAsk: o.judgeAsk, draftAsk: o.draftAsk ?? o.ask, explainAsk: o.explainAsk, hosted: o.hosted };
   const server = createServer((req, res) => {
     const h = o.hosted;
-    if (!h) return void handle(app, req, res, o.ask, hooks);
+    if (!h) {
+      const refused = localGuard(req);
+      if (refused) { res.writeHead(403, { "content-type": "application/json" }); res.end(JSON.stringify({ error: "forbidden", message: refused })); return; }
+      return void handle(app, req, res, o.ask, hooks);
+    }
     // Hosted: the gate answers sign-in and refusals itself; otherwise the request runs as the signed-in person.
     void h.gate(req, res).then((actor) => actor && h.run(actor, () => handle(app, req, res, o.ask, hooks))).catch((e: Error) => { if (!res.headersSent) { res.writeHead(500, { "content-type": "application/json" }); res.end(JSON.stringify({ error: "internal", message: e.message })); } });
   });
@@ -86,6 +107,9 @@ async function handle(app: App, req: IncomingMessage, res: ServerResponse, ask?:
     if (path === "/api/prefs" && req.method === "PUT") return send(putPrefsRoute(app, body));
     if (path === "/api/glossary/here" && req.method === "POST") return send(glossaryHereRoute(app, body));
     if (path === "/api/runs" && req.method === "GET") return send(app.runs());
+    if (path === "/api/runs/active" && req.method === "GET") return send(activeRun(app));
+    if (path === "/api/runs/start" && req.method === "POST") return send(startRun(app, body, hooks));
+    if (path === "/api/runs/active/cancel" && req.method === "POST") return send(cancelRun(app));
     if (path === "/api/tasks" && req.method === "GET") return send(app.tasks());
     if (path === "/api/graduate" && req.method === "GET") return send(app.graduate());
     if (path === "/api/graduate" && req.method === "POST") return send(app.applyGraduate((body.tasks as string[]) ?? []));

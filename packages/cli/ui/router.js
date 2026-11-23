@@ -15,6 +15,7 @@ import { renderReview, review } from "./screens/review.js";
 import { renderSettings } from "./screens/settings.js";
 import { renderTasks } from "./screens/tasks.js";
 import { renderRuns, renderTranscripts, renderTrial } from "./screens/transcripts.js";
+import { renderLiveRun } from "./screens/live.js";
 import { renderNav } from "./shell.js";
 import { OLD, hashOf, toPlace, toScreen } from "./routes.js";
 
@@ -45,7 +46,7 @@ export async function render() {
       case "compare": if (state.route[1] === "decide") { await renderDecide(); document.addEventListener("keydown", decideKeys); } else await renderCompare(state.route[1], state.route[2]); break;
       case "tasks": await renderTasks(state.route[1], state.route[2]); break;
       case "settings": await renderSettings(); break;
-      case "transcripts": if (!state.route[1]) { await renderRuns(); break; } if (state.route[3]) await renderTrial(state.route[1], state.route[2], Number(state.route[3])); else await renderTranscripts(state.route[1]); break;
+      case "transcripts": if (!state.route[1]) { await renderRuns(); break; } if (state.route[1] === "live") { await renderLiveRun(); break; } if (state.route[3]) await renderTrial(state.route[1], state.route[2], Number(state.route[3])); else await renderTranscripts(state.route[1]); break;
       default: renderSoon("Not found");
     }
   } catch (e) { $("#page").replaceChildren(errorState("Something went wrong on this page", e.status === 404 ? `${e.message}. The file or run it points at may have moved.` : e.message)); }
