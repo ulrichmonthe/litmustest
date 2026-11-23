@@ -598,3 +598,41 @@ describe("⌘K search (docs/stories/redesign.md, R5)", () => {
     await page.close();
   }, 60_000);
 });
+
+describe("a run started from the dashboard (docs/stories/redesign.md, N1)", () => {
+  it("Run this task starts a run, the live screen follows it trial by trial, and the finished run offers its results", async (ctx) => {
+    if (!browser) return ctx.skip();
+    const FAKE = join(import.meta.dirname, "fixtures", "agents", "fake_agent.mjs");
+    const cwd = repo((c) => {
+      cpSync(EXAMPLE, join(c, "evals"), { recursive: true });
+      const cfg = join(c, "evals", "litmustest.yaml");
+      writeFileSync(cfg, readFileSync(cfg, "utf8").replace(/command: .*\n(\s+\{trial_dir\}\n)?/, `command: node ${FAKE}\n`));
+    });
+    const s = await serve({ evalsDir: join(cwd, "evals"), port: 0, watch: false, judgeAsk: async () => JSON.stringify({ critique: "fits", result: "Pass" }) }); servers.push(s);
+    const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+    await page.goto(`${s.url}/#/cover/tasks/regression/duplicate_charge_business`); await page.waitForSelector('#page button:has-text("Run this task")');
+    await page.click('#page button:has-text("Run this task")');
+    await page.waitForFunction(() => location.hash === "#/library/runs/live");
+    await page.waitForSelector("#page .live-run .tdots");
+    await page.waitForFunction(() => /Finished 1 task/.test(document.querySelector("#page h1")?.textContent ?? ""), null, { timeout: 30_000 });
+    const dots = await page.$$eval("#page .live-run .tdot", (els) => els.map((e) => e.className.replace("tdot ", "")));
+    expect(dots.length).toBeGreaterThan(0); expect(dots.every((d) => d === "pass" || d === "fail")).toBe(true);
+    expect(await page.textContent("#page .live-stat .live-n")).toMatch(new RegExp(`^${dots.length} of ${dots.length}$`));
+    expect(await page.getAttribute('#page .teach-actions a:has-text("Every trial")', "href")).toMatch(/^#\/library\/runs\/run_\d{8}_\d{6}$/);
+    // the run's summary is written and shows on Runs and trials
+    await page.goto(`${s.url}/#/library/runs`); await page.waitForSelector('#page [aria-label="Runs"] tbody tr');
+    const ids = await page.$$eval('#page [aria-label="Runs"] tbody tr a.mono', (as) => as.map((a) => a.textContent));
+    expect(ids[0]).toMatch(/^run_\d{8}_\d{6}$/);
+    // Cancel from the page: a hung trial is stopped and the page says so, even though the run's last update can
+    // overtake the Cancel button's own reply
+    process.env.FAKE_HANG = "duplicate_charge_business";
+    try {
+      await page.goto(`${s.url}/#/cover/tasks/regression/duplicate_charge_business`); await page.waitForSelector('#page button:has-text("Run this task")');
+      await page.click('#page button:has-text("Run this task")'); await page.waitForSelector('#page button:has-text("Cancel run")');
+      await page.click('#page button:has-text("Cancel run")');
+      await page.waitForFunction(() => /Run cancelled; nothing was saved/.test(document.querySelector("#page h1")?.textContent ?? ""), null, { timeout: 20_000 });
+      expect(await page.isVisible('#page button:has-text("Start again")')).toBe(true);
+    } finally { delete process.env.FAKE_HANG; }
+    await page.close();
+  }, 90_000);
+});

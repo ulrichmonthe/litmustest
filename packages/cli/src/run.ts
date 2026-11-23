@@ -20,7 +20,9 @@ export { getPath, splitCommand };
 type Obj = Record<string, unknown>;
 export interface Grade { check: string; type: string; pass: boolean | null; reason: string; weight: number; failure_mode?: string; step?: number; critique?: string; verdict?: string; excluded?: string; /** outcome checks: the value seen at each expect key, and who read it (trial = the agent's own snapshot) */ observed?: Obj; reader?: "trial" | "sql" | "fs" | "http" }
 export interface TrialResult { task: string; n: number; pass: boolean; failed_checks: string[]; unknown_checks: string[]; excluded_checks: string[]; infra_error: boolean; infra_error_kind?: "timeout" | "oom" | "harness" | "network" | "other"; infra_message?: string; tokens?: number; latency_ms?: number; cost_usd?: number; transcript_ref: string; grades: Grade[]; weighted: number | null; dir: string }
-export interface RunOptions { evalsDir: string; suites?: string[]; tasks?: string[]; trials?: number; concurrency?: number; judgeAsk?: JudgeAsk; runId?: string; now?: Date; python?: string; onProgress?: (e: { task: string; n: number; total: number; done: number; result?: TrialResult }) => void; dryRun?: boolean; agentCommand?: string; timeoutMs?: number; /** for outcome checks with backend http */ fetch?: Fetch; /** fetch and environment for a remote transcript store */ storage?: StoreOptions }
+export interface RunOptions { evalsDir: string; suites?: string[]; tasks?: string[]; trials?: number; concurrency?: number; judgeAsk?: JudgeAsk; runId?: string; now?: Date; python?: string; onProgress?: (e: { task: string; n: number; total: number; done: number; result?: TrialResult }) => void; dryRun?: boolean; /** cancel: no new trial starts, running ones are killed, and the run ends with RunCancelled, writing no summary */ signal?: AbortSignal; agentCommand?: string; timeoutMs?: number; /** for outcome checks with backend http */ fetch?: Fetch; /** fetch and environment for a remote transcript store */ storage?: StoreOptions }
+/** A run stopped by its signal: running trials were killed, nothing was scored or written to runs/. */
+export class RunCancelled extends Error { done: number; total: number; constructor(done: number, total: number) { super(`run cancelled after ${done} of ${total} trials; nothing was saved`); this.name = "RunCancelled"; this.done = done; this.total = total; } }
 export interface RunResult { run_id: string; path: string; summary: Obj; trials: TrialResult[]; transcripts_dir: string; warnings: string[]; gates?: Obj }
 
 const nowIso = (d: Date) => d.toISOString().replace(/\.\d{3}Z$/, "Z");
@@ -75,6 +77,7 @@ export async function run(o: RunOptions): Promise<RunResult> {
 
   const worker = async () => {
     while (next < work.length) {
+      if (o.signal?.aborted) { next = work.length; break; } // cancelled: nothing more starts; running trials are killed through the signal
       // the budget stops new trials from starting; the ones already running finish and are counted
       if (budget > 0 && spent >= budget) { skipped += work.length - next; next = work.length; break; }
       const w = work[next++]!; const t = w.task; const id = String(t.id);
@@ -91,9 +94,9 @@ export async function run(o: RunOptions): Promise<RunResult> {
       if (o.dryRun) { const refPath = join(evalsDir, String(t.reference_solution)); trial = existsSync(refPath) ? JSON.parse(readFileSync(refPath, "utf8")) : undefined; }
       else {
         await environment.prepare(tref);
-        if (agent.reset) { const r = await environment.exec(tref, fill(String(agent.reset)), env, cwd, timeoutMs, "reset"); if (r.code !== 0) infra = { infra_error: true, infra_error_kind: "harness", infra_message: `reset failed: ${r.stderr.trim().split("\n").pop()}` }; }
+        if (agent.reset) { const r = await environment.exec(tref, fill(String(agent.reset)), env, cwd, timeoutMs, "reset", o.signal); if (r.code !== 0) infra = { infra_error: true, infra_error_kind: "harness", infra_message: `reset failed: ${r.stderr.trim().split("\n").pop()}` }; }
         if (!infra.infra_error) {
-          const r = await environment.exec(tref, fill(command!), env, cwd, timeoutMs, "agent");
+          const r = await environment.exec(tref, fill(command!), env, cwd, timeoutMs, "agent", o.signal);
           writeFileSync(join(dir, "stdout.txt"), r.stdout); writeFileSync(join(dir, "stderr.txt"), r.stderr);
           infra.latency_ms = r.ms;
           const tp = join(dir, "trial.json");
@@ -144,6 +147,7 @@ export async function run(o: RunOptions): Promise<RunResult> {
     }
   };
   await Promise.all(Array.from({ length: Math.max(1, Math.min(concurrency, work.length)) }, worker));
+  if (o.signal?.aborted) { rmSync(runDir, { recursive: true, force: true }); throw new RunCancelled(done, work.length); }
 
   // ---- summary
   const byTask = new Map<string, TrialResult[]>(); for (const r of results) byTask.set(r.task, [...(byTask.get(r.task) ?? []), r].sort((a, b) => a.n - b.n));

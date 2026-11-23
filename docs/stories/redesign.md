@@ -17,7 +17,7 @@ Track R is built, R0 to R5, one commit each on `feat/r5-search` (stacked on `int
 - Bringing traces in from the dashboard (F8) is not built: running ingest from the server writes several files outside `App.putFiles`. First run shows `litmustest ingest`.
 - Home has no "D" shortcut; Pending changes keeps its v1 after-commit message.
 
-Track N (N1 to N4) has not started.
+N1 (runs started from the dashboard) is built: a Run button on Runs and trials and in the task editor, a live screen, cancel and the budget stop; the local server now refuses requests from other sites and other hosts. N2 to N4 have not started.
 
 ## Decisions to make before R0
 

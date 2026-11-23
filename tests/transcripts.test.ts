@@ -25,7 +25,7 @@ beforeAll(async () => {
   await run({ evalsDir: evals, tasks: ["duplicate_charge_business", "refund_ghost_account_frustrated", "duplicate_charge_first_time"], trials: 2, judgeAsk: async () => JSON.stringify({ critique: "tone fits", result: "Pass" }), runId: "run_x" });
   git(repo, "add", "-A"); git(repo, "commit", "-q", "-m", "run");
   srv = await serve({ evalsDir: evals, port: 0, watch: false });
-});
+}, 60_000); // a real run of six trials; under a busy full suite it can pass the 10s default
 afterAll(async () => { await srv.close(); });
 
 describe("transcripts API", () => {

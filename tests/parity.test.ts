@@ -39,7 +39,9 @@ const ROUTES: Record<string, { cli: string; flags?: string[] }> = {
   "POST /api/traces/:name/promote": { cli: "promote", flags: ["--suite", "--id"] },
   "POST /api/compare/expected": { cli: "flip", flags: ["--expected", "--undo", "--note", "--by"] },
   "POST /api/compare/comment": { cli: "compare", flags: ["--comment", "--pr"] },
-  "POST /api/modes/notes": { cli: "mode" }, // mode add-notes <name> <trace>...; a new mode with notes is mode new, then add-notes
+  "POST /api/modes/notes": { cli: "mode" },
+  "POST /api/runs/start": { cli: "run", flags: ["--suite", "--task", "--trials"] },
+  "POST /api/runs/active/cancel": { cli: "run" }, // Ctrl-C stops a run in the terminal // mode add-notes <name> <trace>...; a new mode with notes is mode new, then add-notes
 };
 
 /** The write routes as serve.ts declares them: `path === "/api/x" && req.method === "POST"` and the regex form. */

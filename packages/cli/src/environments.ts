@@ -20,7 +20,8 @@ export interface Environment {
   path(trial: TrialRef, hostPath: string): string;
   prepare(trial: TrialRef): Promise<void>;
   /** Run one command line for a trial. `label` names what it is (agent, reset) where the environment needs a name. */
-  exec(trial: TrialRef, command: string, env: Record<string, string>, cwd: string, timeoutMs: number, label?: string): Promise<ExecResult>;
+  /** `signal` stops the trial early (a cancelled run): it is killed the way a timeout kills it. */
+  exec(trial: TrialRef, command: string, env: Record<string, string>, cwd: string, timeoutMs: number, label?: string, signal?: AbortSignal): Promise<ExecResult>;
   cleanup(trial: TrialRef): Promise<void>;
   /** Things the person should know about how this environment treats the config. */
   warnings(): string[];
@@ -49,13 +50,15 @@ function track(pid: number) { if (!live.size) { process.once("exit", onExit); pr
 function untrack(pid: number) { live.delete(pid); if (!live.size) { process.off("exit", onExit); process.off("SIGINT", onSignal); process.off("SIGTERM", onSignal); } }
 
 /** Spawn argv without a shell in its own process group; on timeout kill the group (and call onTimeout first). */
-export function spawnGroup(argv: string[], env: Record<string, string>, cwd: string, timeoutMs: number, onTimeout?: () => void): Promise<ExecResult> {
+export function spawnGroup(argv: string[], env: Record<string, string>, cwd: string, timeoutMs: number, onTimeout?: () => void, signal?: AbortSignal): Promise<ExecResult> {
   return new Promise((resolveP) => {
     const started = Date.now(); let stdout = "", stderr = ""; let timedOut = false; let settled = false;
     const child = spawn(argv[0]!, argv.slice(1), { cwd, env: { ...process.env, ...env }, stdio: ["ignore", "pipe", "pipe"], detached: process.platform !== "win32" });
     const pid = child.pid; if (pid) track(pid);
-    const timer = setTimeout(() => { timedOut = true; try { onTimeout?.(); } catch { /* best effort */ } if (pid) killGroup(pid); else child.kill("SIGKILL"); }, timeoutMs);
-    const done = (r: ExecResult) => { if (settled) return; settled = true; clearTimeout(timer); if (pid) untrack(pid); resolveP(r); };
+    const stop = () => { try { onTimeout?.(); } catch { /* best effort */ } if (pid) killGroup(pid); else child.kill("SIGKILL"); };
+    const timer = setTimeout(() => { timedOut = true; stop(); }, timeoutMs);
+    signal?.addEventListener("abort", stop, { once: true }); if (signal?.aborted) stop();
+    const done = (r: ExecResult) => { if (settled) return; settled = true; clearTimeout(timer); signal?.removeEventListener("abort", stop); if (pid) untrack(pid); resolveP(r); };
     child.stdout.on("data", (d) => (stdout += d)); child.stderr.on("data", (d) => (stderr += d));
     child.on("error", (e) => done({ code: null, signal: null, stdout, stderr: stderr + `\n${e.message}`, timedOut, ms: Date.now() - started }));
     child.on("close", (code, signal) => done({ code, signal, stdout: stdout.slice(-20000), stderr: stderr.slice(-20000), timedOut, ms: Date.now() - started }));
@@ -69,7 +72,7 @@ class InProcess implements Environment {
   async setup() { /* nothing to build */ }
   path(_t: TrialRef, p: string) { return p; }
   async prepare() { /* the runner already made the trial directory */ }
-  exec(_t: TrialRef, command: string, env: Record<string, string>, cwd: string, timeoutMs: number) { return spawnGroup(splitCommand(command), env, cwd, timeoutMs); }
+  exec(_t: TrialRef, command: string, env: Record<string, string>, cwd: string, timeoutMs: number, _label?: string, signal?: AbortSignal) { return spawnGroup(splitCommand(command), env, cwd, timeoutMs, undefined, signal); }
   async cleanup() { /* the trial directory is the transcript; it stays */ }
   warnings() {
     const r = (this.ctx.runs.resources as Obj | undefined) ?? {};
@@ -100,7 +103,7 @@ class Docker implements Environment {
     return under(t.dir, "/trial") ?? under(this.ctx.evalsDir, "/evals") ?? p;
   }
   async prepare() { /* the container is created by exec */ }
-  async exec(t: TrialRef, command: string, env: Record<string, string>, _cwd: string, timeoutMs: number, label = "agent"): Promise<ExecResult> {
+  async exec(t: TrialRef, command: string, env: Record<string, string>, _cwd: string, timeoutMs: number, label = "agent", signal?: AbortSignal): Promise<ExecResult> {
     const res = (this.ctx.runs.resources as Obj | undefined) ?? {}; const name = this.containerName(t, label);
     const args = ["run", "--rm", "--name", name];
     if (res.cpus !== undefined) args.push("--cpus", String(res.cpus));
@@ -112,7 +115,7 @@ class Docker implements Environment {
     for (const [k, v] of Object.entries(env)) args.push("-e", `${k}=${v}`);
     for (const k of (this.cfg.pass_env as string[] | undefined) ?? []) if (process.env[k] !== undefined) args.push("-e", k); // name only: the value never appears in the argument list
     args.push(this.image, "sh", "-lc", command);
-    const r = await spawnGroup([this.bin, ...args], {}, this.ctx.repo, timeoutMs, () => { spawn(this.bin, ["kill", name], { stdio: "ignore", detached: true }).unref(); });
+    const r = await spawnGroup([this.bin, ...args], {}, this.ctx.repo, timeoutMs, () => { spawn(this.bin, ["kill", name], { stdio: "ignore", detached: true }).unref(); }, signal);
     if (r.timedOut) return r;
     if (r.code === 137) return { ...r, kind: "oom", stderr: `${r.stderr}\ncontainer killed (exit 137): out of memory${res.memory_mb ? ` at ${res.memory_mb} MB` : ""}` };
     if (r.code === 125) return { ...r, kind: "harness" }; // docker run itself failed: bad image, bad flag, daemon gone
@@ -147,7 +150,7 @@ class Harbor implements Environment {
     return p.endsWith(`${sep}${t.task}.yaml`) ? "/solution/task.yaml" : p; // the task file rides along in solution/; the rest of evals/ must be in the image
   }
   async prepare() { /* the task directory is written by exec */ }
-  async exec(t: TrialRef, command: string, env: Record<string, string>, _cwd: string, timeoutMs: number, label = "agent"): Promise<ExecResult> {
+  async exec(t: TrialRef, command: string, env: Record<string, string>, _cwd: string, timeoutMs: number, label = "agent", signal?: AbortSignal): Promise<ExecResult> {
     const started = Date.now(); const res = (this.ctx.runs.resources as Obj | undefined) ?? {};
     const work = join(t.dir, ".harbor", label); rmSync(work, { recursive: true, force: true });
     const task = join(work, "task"); const jobs = join(work, "jobs");
@@ -167,7 +170,7 @@ class Harbor implements Environment {
     writeFileSync(join(task, "tests", "test.sh"), ["#!/bin/sh", "mkdir -p /logs/verifier", "if [ -f /logs/artifacts/trial.json ]; then echo 1 > /logs/verifier/reward.txt; else echo 0 > /logs/verifier/reward.txt; fi", ""].join("\n"), { mode: 0o755 });
     const args = ["run", "-p", task, "-a", "oracle", "-n", "1", "-k", "1", "-o", jobs, "--job-name", "job", "-y", ...(this.cfg.backend ? ["-e", String(this.cfg.backend)] : [])];
     // Harbor enforces the agent timeout itself; the outer timer only covers a hung CLI (image pull, environment start)
-    const r = await spawnGroup([this.bin, ...args], {}, this.ctx.repo, timeoutMs + 10 * 60_000);
+    const r = await spawnGroup([this.bin, ...args], {}, this.ctx.repo, timeoutMs + 10 * 60_000, undefined, signal);
     const jobDir = join(jobs, "job");
     const trialDir = existsSync(jobDir) ? readdirSync(jobDir, { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => join(jobDir, e.name)).find((d) => existsSync(join(d, "result.json")) || existsSync(join(d, "agent"))) : undefined;
     const ms = Date.now() - started;

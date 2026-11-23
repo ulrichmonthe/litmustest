@@ -670,3 +670,12 @@ a.pal-item[aria-selected="true"] { background: var(--selected); }
 .pal-sub { flex: none; font-size: 12px; color: var(--ink-muted); }
 .pal-empty { margin: 0; padding: 16px 10px; color: var(--ink-muted); }
 .pal-foot { margin: 0; padding: 8px 14px; border-top: 1px solid var(--line-soft); font-size: 12px; color: var(--ink-muted); display: flex; align-items: center; gap: 4px; }
+
+/* A run started from the dashboard (design/mockups/v2/RunningP, RunStoppedP). */
+.live-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+.live-stat { display: flex; flex-direction: column; gap: 8px; padding: 16px; border: 1px solid var(--line-soft); border-radius: var(--radius-lg); }
+.live-n { font-size: 22px; font-weight: 600; letter-spacing: -0.02em; }
+.progress-track { height: 6px; border-radius: 3px; background: var(--neutral-tint); overflow: hidden; }
+.progress-track > span { display: block; height: 100%; background: var(--blue); }
+.tdot.pending { border: 1.5px dashed var(--line-strong); }
+.live-warnings { margin: 0; padding-left: 20px; }
