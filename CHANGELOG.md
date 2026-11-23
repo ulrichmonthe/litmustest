@@ -19,6 +19,9 @@ The `litmustest` CLI (npm) and the plugin (Claude Code; the Codex manifest ships
 - Every dashboard write has a CLI command, including the new `litmustest mode add-notes` and `litmustest dispute … skip`.
 - Hosted mode: GitHub App sign-in, every save a commit on a pull-request branch (built, not deployed).
 
+### Fixed
+- `litmustest serve` no longer crashes in a repository with no commits yet (`git init`, `litmustest init`, `litmustest serve`). The dashboard opens on its first-run screen, and the first commit from Pending changes becomes the repository's first commit.
+
 ### Tested only against fakes
 Docker, Harbor, S3, GCS, Braintrust, Langfuse, the GitHub App and hosted mode, Codex, and the model-backed steps.
 

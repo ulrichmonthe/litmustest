@@ -62,8 +62,10 @@ async function handle(app: App, req: IncomingMessage, res: ServerResponse, ask?:
   const send = (r: Reply) => { if (hooks.hosted && ["PUT", "POST"].includes(req.method ?? "")) return hooks.hosted.settle(r).then(answer, () => answer(r)); answer(r); };
   try {
     if (path === "/api/events" && req.method === "GET") {
+      // Build the greeting before the headers go out: once they are sent, an error can no longer be answered as JSON.
+      const hello = JSON.stringify(app.health().body);
       res.writeHead(200, { "content-type": "text/event-stream", "cache-control": "no-store", connection: "keep-alive" });
-      res.write(`event: hello\ndata: ${JSON.stringify(app.health().body)}\n\n`);
+      res.write(`event: hello\ndata: ${hello}\n\n`);
       const off = app.subscribe((e) => res.write(`event: ${e.type}\ndata: ${JSON.stringify(e)}\n\n`));
       req.on("close", off); return;
     }
@@ -122,6 +124,8 @@ async function handle(app: App, req: IncomingMessage, res: ServerResponse, ask?:
     if ((m = /^\/api\/traces\/([^/]+)\/promote$/.exec(path)) && req.method === "POST") return send(promoteTrace(app, decodeURIComponent(m[1]!), body));
     send({ status: 404, body: { error: "not_found", message: `${req.method} ${path}` } });
   } catch (e) {
+    // A reply already under way (a stream, say) cannot take a second status line; end it instead of crashing the server.
+    if (res.headersSent) { res.end(); return; }
     if (e instanceof HttpError) return send({ status: e.status, body: { error: "error", message: e.message } });
     send({ status: 500, body: { error: "internal", message: (e as Error).message } });
   }

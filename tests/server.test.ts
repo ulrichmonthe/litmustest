@@ -195,3 +195,28 @@ describe("pending count", () => {
     expect((await api("/api/health")).body.pending).toBe(n);
   });
 });
+
+// A new user's path: git init, litmustest init, litmustest serve, before any commit exists. This used to crash the server:
+// the live-updates stream asked git for HEAD after its headers were sent, and the error handler tried to answer twice.
+describe("serving a repository with no commits yet", () => {
+  it("answers every read, keeps the live-updates stream open, and the first commit from Pending changes works", async () => {
+    const repo = mkdtempSync(join(tmpdir(), "litmustest-unborn-"));
+    git(repo, "init", "-q", "-b", "main"); git(repo, "config", "user.name", "t"); git(repo, "config", "user.email", "t@t");
+    initEvals({ cwd: repo });
+    const s = await serve({ evalsDir: join(repo, "evals"), port: 0, watch: false });
+    try {
+      for (const path of ["/api/health", "/api/home", "/api/teach", "/api/pending"]) expect((await fetch(s.url + path)).status, path).toBe(200);
+      expect(((await (await fetch(s.url + "/api/health")).json()) as { branch: string }).branch).toBe("main");
+      const ac = new AbortController();
+      const ev = await fetch(s.url + "/api/events", { signal: ac.signal });
+      expect(ev.status).toBe(200);
+      const first = new TextDecoder().decode((await ev.body!.getReader().read()).value);
+      expect(first).toMatch(/^event: hello\ndata: \{/);
+      ac.abort();
+      // the server is still up after the stream, and a commit from the dashboard makes the repository's first commit
+      const c = await fetch(s.url + "/api/pending/commit", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ message: "Start evals" }) });
+      expect(c.status, await c.clone().text()).toBe(200);
+      expect(git(repo, "log", "--oneline")).toMatch(/Start evals/);
+    } finally { const closed = s.close(); s.server.closeAllConnections(); await closed; }
+  });
+});
