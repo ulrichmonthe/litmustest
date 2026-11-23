@@ -10,7 +10,11 @@ export class Git {
   }
   run(args: string[]): string { return run(args, this.root); }
   rel(abs: string): string { const r = resolve(abs); let real = r; try { real = realpathSync(r); } catch { try { real = join(realpathSync(dirname(r)), basename(r)); } catch { /* keep */ } } return relative(this.root, real).split("\\").join("/"); }
-  branch(): string { return this.run(["rev-parse", "--abbrev-ref", "HEAD"]).trim(); }
+  /** The current branch. Before the first commit `rev-parse HEAD` fails, so read the name HEAD points at instead. */
+  branch(): string {
+    try { return this.run(["rev-parse", "--abbrev-ref", "HEAD"]).trim(); }
+    catch { try { return this.run(["symbolic-ref", "--short", "HEAD"]).trim(); } catch { return ""; } }
+  }
   head(): string { try { return this.run(["rev-parse", "--short", "HEAD"]).trim(); } catch { return ""; } }
   isTracked(rel: string): boolean { try { this.run(["ls-files", "--error-unmatch", "--", rel]); return true; } catch { return false; } }
   status(rel: string): "added" | "modified" | "deleted" | "unchanged" {

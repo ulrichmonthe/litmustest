@@ -1,6 +1,6 @@
 {
   "name": "litmustest",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "From raw AI-product traces to a trusted, CI-gated eval suite. Skills that take a team through error discovery, binary judges and calibration, over an evals/ directory in git, with a local dashboard.",
   "author": { "name": "Ulrich Monthe" },
   "homepage": "https://github.com/ulrichmonthe/litmustest",
