@@ -110,7 +110,7 @@ jobs:
         env:
           ANTHROPIC_API_KEY: \${{ secrets.ANTHROPIC_API_KEY }}
           GH_TOKEN: \${{ github.token }}
-${secrets.map((k) => `          ${k}: \${{ secrets.${k} }}\n`).join("")}        run: npx litmustest ci --comment
+${secrets.map((k) => `          ${k}: \${{ secrets.${k} }}\n`).join("")}        run: npx @concertedlabs/litmustest ci --comment
 `;
   if (backend !== "local") return head;
   return `${head}      - name: Keep the transcripts (they are stored locally, and this runner is thrown away)

@@ -50,7 +50,7 @@ describe("ci", () => {
   it("writes the workflow once", () => {
     const root = mkdtempSync(join(tmpdir(), "litmustest-wf-"));
     const p = writeWorkflow(root);
-    expect(existsSync(p)).toBe(true); expect(readFileSync(p, "utf8")).toContain("npx litmustest ci --comment");
+    expect(existsSync(p)).toBe(true); expect(readFileSync(p, "utf8")).toContain("npx @concertedlabs/litmustest ci --comment");
     expect(() => writeWorkflow(root)).toThrow(/already exists/);
   });
 });

@@ -80,7 +80,7 @@ jobs:
           LANGFUSE_PUBLIC_KEY: \${{ secrets.LANGFUSE_PUBLIC_KEY }}
           LANGFUSE_SECRET_KEY: \${{ secrets.LANGFUSE_SECRET_KEY }}
           BRAINTRUST_API_KEY: \${{ secrets.BRAINTRUST_API_KEY }}
-        run: npx litmustest sample --if-due
+        run: npx @concertedlabs/litmustest sample --if-due
       - name: Open a pull request with the batch
         env:
           GH_TOKEN: \${{ github.token }}
